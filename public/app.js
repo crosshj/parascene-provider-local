@@ -1,0 +1,269 @@
+'use strict';
+
+const form = document.getElementById('gen-form');
+const modelSel = document.getElementById('model');
+const badge = document.getElementById('family-badge');
+const statusEl = document.getElementById('status');
+const copyErrorBtn = document.getElementById('copy-error-btn');
+const randomizeSeedBtn = document.getElementById('randomize-seed-btn');
+const previewWrap = document.getElementById('preview-wrap');
+const idleEl = document.getElementById('preview-idle');
+const imageEl = document.getElementById('image');
+const metaRowEl = document.getElementById('meta-row');
+const STORAGE_KEY = 'local-image-generator.form.v1';
+
+let modelRegistry = {};
+let savedValues = null;
+let lastErrorText = '';
+
+function setStatusMessage(text, isError = false) {
+	statusEl.textContent = text || '';
+	if (isError) {
+		lastErrorText = text || '';
+		copyErrorBtn?.classList.remove('hidden');
+	} else {
+		lastErrorText = '';
+		copyErrorBtn?.classList.add('hidden');
+	}
+}
+
+async function copyLastError() {
+	if (!lastErrorText) return;
+	try {
+		await navigator.clipboard.writeText(lastErrorText);
+		copyErrorBtn.title = 'Copied';
+		setTimeout(() => {
+			if (copyErrorBtn) copyErrorBtn.title = 'Copy error';
+		}, 1200);
+	} catch {
+		setStatusMessage('Error: Could not copy error text', true);
+	}
+}
+
+function randomizeSeed() {
+	const seed = Math.floor(Math.random() * 2_147_483_647) + 1;
+	form.seed.value = String(seed);
+	saveFormValues();
+}
+
+// ── Form persistence ──────────────────────────────────
+
+function collectFormValues() {
+	return {
+		prompt: form.prompt.value,
+		negative_prompt: form.negative_prompt.value,
+		model: modelSel.value,
+		width: form.width.value,
+		height: form.height.value,
+		steps: form.steps.value,
+		cfg: form.cfg.value,
+		seed: form.seed.value,
+	};
+}
+
+function saveFormValues() {
+	try {
+		localStorage.setItem(STORAGE_KEY, JSON.stringify(collectFormValues()));
+	} catch {
+		// Ignore localStorage failures.
+	}
+}
+
+function restoreSavedValues() {
+	try {
+		const raw = localStorage.getItem(STORAGE_KEY);
+		if (!raw) return null;
+		const parsed = JSON.parse(raw);
+		return parsed && typeof parsed === 'object' ? parsed : null;
+	} catch {
+		return null;
+	}
+}
+
+function updateFamilyBadge() {
+	const entry = modelRegistry[modelSel.value];
+	badge.textContent = entry ? entry.family : '';
+}
+
+// ── Preview state ─────────────────────────────────────
+
+function setPreviewIdle() {
+	previewWrap.classList.remove('is-loading');
+	imageEl.style.display = 'none';
+	idleEl.classList.remove('hidden');
+}
+
+function setPreviewLoading() {
+	previewWrap.classList.add('is-loading');
+	imageEl.style.display = 'none';
+	idleEl.classList.add('hidden');
+}
+
+function setPreviewImage(src) {
+	previewWrap.classList.remove('is-loading');
+	idleEl.classList.add('hidden');
+	imageEl.src = src;
+	imageEl.style.display = 'block';
+}
+
+// ── Metadata chips ────────────────────────────────────
+
+function renderMeta(data) {
+	const items = [
+		['family', data.family],
+		['model', data.model.split(/[\\/]/).pop()],
+		['seed', data.seed],
+		['time', data.elapsed_ms + '\u202fms'],
+	];
+	metaRowEl.innerHTML = items
+		.map(
+			([k, v]) =>
+				`<span class="chip"><span class="chip-k">${k}</span>${v}</span>`,
+		)
+		.join('');
+}
+
+// ── Model loading ─────────────────────────────────────
+
+async function loadModels() {
+	try {
+		const res = await fetch('/api/models');
+		const data = await res.json();
+		if (!data.ok) throw new Error('Bad response');
+
+		const groups = {};
+		for (const m of data.models) {
+			modelRegistry[m.name] = m;
+			(groups[m.family] ??= []).push(m);
+		}
+
+		modelSel.innerHTML = '';
+		for (const [family, models] of Object.entries(groups)) {
+			const grp = document.createElement('optgroup');
+			grp.label = family.toUpperCase();
+			for (const m of models) {
+				const opt = document.createElement('option');
+				opt.value = m.name;
+				opt.textContent = m.name;
+				grp.appendChild(opt);
+			}
+			modelSel.appendChild(grp);
+		}
+
+		const hasSavedModel =
+			savedValues &&
+			typeof savedValues.model === 'string' &&
+			savedValues.model &&
+			modelRegistry[savedValues.model];
+
+		if (hasSavedModel) {
+			modelSel.value = savedValues.model;
+		} else {
+			const first = modelSel.querySelector('option');
+			if (first) modelSel.value = first.value;
+		}
+
+		if (savedValues) {
+			const f = savedValues;
+			if (f.prompt != null) form.prompt.value = f.prompt;
+			if (f.negative_prompt != null)
+				form.negative_prompt.value = f.negative_prompt;
+			if (f.width != null) form.width.value = f.width;
+			if (f.height != null) form.height.value = f.height;
+			if (f.steps != null) form.steps.value = f.steps;
+			if (f.cfg != null) form.cfg.value = f.cfg;
+			if (f.seed != null) form.seed.value = f.seed;
+		}
+
+		if (!savedValues) applyModelDefaults();
+		else updateFamilyBadge();
+
+		saveFormValues();
+	} catch (e) {
+		modelSel.innerHTML = '<option value="">Failed to load models</option>';
+		setStatusMessage('Error loading models: ' + e.message, true);
+	}
+}
+
+function applyModelDefaults() {
+	const entry = modelRegistry[modelSel.value];
+	if (!entry) return;
+	updateFamilyBadge();
+	form.width.value = entry.defaults.width;
+	form.height.value = entry.defaults.height;
+	form.steps.value = entry.defaults.steps;
+	form.cfg.value = entry.defaults.cfg;
+	saveFormValues();
+}
+
+// ── Events ────────────────────────────────────────────
+
+modelSel.addEventListener('change', applyModelDefaults);
+
+[
+	'prompt',
+	'negative_prompt',
+	'width',
+	'height',
+	'steps',
+	'cfg',
+	'seed',
+].forEach((n) => form[n].addEventListener('input', saveFormValues));
+
+form.addEventListener('submit', async (e) => {
+	e.preventDefault();
+	setStatusMessage('Generating…');
+	setPreviewLoading();
+	metaRowEl.innerHTML = '';
+
+	const body = {
+		prompt: form.prompt.value.trim(),
+		negative_prompt: form.negative_prompt.value.trim(),
+		model: modelSel.value,
+		width: Number(form.width.value),
+		height: Number(form.height.value),
+		steps: Number(form.steps.value),
+		cfg: Number(form.cfg.value),
+	};
+
+	const seedRaw = form.seed.value.trim();
+	if (seedRaw) {
+		const seedVal = Number(seedRaw);
+		if (Number.isInteger(seedVal) && seedVal >= 0) {
+			body.seed = seedVal;
+		} else {
+			setPreviewIdle();
+			setStatusMessage(
+				'Error: Seed must be a non-negative integer',
+				true,
+			);
+			return;
+		}
+	}
+
+	try {
+		const r = await fetch('/api/generate', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(body),
+		});
+		const data = await r.json();
+		if (!r.ok || !data.ok)
+			throw new Error(data.error || 'Generation failed.');
+
+		setPreviewImage(data.image_url + '?t=' + Date.now());
+		renderMeta(data);
+		setStatusMessage('Done.');
+	} catch (err) {
+		setPreviewIdle();
+		setStatusMessage('Error: ' + (err.message || 'Unknown'), true);
+	}
+});
+
+copyErrorBtn?.addEventListener('click', copyLastError);
+randomizeSeedBtn?.addEventListener('click', randomizeSeed);
+
+// ── Init ──────────────────────────────────────────────
+
+savedValues = restoreSavedValues();
+loadModels();
