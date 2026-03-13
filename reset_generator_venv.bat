@@ -1,37 +1,74 @@
-@echo off
-setlocal
+@echo on
+setlocal EnableExtensions
 
 cd /d "%~dp0"
 
-echo [1/4] Removing old virtual environments...
-if exist ".venv" rmdir /s /q ".venv"
-if exist "generator\.venv" rmdir /s /q "generator\.venv"
+REM Clear activated venv markers from current shell
+set "VIRTUAL_ENV="
 
-echo [2/4] Creating new generator\.venv...
-py -3 -m venv "generator\.venv" 2>nul
-if errorlevel 1 (
-  if exist ".venv\Scripts\python.exe" (
-    ".venv\Scripts\python.exe" -m venv "generator\.venv"
-  ) else (
-    python -m venv "generator\.venv"
+REM Find a python.exe that is NOT inside this repo's .venv folders
+set "BASEPY="
+for /f "delims=" %%I in ('where python 2^>nul') do (
+  echo %%~fI | find /I "%CD%\.venv\" >nul
+  if errorlevel 1 (
+    echo %%~fI | find /I "%CD%\generator\.venv\" >nul
+    if errorlevel 1 (
+      set "BASEPY=%%~fI"
+      goto :gotpython
+    )
   )
 )
-if errorlevel 1 (
-  echo Failed to create virtual environment.
-  exit /b 1
-)
 
-echo [3/4] Upgrading pip...
-"generator\.venv\Scripts\python.exe" -m pip install --upgrade pip
-if errorlevel 1 exit /b 1
+echo No usable base Python found in PATH.
+echo Close VS Code terminal, open plain Command Prompt, run: where python
+goto :fail
 
-echo [4/4] Installing dependencies...
+:gotpython
+echo Using base Python: %BASEPY%
+"%BASEPY%" --version
+if errorlevel 1 goto :fail
+
+echo.
+echo [1/6] Removing root .venv (if present)...
+if exist ".venv" rmdir /s /q ".venv"
+
+echo.
+echo [2/6] Removing generator\.venv (if present)...
+if exist "generator\.venv" rmdir /s /q "generator\.venv"
+
+echo.
+echo [3/6] Creating generator\.venv...
+"%BASEPY%" -m venv "generator\.venv"
+if errorlevel 1 goto :fail
+
+set "PY=generator\.venv\Scripts\python.exe"
+if not exist "%PY%" goto :fail
+
+echo.
+echo [4/6] Upgrading pip/setuptools/wheel...
+"%PY%" -m pip install --upgrade pip setuptools wheel
+if errorlevel 1 goto :fail
+
+echo.
+echo [5/6] Installing requirements...
 if exist "generator\requirements.txt" (
-  "generator\.venv\Scripts\python.exe" -m pip install -r "generator\requirements.txt"
+  "%PY%" -m pip install --progress-bar on -r "generator\requirements.txt"
+) else if exist "requirements.txt" (
+  "%PY%" -m pip install --progress-bar on -r "requirements.txt"
 ) else (
-  "generator\.venv\Scripts\python.exe" -m pip install -r "requirements.txt"
+  echo No requirements.txt found.
+  goto :fail
 )
-if errorlevel 1 exit /b 1
+if errorlevel 1 goto :fail
 
-echo Done. To activate in cmd.exe, run:
-echo call generator\.venv\Scripts\activate.bat
+echo.
+echo [6/6] Done.
+goto :end
+
+:fail
+echo.
+echo FAILED with error code %errorlevel%.
+
+:end
+pause
+endlocal

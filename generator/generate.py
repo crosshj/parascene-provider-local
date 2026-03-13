@@ -63,6 +63,11 @@ FLUX_USE_CPU_OFFLOAD = os.environ.get("FLUX_USE_CPU_OFFLOAD", "1") == "1"
 FLUX_ENABLE_XFORMERS = os.environ.get("FLUX_ENABLE_XFORMERS", "0") == "1"
 FLUX_DTYPE = (os.environ.get("FLUX_DTYPE", "fp16") or "fp16").strip().lower()
 
+
+def _log(msg: str) -> None:
+    sys.stderr.write(f"[worker] {msg}\n")
+    sys.stderr.flush()
+
 # ---------------------------------------------------------------------------
 # VRAM / CPU model cache
 # ---------------------------------------------------------------------------
@@ -94,8 +99,13 @@ def _setup_torch(torch_module) -> bool:
 
 def load_pipeline(family: str, model: str):
     """Load (or return cached) pipeline for the given family and model path."""
+    _log(f"load_pipeline:start family={family} model={model}")
+    _log("load_pipeline:import torch")
     torch = _get_torch()
+    _log("load_pipeline:torch imported")
+    _log("load_pipeline:setup cuda")
     use_cuda = _setup_torch(torch)
+    _log(f"load_pipeline:cuda={'yes' if use_cuda else 'no'}")
 
     model_path = to_win_path(model)
     family = (family or "sdxl").lower()
@@ -108,6 +118,7 @@ def load_pipeline(family: str, model: str):
     if cache_key in PIPE_CACHE:
         pipe = PIPE_CACHE.pop(cache_key)
         PIPE_CACHE[cache_key] = pipe
+        _log("load_pipeline:cache hit (gpu)")
         return pipe, torch
 
     def cpu_family_cache(target_family: str) -> OrderedDict[str, Any]:
@@ -153,6 +164,7 @@ def load_pipeline(family: str, model: str):
         evict_gpu_family_cache(family)
         device = "cuda" if use_cuda else "cpu"
         PIPE_CACHE[cache_key] = revived.to(device)
+        _log(f"load_pipeline:cache hit (cpu->{device})")
         return PIPE_CACHE[cache_key], torch
 
     evict_gpu_family_cache(family)
@@ -164,19 +176,30 @@ def load_pipeline(family: str, model: str):
             if use_cuda:
                 if FLUX_DTYPE in ("bf16", "bfloat16"):
                     dtype = torch.bfloat16
+            _log(
+                f"load_pipeline:loading flux dtype={str(dtype)} cpu_offload={FLUX_USE_CPU_OFFLOAD} xformers={FLUX_ENABLE_XFORMERS}"
+            )
+            load_started = time.time()
             pipe = workflow_flux.load_pipeline(
                 model_path, configs_dir, torch, use_cuda, dtype,
                 FLUX_USE_CPU_OFFLOAD, FLUX_ENABLE_XFORMERS,
             )
+            _log(f"load_pipeline:loaded flux in {int((time.time() - load_started) * 1000)}ms")
         elif family == "sdxl":
+            _log("load_pipeline:loading sdxl")
+            load_started = time.time()
             pipe = workflow_sdxl.load_pipeline(
                 model_path, configs_dir, torch, use_cuda,
                 ENABLE_ATTN_SLICING, enable_xformers=True,
             )
+            _log(f"load_pipeline:loaded sdxl in {int((time.time() - load_started) * 1000)}ms")
         elif family == "sd15":
+            _log("load_pipeline:loading sd15")
+            load_started = time.time()
             pipe = workflow_sd15.load_pipeline(
                 model_path, torch, use_cuda, ENABLE_ATTN_SLICING,
             )
+            _log(f"load_pipeline:loaded sd15 in {int((time.time() - load_started) * 1000)}ms")
         else:
             raise ValueError(f"Unknown family '{family}'. Supported: flux, sdxl, sd15")
     except Exception as exc:
@@ -185,6 +208,7 @@ def load_pipeline(family: str, model: str):
         ) from exc
 
     PIPE_CACHE[cache_key] = pipe
+    _log("load_pipeline:done")
     return pipe, torch
 
 
@@ -212,12 +236,15 @@ def _process_one(payload: Dict[str, Any], out_dir: Path) -> Dict[str, Any]:
             raise ValueError("Missing required field: model")
 
         started = time.time()
+        _log(f"loading family={family} model={model}")
         pipe, torch_module = load_pipeline(family, model)
+        _log("running inference")
         image, seed = run_generation(pipe, family, payload, torch_module)
 
         stamp = time.strftime("%Y%m%d-%H%M%S")
         file_name = f"img-{stamp}-{seed}.png"
         out_path = out_dir / file_name
+        _log(f"saving {file_name}")
         image.save(out_path)
 
         return {
@@ -248,8 +275,7 @@ def worker_loop(out_dir_str: str) -> int:
     out_dir = Path(out_dir_str)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    sys.stderr.write("[worker] ready\n")
-    sys.stderr.flush()
+    _log("ready")
 
     while True:
         try:
@@ -267,10 +293,12 @@ def worker_loop(out_dir_str: str) -> int:
         except json.JSONDecodeError as exc:
             result = {"ok": False, "error": f"Invalid JSON: {exc}"}
         else:
+            _log("request received")
             result = _process_one(payload, out_dir)
 
         sys.stdout.write(json.dumps(result) + "\n")
         sys.stdout.flush()
+        _log(f"response sent ok={result.get('ok', False)}")
 
     return 0
 
