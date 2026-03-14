@@ -1,4 +1,4 @@
-accelerate==1.13.0
+accelerate>=1.0.0
 annotated-doc==0.0.4
 aiohttp==3.13.3
 anyio==4.12.1

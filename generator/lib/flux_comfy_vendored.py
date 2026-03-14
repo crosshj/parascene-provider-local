@@ -39,7 +39,11 @@ def _init_comfy_runtime():
     if _COMFY is not None:
         return _COMFY
 
-    default_root = Path(__file__).resolve().parent / "comfy_vendor" / "ComfyUI"
+    _lib = Path(__file__).resolve().parent
+    if os.environ.get("FLUX_CCR_USE_SLIM_VENDOR", "").strip().lower() in ("1", "true", "yes"):
+        default_root = _lib / "comfy_vendor_slim"
+    else:
+        default_root = _lib / "comfy_vendor" / "ComfyUI"
     comfy_root = Path(os.environ.get("COMFYUI_ROOT", str(default_root))).expanduser()
     if not comfy_root.exists():
         raise RuntimeError(f"COMFYUI_ROOT not found: {comfy_root}")

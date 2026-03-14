@@ -1,0 +1,20 @@
+# Minimal deps for FLUX build script + Comfy init (Python 3.9 compatible).
+# Use when full requirements.txt pins require Python 3.10+.
+pillow>=10.0.0
+torch>=2.0.0
+torchvision
+safetensors>=0.4.0
+transformers>=4.30.0
+diffusers>=0.25.0
+huggingface_hub>=0.16.0
+numpy>=1.24.0,<2.0.0
+tqdm
+PyYAML
+regex
+requests
+accelerate>=1.0.0
+einops
+filelock
+psutil
+scipy>=1.10.0
+torchsde @ git+https://github.com/google-research/torchsde.git@eb3a00e31cbd56176270066ed2f62c394cf6acb7

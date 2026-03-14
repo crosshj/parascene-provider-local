@@ -6,7 +6,11 @@ from comfy_api.internal import ComfyAPIBase
 from comfy_api.internal.singleton import ProxiedSingleton
 from comfy_api.internal.async_to_sync import create_sync_class
 from ._input import ImageInput, AudioInput, MaskInput, LatentInput, VideoInput
-from ._input_impl import VideoFromFile, VideoFromComponents
+try:
+    from ._input_impl import VideoFromFile, VideoFromComponents
+except ImportError:
+    VideoFromFile = None
+    VideoFromComponents = None
 from ._util import VideoCodec, VideoContainer, VideoComponents, MESH, VOXEL
 from . import _io_public as io
 from . import _ui_public as ui

@@ -7,7 +7,10 @@ import uuid
 from io import BytesIO
 from typing import Type
 
-import av
+try:
+    import av
+except ImportError:
+    av = None
 import numpy as np
 import torch
 try:
