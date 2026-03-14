@@ -28,6 +28,7 @@ from lib.utils import (
     to_win_path,
 )
 import workflows.flux as workflow_flux
+import workflows.flux_ccr as workflow_flux_ccr
 import workflows.flux_test as workflow_flux_test
 import workflows.sdxl as workflow_sdxl
 import workflows.sd15 as workflow_sd15
@@ -68,10 +69,12 @@ ENABLE_ATTN_SLICING = os.environ.get("ENABLE_ATTN_SLICING", "0") == "1"
 FLUX_USE_CPU_OFFLOAD = os.environ.get("FLUX_USE_CPU_OFFLOAD", "0") == "1"
 FLUX_ENABLE_XFORMERS = os.environ.get("FLUX_ENABLE_XFORMERS", "0") == "1"
 FLUX_DTYPE = (os.environ.get("FLUX_DTYPE", "bf16") or "bf16").strip().lower()
-FLUX_WORKFLOW = (os.environ.get("FLUX_WORKFLOW", "flux_test") or "flux_test").strip().lower()
+FLUX_WORKFLOW = (os.environ.get("FLUX_WORKFLOW", "flux_ccr") or "flux_ccr").strip().lower()
 
 
 def _get_flux_workflow_module():
+    if FLUX_WORKFLOW == "flux_ccr":
+        return workflow_flux_ccr
     if FLUX_WORKFLOW == "flux_test":
         return workflow_flux_test
     return workflow_flux

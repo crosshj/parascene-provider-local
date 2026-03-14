@@ -1,0 +1,35 @@
+my_config:
+  base_path: D:\
+  animatediff_models: |
+    comfy_models\animatediff_models
+  animatediff_motion_lora: |
+    comfy_models\animatediff_motion_lora
+  checkpoints: |
+    comfy_models\checkpoints
+  clip: |
+    comfy_models\clip
+  clip_vision: |
+    comfy_models\clip_vision
+  configs: |
+    comfy_models\configs
+  controlnet: |
+    comfy_models\controlnet
+  custom_nodes: |
+    comfy_models\custom_nodes
+  diffusion_models: |
+    comfy_models\diffusion_models
+    comfy_models\unet
+  embeddings: |
+    comfy_models\embeddings
+  hypernetworks: |
+    comfy_models\hypernetworks
+  loras: |
+    comfy_models\loras
+  model_patches: |
+    comfy_models\model_patches
+  text_encoders: |
+    comfy_models\text_encoders
+  upscale_models: |
+    comfy_models\upscale_models
+  vae: |
+    comfy_models\vae
