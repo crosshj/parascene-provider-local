@@ -28,6 +28,7 @@ from lib.utils import (
     to_win_path,
 )
 import workflows.flux as workflow_flux
+import workflows.flux_test as workflow_flux_test
 import workflows.sdxl as workflow_sdxl
 import workflows.sd15 as workflow_sd15
 
@@ -41,6 +42,11 @@ if os.name != "nt":
 # Default is 0 (on this box that's the RTX 5090).
 os.environ.setdefault("CUDA_DEVICE_ORDER", "PCI_BUS_ID")
 os.environ.setdefault("CUDA_VISIBLE_DEVICES", os.environ.get("IMAGE_GPU_INDEX", "0"))
+
+# Triton is typically unavailable on Windows; disable Triton probing in xformers
+# to avoid noisy import tracebacks when xformers is enabled.
+if os.name == "nt":
+    os.environ.setdefault("XFORMERS_FORCE_DISABLE_TRITON", "1")
 
 # Quiet known noisy deprecation warning emitted from diffusers internals.
 warnings.filterwarnings(
@@ -59,9 +65,16 @@ MAX_GPU_MODELS_PER_FAMILY = max(1, int(os.environ.get("MAX_GPU_MODELS_PER_FAMILY
 MAX_GPU_MODELS_FLUX = max(1, int(os.environ.get("MAX_GPU_MODELS_FLUX", "1")))
 MAX_CPU_MODELS_PER_FAMILY = max(0, int(os.environ.get("MAX_CPU_MODELS_PER_FAMILY", "0")))
 ENABLE_ATTN_SLICING = os.environ.get("ENABLE_ATTN_SLICING", "0") == "1"
-FLUX_USE_CPU_OFFLOAD = os.environ.get("FLUX_USE_CPU_OFFLOAD", "1") == "1"
+FLUX_USE_CPU_OFFLOAD = os.environ.get("FLUX_USE_CPU_OFFLOAD", "0") == "1"
 FLUX_ENABLE_XFORMERS = os.environ.get("FLUX_ENABLE_XFORMERS", "0") == "1"
-FLUX_DTYPE = (os.environ.get("FLUX_DTYPE", "fp16") or "fp16").strip().lower()
+FLUX_DTYPE = (os.environ.get("FLUX_DTYPE", "bf16") or "bf16").strip().lower()
+FLUX_WORKFLOW = (os.environ.get("FLUX_WORKFLOW", "flux_test") or "flux_test").strip().lower()
+
+
+def _get_flux_workflow_module():
+    if FLUX_WORKFLOW == "flux_test":
+        return workflow_flux_test
+    return workflow_flux
 
 
 def _log(msg: str) -> None:
@@ -112,7 +125,9 @@ def load_pipeline(family: str, model: str):
 
     # FLUX path normalisation lives in the flux workflow.
     if family == "flux":
-        model_path = workflow_flux.resolve_flux_model_path(model_path, family)
+        model_path = _get_flux_workflow_module().resolve_flux_model_path(
+            model_path, family
+        )
 
     cache_key = f"{family}:{model_path}"
     if cache_key in PIPE_CACHE:
@@ -172,15 +187,16 @@ def load_pipeline(family: str, model: str):
 
     try:
         if family == "flux":
+            flux_workflow_module = _get_flux_workflow_module()
             dtype = torch.float16 if use_cuda else torch.float32
             if use_cuda:
                 if FLUX_DTYPE in ("bf16", "bfloat16"):
                     dtype = torch.bfloat16
             _log(
-                f"load_pipeline:loading flux dtype={str(dtype)} cpu_offload={FLUX_USE_CPU_OFFLOAD} xformers={FLUX_ENABLE_XFORMERS}"
+                f"load_pipeline:loading flux workflow={FLUX_WORKFLOW} dtype={str(dtype)} cpu_offload={FLUX_USE_CPU_OFFLOAD} xformers={FLUX_ENABLE_XFORMERS}"
             )
             load_started = time.time()
-            pipe = workflow_flux.load_pipeline(
+            pipe = flux_workflow_module.load_pipeline(
                 model_path, configs_dir, torch, use_cuda, dtype,
                 FLUX_USE_CPU_OFFLOAD, FLUX_ENABLE_XFORMERS,
             )
@@ -215,7 +231,7 @@ def load_pipeline(family: str, model: str):
 def run_generation(pipe, family: str, payload: Dict[str, Any], torch_module):
     """Delegate inference to the appropriate workflow module."""
     if family == "flux":
-        return workflow_flux.generate(pipe, payload, torch_module)
+        return _get_flux_workflow_module().generate(pipe, payload, torch_module)
     elif family == "sdxl":
         return workflow_sdxl.generate(pipe, payload, torch_module)
     elif family == "sd15":
@@ -275,7 +291,11 @@ def worker_loop(out_dir_str: str) -> int:
     out_dir = Path(out_dir_str)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    _log("ready")
+    _log(
+        "ready "
+        f"(flux_cpu_offload={FLUX_USE_CPU_OFFLOAD} "
+        f"flux_xformers={FLUX_ENABLE_XFORMERS} flux_dtype={FLUX_DTYPE})"
+    )
 
     while True:
         try:
