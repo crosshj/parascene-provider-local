@@ -1,0 +1,9 @@
+{
+  "name": "parascene-service",
+  "version": "0.1.0",
+  "description": "Windows AI service supervisor (Phase 1+)",
+  "private": true,
+  "scripts": {
+    "start": "node src/supervisor/index.js"
+  }
+}

@@ -166,3 +166,8 @@ build/
 # Env files
 .env
 .env.*
+
+# Windows AI Service runtime and logs (Phase 1+)
+service/runtime/
+service/logs/
+service/scripts/service.generated.xml
