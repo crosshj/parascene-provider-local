@@ -14,10 +14,14 @@ Node supervisor service for local provider operations:
 
 Loaded in this order:
 
-1. `service/.env`
-2. repo root `.env`
+1. persistent service root `.env` (`SERVICE_DATA_ROOT/.env` when set, otherwise `service/.env`)
+2. persistent repo root `.env`
+3. release-local `service/.env` (fallback only)
+4. release-local repo root `.env` (fallback only)
 
 Start from [service/.env.example](service/.env.example).
+
+When the Windows service runs from `service/runtime/current`, the staged release remains code-only while secrets continue loading from the persistent service root.
 
 Required for webhooks:
 

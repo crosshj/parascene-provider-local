@@ -19,10 +19,19 @@ function getServiceRoot(fromDirname) {
  */
 function loadConfig(serviceRoot) {
   const repoRoot = path.join(serviceRoot, "..");
-  loadDotenvFiles(serviceRoot, repoRoot);
   const dataRoot = process.env.SERVICE_DATA_ROOT
     ? path.resolve(process.env.SERVICE_DATA_ROOT)
     : serviceRoot;
+  const envServiceRoot = dataRoot;
+  const envRepoRoot = path.join(envServiceRoot, "..");
+
+  loadDotenvFiles({
+    envServiceRoot,
+    envRepoRoot,
+    releaseServiceRoot: serviceRoot,
+    releaseRepoRoot: repoRoot,
+  });
+
   const pkgPath = path.join(repoRoot, "package.json");
   let version = "0.0.0";
   try {
@@ -47,13 +56,27 @@ function loadConfig(serviceRoot) {
   };
 }
 
-function loadDotenvFiles(serviceRoot, repoRoot) {
+function loadDotenvFiles({
+  envServiceRoot,
+  envRepoRoot,
+  releaseServiceRoot,
+  releaseRepoRoot,
+}) {
   const dotenvFiles = [
-    path.join(serviceRoot, ".env"),
-    path.join(repoRoot, ".env"),
+    path.join(envServiceRoot, ".env"),
+    path.join(envRepoRoot, ".env"),
+    path.join(releaseServiceRoot, ".env"),
+    path.join(releaseRepoRoot, ".env"),
   ];
 
+  const seen = new Set();
+
   for (const dotenvPath of dotenvFiles) {
+    if (seen.has(dotenvPath)) {
+      continue;
+    }
+    seen.add(dotenvPath);
+
     if (!fs.existsSync(dotenvPath)) {
       continue;
     }
