@@ -5,12 +5,13 @@ const path = require("path");
 const { spawn } = require("child_process");
 
 class GpuProbe {
-  constructor({ serviceRoot, log, onFailure }) {
+  constructor({ serviceRoot, dataRoot, log, onFailure }) {
     this.serviceRoot = serviceRoot;
+    this.dataRoot = dataRoot || serviceRoot;
     this.log = log;
     this.onFailure = typeof onFailure === "function" ? onFailure : null;
 
-    this.runtimeDir = path.join(serviceRoot, "runtime");
+    this.runtimeDir = path.join(this.dataRoot, "runtime");
     this.statePath = path.join(this.runtimeDir, "gpu-state.json");
 
     this.intervalMs = Number.parseInt(

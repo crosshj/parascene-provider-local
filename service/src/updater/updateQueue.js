@@ -5,11 +5,12 @@ const path = require("path");
 const { UpdatePipeline } = require("./updatePipeline");
 
 class UpdateQueue {
-  constructor({ serviceRoot, log }) {
+  constructor({ serviceRoot, dataRoot, log }) {
     this.serviceRoot = serviceRoot;
+    this.dataRoot = dataRoot || serviceRoot;
     this.log = log;
 
-    this.runtimeDir = path.join(serviceRoot, "runtime");
+    this.runtimeDir = path.join(this.dataRoot, "runtime");
     this.statePath = path.join(this.runtimeDir, "update-state.json");
     this.eventsPath = path.join(this.runtimeDir, "webhook-events.jsonl");
 
@@ -25,6 +26,7 @@ class UpdateQueue {
 
     this.pipeline = new UpdatePipeline({
       serviceRoot: this.serviceRoot,
+      dataRoot: this.dataRoot,
       log: this.log,
     });
   }

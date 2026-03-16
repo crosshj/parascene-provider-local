@@ -20,6 +20,9 @@ function getServiceRoot(fromDirname) {
 function loadConfig(serviceRoot) {
   const repoRoot = path.join(serviceRoot, "..");
   loadDotenvFiles(serviceRoot, repoRoot);
+  const dataRoot = process.env.SERVICE_DATA_ROOT
+    ? path.resolve(process.env.SERVICE_DATA_ROOT)
+    : serviceRoot;
   const pkgPath = path.join(repoRoot, "package.json");
   let version = "0.0.0";
   try {
@@ -37,6 +40,7 @@ function loadConfig(serviceRoot) {
     port,
     serviceRoot,
     repoRoot,
+    dataRoot,
     githubWebhookSecret,
     githubWebhookRepo,
     githubWebhookBranch,

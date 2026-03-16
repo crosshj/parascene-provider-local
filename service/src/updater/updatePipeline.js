@@ -5,13 +5,15 @@ const path = require("path");
 const { ReleaseManager } = require("./releaseManager");
 
 class UpdatePipeline {
-  constructor({ serviceRoot, log }) {
+  constructor({ serviceRoot, dataRoot, log }) {
     this.serviceRoot = serviceRoot;
+    this.dataRoot = dataRoot || serviceRoot;
     this.log = log;
-    this.runtimeDir = path.join(serviceRoot, "runtime");
+    this.runtimeDir = path.join(this.dataRoot, "runtime");
     this.stopped = false;
     this.releaseManager = new ReleaseManager({
       serviceRoot: this.serviceRoot,
+      dataRoot: this.dataRoot,
       log: this.log,
     });
 
@@ -29,6 +31,7 @@ class UpdatePipeline {
     this._ensureDirs();
 
     const releaseCtx = this.releaseManager.createReleaseContext(job);
+    let cutoverContext = null;
 
     const transition = async (state, details = {}) => {
       if (this.stopped) {
@@ -80,29 +83,66 @@ class UpdatePipeline {
         releaseId: releaseCtx.releaseId,
         releaseDir: releaseCtx.releaseDir,
       });
-      const pointerPath = this.releaseManager.writeCurrentPointer(
+      cutoverContext = this.releaseManager.cutoverToRelease(
         job,
         releaseCtx,
         syncResult,
       );
       await this._delay();
 
-      await transition("restarting");
+      await transition("restarting", {
+        strategy: "external-service-restart",
+      });
       await this._delay();
+
+      const pruneResult = this.releaseManager.pruneOldReleases({
+        keepReleaseIds: [
+          releaseCtx.releaseId,
+          cutoverContext.previousPointer
+            ? cutoverContext.previousPointer.releaseId
+            : null,
+        ].filter(Boolean),
+      });
 
       await transition("complete", {
         releaseId: releaseCtx.releaseId,
         releaseDir: releaseCtx.releaseDir,
+        prunedReleaseIds: pruneResult.pruned,
       });
       return {
         releaseId: releaseCtx.releaseId,
         releaseDir: releaseCtx.releaseDir,
         metadataFile: metadataPath,
         smokeFile: smokePath,
-        pointerFile: pointerPath,
-        mode: "phase-5-real-github-fetch",
+        pointerFile: cutoverContext.pointerPath,
+        currentPath: this.releaseManager.currentLinkPath,
+        prunedReleaseIds: pruneResult.pruned,
+        mode: "phase-9-staged-cutover",
       };
     } catch (err) {
+      if (cutoverContext) {
+        try {
+          this.releaseManager.rollbackCutover(
+            cutoverContext.previousPointer,
+            cutoverContext.previousTarget,
+          );
+          this.log.warn("updater.cutover.rollback", {
+            jobId: job.id,
+            releaseId: releaseCtx.releaseId,
+            reason: err.message,
+          });
+        } catch (rollbackErr) {
+          this.log.error("updater.cutover.rollback.error", {
+            jobId: job.id,
+            releaseId: releaseCtx.releaseId,
+            error: rollbackErr.message,
+          });
+          err = new Error(
+            `${err.message}; rollback failed: ${rollbackErr.message}`,
+          );
+        }
+      }
+
       onStateChange("failed", {
         error: err.message,
         failedAt: new Date().toISOString(),
@@ -119,20 +159,29 @@ class UpdatePipeline {
   _runSmokeTest(job, releaseCtx, syncResult) {
     const smokePath = path.join(releaseCtx.releaseDir, "smoke-test.json");
     const packageJsonPath = path.join(releaseCtx.releaseDir, "package.json");
+    const supervisorPath = path.join(
+      releaseCtx.releaseDir,
+      "service",
+      "src",
+      "supervisor",
+      "index.js",
+    );
     const hasPackageJson = fs.existsSync(packageJsonPath);
+    const hasSupervisor = fs.existsSync(supervisorPath);
     const result = {
       jobId: job.id,
       ranAt: new Date().toISOString(),
-      ok: hasPackageJson,
-      mode: "phase-5-basic-smoke",
+      ok: hasPackageJson && hasSupervisor,
+      mode: "phase-9-basic-smoke",
       resolvedSha: syncResult.resolvedSha,
       checks: {
         packageJsonExists: hasPackageJson,
+        supervisorEntryExists: hasSupervisor,
       },
     };
-    if (!hasPackageJson) {
+    if (!hasPackageJson || !hasSupervisor) {
       throw new Error(
-        "Smoke test failed: package.json missing in staged release",
+        "Smoke test failed: required files missing in staged release",
       );
     }
     fs.writeFileSync(smokePath, JSON.stringify(result, null, 2));

@@ -5,10 +5,10 @@ const path = require('path');
 
 /**
  * Structured JSON logger. Writes one JSON object per line to logs/service.log.
- * Creates the logs directory under serviceRoot if it does not exist.
+ * Creates the logs directory under baseRoot if it does not exist.
  */
-function createLogger(serviceRoot) {
-  const logsDir = path.join(serviceRoot, 'logs');
+function createLogger(baseRoot) {
+  const logsDir = path.join(baseRoot, 'logs');
   const logPath = path.join(logsDir, 'service.log');
 
   function ensureLogsDir() {

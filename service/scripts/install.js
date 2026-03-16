@@ -12,9 +12,12 @@ const fs = require("fs");
 const path = require("path");
 
 const scriptDir = __dirname;
-const basePath = process.argv[2] || process.cwd();
+const basePath = path.resolve(process.argv[2] || process.cwd());
 const serviceDir = path.join(basePath, "service");
 const runtimeDir = path.join(serviceDir, "runtime");
+const releasesDir = path.join(runtimeDir, "releases");
+const currentDir = path.join(runtimeDir, "current");
+const currentPointerPath = path.join(runtimeDir, "current-release.json");
 const logsDir = path.join(serviceDir, "logs");
 const serviceName = "ParasceneProviderLocal";
 const wrapperBaseName = "parascene-service";
@@ -44,12 +47,15 @@ if (!fs.existsSync(winswExe)) {
 }
 
 // Create directories
-for (const dir of [runtimeDir, logsDir]) {
+for (const dir of [runtimeDir, releasesDir, logsDir]) {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
     console.log("Created:", dir);
   }
 }
+
+ensureCurrentLink(currentDir, basePath);
+ensureInitialCurrentPointer();
 
 // Generate WinSW config with actual paths
 const xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -60,8 +66,9 @@ const xml = `<?xml version="1.0" encoding="UTF-8"?>
   <description>Local AI provider service (supervisor + worker).</description>
   <executable>node</executable>
   <arguments>service/src/supervisor/index.js</arguments>
-  <workingdirectory>${basePath}</workingdirectory>
-  <logpath>${logsDir}</logpath>
+  <workingdirectory>${xmlEscape(currentDir)}</workingdirectory>
+  <logpath>${xmlEscape(logsDir)}</logpath>
+  <env name="SERVICE_DATA_ROOT" value="${xmlEscape(serviceDir)}" />
   <log mode="roll-by-time">
     <pattern>yyyyMMdd</pattern>
   </log>
@@ -73,6 +80,7 @@ fs.writeFileSync(outPath, xml, "utf8");
 console.log("Generated:", outPath);
 console.log("Base path:", basePath);
 console.log("Service directory:", serviceDir);
+console.log("Current pointer:", currentDir, "->", basePath);
 console.log("");
 console.log("WinSW bundled check: OK");
 console.log("Next: run as Administrator from the repo root:");
@@ -84,3 +92,81 @@ console.log(
     serviceName +
     '" reset= 86400 actions= restart/5000/restart/10000/restart/30000',
 );
+
+function ensureCurrentLink(linkPath, targetPath) {
+  const target = path.resolve(targetPath);
+  if (!fs.existsSync(target)) {
+    throw new Error(`Bootstrap target does not exist: ${target}`);
+  }
+
+  if (fs.existsSync(linkPath)) {
+    let existingTarget = null;
+    try {
+      existingTarget = fs.realpathSync(linkPath);
+    } catch (_) {
+      existingTarget = null;
+    }
+    if (existingTarget && samePath(existingTarget, target)) {
+      return;
+    }
+
+    let isLink = false;
+    try {
+      fs.readlinkSync(linkPath);
+      isLink = true;
+    } catch (_) {
+      isLink = false;
+    }
+
+    const st = fs.lstatSync(linkPath);
+    if (isLink || st.isSymbolicLink()) {
+      fs.rmSync(linkPath, { recursive: true, force: true });
+    } else if (st.isDirectory()) {
+      const files = fs.readdirSync(linkPath);
+      if (files.length > 0) {
+        throw new Error(
+          `Refusing to replace non-empty directory at ${linkPath}; remove manually and re-run install`,
+        );
+      }
+      fs.rmdirSync(linkPath);
+    } else {
+      fs.rmSync(linkPath, { force: true });
+    }
+  }
+
+  fs.symlinkSync(target, linkPath, "junction");
+  console.log("Set current link:", linkPath, "->", target);
+}
+
+function ensureInitialCurrentPointer() {
+  if (fs.existsSync(currentPointerPath)) {
+    return;
+  }
+  const pointer = {
+    releaseId: "seed-local-working-copy",
+    releaseDir: basePath,
+    currentPath: currentDir,
+    resolvedSha: null,
+    requestedSha: null,
+    ref: null,
+    jobId: null,
+    eventId: null,
+    updatedAt: new Date().toISOString(),
+    mode: "phase-9-bootstrap",
+  };
+  fs.writeFileSync(currentPointerPath, JSON.stringify(pointer, null, 2));
+  console.log("Initialized pointer metadata:", currentPointerPath);
+}
+
+function samePath(a, b) {
+  return path.resolve(a).toLowerCase() === path.resolve(b).toLowerCase();
+}
+
+function xmlEscape(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}

@@ -5,12 +5,15 @@ const path = require("path");
 const { spawn } = require("child_process");
 
 class ReleaseManager {
-  constructor({ serviceRoot, log }) {
+  constructor({ serviceRoot, dataRoot, log }) {
     this.serviceRoot = serviceRoot;
+    this.dataRoot = dataRoot || serviceRoot;
     this.log = log;
+    this.repoRoot = path.join(this.serviceRoot, "..");
 
-    this.runtimeDir = path.join(serviceRoot, "runtime");
+    this.runtimeDir = path.join(this.dataRoot, "runtime");
     this.releasesDir = path.join(this.runtimeDir, "releases");
+    this.currentLinkPath = path.join(this.runtimeDir, "current");
     this.currentPointerPath = path.join(
       this.runtimeDir,
       "current-release.json",
@@ -105,13 +108,72 @@ class ReleaseManager {
       branch: syncResult.branch,
       source: syncResult.repoUrl,
       stagedAt: new Date().toISOString(),
-      mode: "phase-5-real-github-fetch",
+      mode: "phase-9-staged-release",
     };
     fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
     return metadataPath;
   }
 
-  writeCurrentPointer(job, releaseCtx, syncResult) {
+  getCurrentPointer() {
+    try {
+      if (!fs.existsSync(this.currentPointerPath)) {
+        return null;
+      }
+      return JSON.parse(fs.readFileSync(this.currentPointerPath, "utf8"));
+    } catch (err) {
+      this.log.warn("updater.pointer.read.error", {
+        error: err.message,
+      });
+      return null;
+    }
+  }
+
+  resolveCurrentTarget() {
+    try {
+      if (!fs.existsSync(this.currentLinkPath)) {
+        return null;
+      }
+      return fs.realpathSync(this.currentLinkPath);
+    } catch (err) {
+      this.log.warn("updater.current.resolve.error", {
+        error: err.message,
+      });
+      return null;
+    }
+  }
+
+  cutoverToRelease(job, releaseCtx, syncResult) {
+    const previousPointer = this.getCurrentPointer();
+    const previousTarget = this.resolveCurrentTarget();
+
+    this._setCurrentLink(releaseCtx.releaseDir);
+
+    const pointerPath = this.writeCurrentPointer(job, releaseCtx, syncResult, {
+      previousReleaseId: previousPointer ? previousPointer.releaseId : null,
+      previousReleaseDir: previousTarget,
+    });
+
+    return {
+      pointerPath,
+      previousPointer,
+      previousTarget,
+    };
+  }
+
+  rollbackCutover(previousPointer, previousTarget) {
+    if (!previousTarget) {
+      throw new Error("Cannot rollback cutover: previous target not available");
+    }
+    this._setCurrentLink(previousTarget);
+    if (previousPointer) {
+      fs.writeFileSync(
+        this.currentPointerPath,
+        JSON.stringify(previousPointer, null, 2),
+      );
+    }
+  }
+
+  writeCurrentPointer(job, releaseCtx, syncResult, extra = {}) {
     const pointer = {
       jobId: job.id,
       eventId: job.eventId,
@@ -120,11 +182,113 @@ class ReleaseManager {
       resolvedSha: syncResult.resolvedSha,
       releaseId: releaseCtx.releaseId,
       releaseDir: releaseCtx.releaseDir,
+      currentPath: this.currentLinkPath,
       updatedAt: new Date().toISOString(),
-      mode: "phase-5-current-pointer",
+      mode: "phase-9-current-pointer",
+      ...extra,
     };
     fs.writeFileSync(this.currentPointerPath, JSON.stringify(pointer, null, 2));
     return this.currentPointerPath;
+  }
+
+  ensureCurrentLink(targetRepoRoot) {
+    this.ensureDirs();
+    const target = path.resolve(targetRepoRoot || this.repoRoot);
+    this._setCurrentLink(target);
+  }
+
+  pruneOldReleases({ keepReleaseIds = [], maxReleases }) {
+    this.ensureDirs();
+    const maxCount = Number.isFinite(maxReleases)
+      ? maxReleases
+      : Number.parseInt(process.env.UPDATE_MAX_RELEASES || "6", 10);
+
+    if (!Number.isFinite(maxCount) || maxCount < 1) {
+      return { pruned: [], kept: [] };
+    }
+
+    const keep = new Set(keepReleaseIds.filter(Boolean));
+    const current = this.getCurrentPointer();
+    if (current && current.releaseId) {
+      keep.add(current.releaseId);
+    }
+
+    const releaseEntries = fs
+      .readdirSync(this.releasesDir, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => {
+        const fullPath = path.join(this.releasesDir, entry.name);
+        const stat = fs.statSync(fullPath);
+        return {
+          id: entry.name,
+          path: fullPath,
+          mtimeMs: stat.mtimeMs,
+        };
+      })
+      .sort((a, b) => b.mtimeMs - a.mtimeMs);
+
+    const kept = [];
+    const pruned = [];
+
+    for (const entry of releaseEntries) {
+      if (keep.has(entry.id) || kept.length < maxCount) {
+        kept.push(entry.id);
+        continue;
+      }
+      try {
+        fs.rmSync(entry.path, { recursive: true, force: true });
+        pruned.push(entry.id);
+      } catch (err) {
+        this.log.warn("updater.release.prune.error", {
+          releaseId: entry.id,
+          error: err.message,
+        });
+      }
+    }
+
+    if (pruned.length > 0) {
+      this.log.info("updater.release.pruned", {
+        pruned,
+        kept,
+        maxCount,
+      });
+    }
+
+    return { pruned, kept };
+  }
+
+  _setCurrentLink(targetDir) {
+    const resolvedTarget = path.resolve(targetDir);
+    if (!fs.existsSync(resolvedTarget)) {
+      throw new Error(`Cutover target does not exist: ${resolvedTarget}`);
+    }
+
+    if (fs.existsSync(this.currentLinkPath)) {
+      let isLink = false;
+      try {
+        fs.readlinkSync(this.currentLinkPath);
+        isLink = true;
+      } catch (_) {
+        isLink = false;
+      }
+
+      const st = fs.lstatSync(this.currentLinkPath);
+      if (isLink || st.isSymbolicLink()) {
+        fs.rmSync(this.currentLinkPath, { recursive: true, force: true });
+      } else if (st.isDirectory()) {
+        const files = fs.readdirSync(this.currentLinkPath);
+        if (files.length > 0) {
+          throw new Error(
+            `Refusing to replace non-empty current directory: ${this.currentLinkPath}`,
+          );
+        }
+        fs.rmdirSync(this.currentLinkPath);
+      } else {
+        fs.rmSync(this.currentLinkPath, { force: true });
+      }
+    }
+
+    fs.symlinkSync(resolvedTarget, this.currentLinkPath, "junction");
   }
 
   _buildRepoUrl(repo) {
@@ -167,7 +331,7 @@ class ReleaseManager {
   _runGit(args) {
     return new Promise((resolve, reject) => {
       const child = spawn("git", args, {
-        cwd: this.serviceRoot,
+        cwd: this.repoRoot,
         env: process.env,
       });
 

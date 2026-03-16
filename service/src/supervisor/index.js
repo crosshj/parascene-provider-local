@@ -17,7 +17,7 @@ const { WorkerManager } = require("./workerManager");
 
 const serviceRoot = getServiceRoot(__dirname);
 const config = loadConfig(serviceRoot);
-const log = createLogger(serviceRoot);
+const log = createLogger(config.dataRoot || serviceRoot);
 
 const startTime = Date.now();
 let workerManager;
@@ -25,8 +25,9 @@ let updateQueue;
 let gpuProbe;
 
 function ensureDirs() {
-  const runtimeDir = path.join(serviceRoot, "runtime");
-  const logsDir = path.join(serviceRoot, "logs");
+  const root = config.dataRoot || serviceRoot;
+  const runtimeDir = path.join(root, "runtime");
+  const logsDir = path.join(root, "logs");
   for (const dir of [runtimeDir, logsDir]) {
     try {
       fs.mkdirSync(dir, { recursive: true });
@@ -64,15 +65,21 @@ function main() {
 
   workerManager = new WorkerManager({
     serviceRoot,
+    dataRoot: config.dataRoot,
     log,
     mode: process.env.WORKER_MODE || "normal",
     impl: process.env.WORKER_IMPL || "python",
   });
-  updateQueue = new UpdateQueue({ serviceRoot, log });
+  updateQueue = new UpdateQueue({
+    serviceRoot,
+    dataRoot: config.dataRoot,
+    log,
+  });
   updateQueue.start();
 
   gpuProbe = new GpuProbe({
     serviceRoot,
+    dataRoot: config.dataRoot,
     log,
     onFailure: ({ at, state }) => {
       const worker = workerManager ? workerManager.getStatus() : {};

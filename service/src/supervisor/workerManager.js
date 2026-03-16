@@ -6,8 +6,15 @@ const http = require("http");
 const { fork, spawn, spawnSync } = require("child_process");
 
 class WorkerManager {
-  constructor({ serviceRoot, log, mode = "normal", impl = "python" }) {
+  constructor({
+    serviceRoot,
+    dataRoot,
+    log,
+    mode = "normal",
+    impl = "python",
+  }) {
     this.serviceRoot = serviceRoot;
+    this.dataRoot = dataRoot || serviceRoot;
     this.repoRoot = path.join(serviceRoot, "..");
     this.log = log;
     this.mode = mode;
@@ -46,7 +53,7 @@ class WorkerManager {
     this.monitorTimer = null;
     this.restartTimer = null;
     this.heartbeatFilePath = path.join(
-      this.serviceRoot,
+      this.dataRoot,
       "runtime",
       "worker-heartbeat.json",
     );
