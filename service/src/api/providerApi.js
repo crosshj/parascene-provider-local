@@ -7,49 +7,53 @@ const { runGenerator } = require("../../../server/generator");
 const { getModels, resolveModel } = require("../../../server/models");
 
 function getPublicDir() {
-  const sourceRelativePath = path.join(__dirname, "..", "..", "..", "public");
-  if (fs.existsSync(sourceRelativePath)) {
-    return sourceRelativePath;
-  }
   const cwdRelativePath = path.join(process.cwd(), "public");
   if (fs.existsSync(cwdRelativePath)) {
     return cwdRelativePath;
+  }
+  const sourceRelativePath = path.join(__dirname, "..", "..", "..", "public");
+  if (fs.existsSync(sourceRelativePath)) {
+    return sourceRelativePath;
   }
   return sourceRelativePath;
 }
 
 function getOutputDir() {
-  const sourceRelativePath = path.join(__dirname, "..", "..", "..", "outputs");
-  if (fs.existsSync(sourceRelativePath)) {
-    return sourceRelativePath;
-  }
   const cwdRelativePath = path.join(process.cwd(), "outputs");
   if (fs.existsSync(cwdRelativePath)) {
     return cwdRelativePath;
   }
+  const sourceRelativePath = path.join(__dirname, "..", "..", "..", "outputs");
+  if (fs.existsSync(sourceRelativePath)) {
+    return sourceRelativePath;
+  }
   return sourceRelativePath;
 }
 
-const PUBLIC_DIR = getPublicDir();
-const OUTPUT_DIR = getOutputDir();
 const MAX_JSON_BODY_BYTES = 1_000_000;
 
-if (!fs.existsSync(OUTPUT_DIR)) {
-  fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+function ensureOutputDir() {
+  const outputDir = getOutputDir();
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
+  }
+  return outputDir;
 }
 
 function createProviderApiHandler({ log }) {
   return async function providerApiHandler(req, res) {
     const reqPath = (req.url || "").split("?")[0];
     const method = req.method || "GET";
+    const publicDir = getPublicDir();
+    const outputDir = ensureOutputDir();
 
     if (method === "GET" && reqPath === "/api/health") {
       res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
       sendJson(res, 200, {
         ok: true,
         models: getModels().length,
-        output_dir: OUTPUT_DIR,
-        public_dir: PUBLIC_DIR,
+        output_dir: outputDir,
+        public_dir: publicDir,
       });
       return true;
     }
@@ -101,7 +105,7 @@ function createProviderApiHandler({ log }) {
           family: entry.family,
         };
 
-        const result = await runGenerator(payload, OUTPUT_DIR);
+        const result = await runGenerator(payload, outputDir);
         if (!result?.ok || !result.file_name) {
           log.warn("api.generate.failed", {
             reason: result?.error || "unknown",
@@ -136,7 +140,7 @@ function createProviderApiHandler({ log }) {
     }
 
     if (method === "GET" && reqPath.startsWith("/outputs/")) {
-      const filePath = path.join(OUTPUT_DIR, path.basename(reqPath));
+      const filePath = path.join(outputDir, path.basename(reqPath));
       fs.readFile(filePath, (err, data) => {
         if (err) {
           res.writeHead(404, {
@@ -153,10 +157,10 @@ function createProviderApiHandler({ log }) {
 
     if (method === "GET" && (reqPath === "/" || reqPath.startsWith("/app"))) {
       const rel = reqPath === "/" ? "app.html" : reqPath.slice(1);
-      const filePath = path.join(PUBLIC_DIR, path.normalize(rel));
+      const filePath = path.join(publicDir, path.normalize(rel));
       if (
-        !filePath.startsWith(PUBLIC_DIR + path.sep) &&
-        filePath !== PUBLIC_DIR
+        !filePath.startsWith(publicDir + path.sep) &&
+        filePath !== publicDir
       ) {
         sendJson(res, 403, { error: "Forbidden" });
         return true;
@@ -180,7 +184,7 @@ function createProviderApiHandler({ log }) {
         res.writeHead(200, {
           "Content-Type": mime,
           "Cache-Control": "no-store, no-cache, must-revalidate",
-          "X-Service-Public-Dir": PUBLIC_DIR,
+          "X-Service-Public-Dir": publicDir,
           "X-Service-Public-File": filePath,
         });
         res.end(data);

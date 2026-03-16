@@ -29,8 +29,32 @@ let restartRequested = false;
 // Shared shutdown function accessible to requestServiceRestart
 let shutdownFn;
 
+function ensureDirs() {
+  const root = config.dataRoot || serviceRoot;
+  const runtimeDir = path.join(root, "runtime");
+  const logsDir = path.join(root, "logs");
+  for (const dir of [runtimeDir, logsDir]) {
+    try {
+      fs.mkdirSync(dir, { recursive: true });
+    } catch (err) {
+      log.error("service.start", { error: err.message, dir });
+    }
+  }
+}
+
+function getStatusState() {
+  return {
+    version: config.version,
+    uptimeMs: Date.now() - startTime,
+    worker: workerManager ? workerManager.getStatus() : {},
+    gpu: gpuProbe ? gpuProbe.getStatus() : {},
+    updater: updateQueue ? updateQueue.getStatus() : {},
+  };
+}
+
 function requestServiceRestart(details = {}) {
   if (restartRequested) {
+    log.warn("service.restart.already_requested", details);
     return;
   }
 
@@ -201,10 +225,23 @@ function main() {
     } catch (err) {
       log.error("service.stop.gpu.error", { error: err.message });
     }
+    const exitCode = isDeploymentRestart ? 1 : 0;
+    const forcedExitTimer = setTimeout(
+      () => {
+        log.warn("service.stop.force_exit", {
+          reason,
+          exitCode,
+        });
+        process.exit(exitCode);
+      },
+      Number.parseInt(process.env.SERVICE_STOP_FORCE_EXIT_MS || "10000", 10),
+    );
+    forcedExitTimer.unref();
+
     server.close(() => {
-      // Use exit code 1 for deployment restarts so WinSW will auto-restart
-      // Use exit code 0 for normal shutdowns
-      const exitCode = isDeploymentRestart ? 1 : 0;
+      clearTimeout(forcedExitTimer);
+      // Use exit code 1 for deployment restarts so WinSW will auto-restart.
+      // Use exit code 0 for normal shutdowns.
       process.exit(exitCode);
     });
   }
