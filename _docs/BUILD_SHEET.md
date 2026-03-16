@@ -147,7 +147,7 @@ Acceptance criteria:
 
 ---
 
-# Step 6 — Update Queue
+# Step 6 — Update Queue — ✅ DONE (2026-03-16)
 
 Create:
 
@@ -169,7 +169,7 @@ runtime/update-state.json
 
 ---
 
-# Step 7 — Update Pipeline
+# Step 7 — Update Pipeline — ✅ DONE (2026-03-16)
 
 Create:
 
@@ -196,7 +196,7 @@ Acceptance criteria:
 
 ---
 
-# Step 8 — Release Manager
+# Step 8 — Release Manager — ✅ DONE (2026-03-16)
 
 Create:
 

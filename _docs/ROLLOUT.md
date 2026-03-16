@@ -252,7 +252,7 @@ Webhook must **not execute deployment logic**.
 
 ---
 
-# Phase 4 — Fake Update Pipeline
+# Phase 4 — Fake Update Pipeline — ✅ IMPLEMENTED IN THIS REPO (2026-03-16)
 
 Implement an update state machine.
 
@@ -279,7 +279,7 @@ Never modify the live directory.
 
 ---
 
-# Phase 5 — Real GitHub Fetch
+# Phase 5 — Real GitHub Fetch — ✅ IMPLEMENTED IN THIS REPO (2026-03-16)
 
 Replace fake fetch with real repository sync.
 

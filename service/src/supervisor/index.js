@@ -127,6 +127,13 @@ function main() {
     } catch (err) {
       log.error("service.stop.worker.error", { error: err.message });
     }
+    try {
+      if (updateQueue) {
+        await updateQueue.stop();
+      }
+    } catch (err) {
+      log.error("service.stop.updater.error", { error: err.message });
+    }
     server.close(() => process.exit(0));
   }
 

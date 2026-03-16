@@ -21,6 +21,10 @@ Required for webhooks:
 - `GITHUB_WEBHOOK_REPO`
 - `GITHUB_WEBHOOK_BRANCH`
 
+Optional for private repo fetch:
+
+- `GITHUB_FETCH_TOKEN`
+
 Optional:
 
 - `SERVICE_PORT` (default `3090`)

@@ -2,6 +2,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const { UpdatePipeline } = require("./updatePipeline");
 
 class UpdateQueue {
   constructor({ serviceRoot, log }) {
@@ -15,19 +16,40 @@ class UpdateQueue {
     this.queue = [];
     this.lastEvent = null;
     this.lastQueuedAt = null;
+    this.lastCompletedJob = null;
+    this.lastFailedJob = null;
+    this.currentJob = null;
+    this.state = "idle";
+    this.processing = false;
+    this.stopping = false;
+
+    this.pipeline = new UpdatePipeline({
+      serviceRoot: this.serviceRoot,
+      log: this.log,
+    });
   }
 
   start() {
+    this.stopping = false;
     this._ensureRuntimeDir();
     this._writeState();
   }
 
+  async stop() {
+    this.stopping = true;
+    this.pipeline.stop();
+  }
+
   getStatus() {
     return {
-      state: this.queue.length > 0 ? "queued" : "idle",
+      state: this.state,
+      processing: this.processing,
       queueLength: this.queue.length,
+      currentJob: this.currentJob,
       lastQueuedAt: this.lastQueuedAt,
       lastEvent: this.lastEvent,
+      lastCompletedJob: this.lastCompletedJob,
+      lastFailedJob: this.lastFailedJob,
     };
   }
 
@@ -63,6 +85,10 @@ class UpdateQueue {
       receivedAt: event.receivedAt,
     };
 
+    if (!this.processing) {
+      this.state = "queued";
+    }
+
     this._writeState();
 
     this.log.info("updater.job.enqueued", {
@@ -74,7 +100,102 @@ class UpdateQueue {
       sha: event.sha,
     });
 
+    this._kickProcessing();
+
     return job;
+  }
+
+  _kickProcessing() {
+    if (this.processing || this.stopping) {
+      return;
+    }
+    setImmediate(() => {
+      this._processQueue().catch((err) => {
+        this.log.error("updater.queue.process.error", { error: err.message });
+      });
+    });
+  }
+
+  async _processQueue() {
+    if (this.processing || this.stopping) {
+      return;
+    }
+
+    this.processing = true;
+    try {
+      while (this.queue.length > 0 && !this.stopping) {
+        const job = this.queue[0];
+        this.currentJob = {
+          id: job.id,
+          state: job.state,
+          eventId: job.eventId,
+          repo: job.repo,
+          ref: job.ref,
+          sha: job.sha,
+          queuedAt: job.queuedAt,
+          startedAt: new Date().toISOString(),
+        };
+
+        this.state = "queued";
+        this._writeState();
+
+        try {
+          const result = await this.pipeline.run(job, {
+            onStateChange: (state, details = {}) => {
+              job.state = state;
+              this.state = state;
+              this.currentJob = {
+                ...this.currentJob,
+                state,
+                ...details,
+              };
+              this._writeState();
+            },
+          });
+
+          this.lastCompletedJob = {
+            id: job.id,
+            eventId: job.eventId,
+            sha: job.sha,
+            completedAt: new Date().toISOString(),
+            result,
+          };
+
+          this.log.info("updater.job.complete", {
+            jobId: job.id,
+            eventId: job.eventId,
+            sha: job.sha,
+          });
+        } catch (err) {
+          job.state = "failed";
+          this.state = "failed";
+          this.lastFailedJob = {
+            id: job.id,
+            eventId: job.eventId,
+            sha: job.sha,
+            failedAt: new Date().toISOString(),
+            error: err.message,
+          };
+          this.log.error("updater.job.failed", {
+            jobId: job.id,
+            eventId: job.eventId,
+            sha: job.sha,
+            error: err.message,
+          });
+        }
+
+        this.queue.shift();
+        this.currentJob = null;
+        this.state = this.queue.length > 0 ? "queued" : "idle";
+        this._writeState();
+      }
+    } finally {
+      this.processing = false;
+      if (!this.stopping && this.queue.length === 0) {
+        this.state = "idle";
+      }
+      this._writeState();
+    }
   }
 
   _ensureRuntimeDir() {
@@ -88,10 +209,23 @@ class UpdateQueue {
   _writeState() {
     this._ensureRuntimeDir();
     const payload = {
-      state: this.queue.length > 0 ? "queued" : "idle",
+      state: this.state,
+      processing: this.processing,
       queueLength: this.queue.length,
+      queue: this.queue.map((job) => ({
+        id: job.id,
+        state: job.state,
+        queuedAt: job.queuedAt,
+        eventId: job.eventId,
+        repo: job.repo,
+        ref: job.ref,
+        sha: job.sha,
+      })),
+      currentJob: this.currentJob,
       lastQueuedAt: this.lastQueuedAt,
       lastEvent: this.lastEvent,
+      lastCompletedJob: this.lastCompletedJob,
+      lastFailedJob: this.lastFailedJob,
       updatedAt: new Date().toISOString(),
     };
 
