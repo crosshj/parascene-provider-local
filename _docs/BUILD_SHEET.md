@@ -43,7 +43,7 @@ Acceptance criteria:
 
 ---
 
-# Step 2 — Worker Manager
+# Step 2 — Worker Manager — ✅ DONE (2026-03-16)
 
 Create:
 
@@ -71,7 +71,7 @@ Acceptance criteria:
 
 ---
 
-# Step 3 — Dummy Worker
+# Step 3 — Dummy Worker — ✅ DONE (2026-03-16)
 
 Create:
 

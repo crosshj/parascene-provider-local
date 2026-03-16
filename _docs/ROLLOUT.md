@@ -163,7 +163,7 @@ Meaning:
 
 ---
 
-# Phase 2 — Supervised Worker
+# Phase 2 — Supervised Worker — ✅ IMPLEMENTED IN THIS REPO (2026-03-16)
 
 Introduce a child worker process.
 

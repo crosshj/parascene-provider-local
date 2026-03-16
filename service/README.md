@@ -1,6 +1,6 @@
-# Windows AI Service (Phase 1)
+# Windows AI Service (Phase 2)
 
-Supervisor for the local AI provider: bootable Windows service, `/healthz`, `/status`, structured logging.
+Supervisor for the local AI provider: bootable Windows service, worker supervision (heartbeat + restart), `/healthz`, `/status`, structured logging.
 
 ## Local run
 
@@ -17,6 +17,13 @@ node service/src/supervisor/index.js
 ```
 
 Default port: `3090` (override with `SERVICE_PORT`).
+
+Worker simulation mode (override with `WORKER_MODE`):
+
+- `normal`
+- `crash-after=<seconds>`
+- `hang-after=<seconds>`
+- `stop-heartbeat-after=<seconds>`
 
 ## Windows service install (single path)
 
@@ -48,6 +55,8 @@ Use this exact flow:
 
 - `curl http://localhost:3090/healthz` → `{"ok":true}`
 - `curl http://localhost:3090/status` → JSON with version, uptime, parentPid, worker/gpu/updater
+- Check `worker.state`, `worker.restartCount`, and `worker.lastHeartbeat` in `/status`
+- Check `service/runtime/worker-heartbeat.json` for latest heartbeat
 - Check `service/logs/service.log` for `service.start`
 
 ## Verify (GUI)
