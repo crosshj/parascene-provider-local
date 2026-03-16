@@ -26,139 +26,26 @@ let updateQueue;
 let gpuProbe;
 let restartRequested = false;
 
-function resolveWrapperExe() {
-  const candidates = [
-    process.env.SERVICE_WRAPPER_EXE,
-    path.join(
-      config.dataRoot || serviceRoot,
-      "scripts",
-      "parascene-service.exe",
-    ),
-    path.join(serviceRoot, "scripts", "parascene-service.exe"),
-  ].filter(Boolean);
-
-  for (const candidate of candidates) {
-    if (fs.existsSync(candidate)) {
-      return {
-        wrapperExe: candidate,
-        candidates,
-      };
-    }
-  }
-
-  return {
-    wrapperExe: null,
-    candidates,
-  };
-}
-
-function ensureDirs() {
-  const root = config.dataRoot || serviceRoot;
-  const runtimeDir = path.join(root, "runtime");
-  const logsDir = path.join(root, "logs");
-  for (const dir of [runtimeDir, logsDir]) {
-    try {
-      fs.mkdirSync(dir, { recursive: true });
-    } catch (err) {
-      log.error("service.start", { error: err.message, dir });
-    }
-  }
-}
-
-function getStatusState() {
-  return {
-    version: config.version,
-    uptimeMs: Date.now() - startTime,
-    worker: workerManager ? workerManager.getStatus() : {},
-    gpu: gpuProbe ? gpuProbe.getStatus() : {},
-    updater: updateQueue ? updateQueue.getStatus() : {},
-  };
-}
+// Shared shutdown function accessible to requestServiceRestart
+let shutdownFn;
 
 function requestServiceRestart(details = {}) {
   if (restartRequested) {
     return;
   }
 
-  const { wrapperExe, candidates } = resolveWrapperExe();
-  if (!wrapperExe) {
-    log.warn("service.restart.unavailable", {
-      reason: "winsw_wrapper_missing",
-      wrapperCandidates: candidates,
-      ...details,
-    });
-    return;
-  }
-
   restartRequested = true;
   log.warn("service.restart.requested", {
-    strategy: "winsw_wrapper_restart",
-    wrapperExe,
+    strategy: "process_exit_with_graceful_shutdown",
     ...details,
   });
 
   setTimeout(() => {
-    try {
-      const child =
-        process.platform === "win32"
-          ? spawn(
-              "cmd.exe",
-              ["/d", "/s", "/c", `\"${wrapperExe}\"`, "restart"],
-              {
-                cwd: path.dirname(wrapperExe),
-                detached: false,
-                stdio: ["ignore", "pipe", "pipe"],
-                windowsHide: true,
-              },
-            )
-          : spawn(wrapperExe, ["restart"], {
-              cwd: path.dirname(wrapperExe),
-              detached: false,
-              stdio: ["ignore", "pipe", "pipe"],
-            });
-
-      let stdoutData = "";
-      let stderrData = "";
-
-      if (child.stdout) {
-        child.stdout.on("data", (chunk) => {
-          stdoutData += chunk.toString();
-        });
-      }
-
-      if (child.stderr) {
-        child.stderr.on("data", (chunk) => {
-          stderrData += chunk.toString();
-        });
-      }
-
-      child.on("close", (code) => {
-        log.info("service.restart.process.exit", {
-          code,
-          stdout: stdoutData,
-          stderr: stderrData,
-          wrapperExe,
-          ...details,
-        });
-      });
-
-      child.on("error", (err) => {
-        restartRequested = false;
-        log.error("service.restart.process.error", {
-          error: err.message,
-          wrapperExe,
-          ...details,
-        });
-      });
-
-      child.unref();
-    } catch (err) {
-      restartRequested = false;
-      log.error("service.restart.request.error", {
-        error: err.message,
-        wrapperExe,
-        ...details,
-      });
+    if (shutdownFn) {
+      shutdownFn("restart_from_updater");
+    } else {
+      log.error("service.restart.shutdown_unavailable", details);
+      process.exit(1);
     }
   }, 250);
 }
@@ -311,6 +198,9 @@ function main() {
     }
     server.close(() => process.exit(0));
   }
+
+  // Make shutdown available to requestServiceRestart
+  shutdownFn = shutdown;
 
   process.on("SIGTERM", () => {
     shutdown("SIGTERM");
