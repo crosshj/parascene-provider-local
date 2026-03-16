@@ -85,7 +85,7 @@ function createApp(ctx) {
       if (r.method !== method) continue;
       if (r.pattern === "*") return { handler: r.handler, path: pathname };
       if (r.pattern.endsWith("/*")) {
-        const prefix = r.pattern.slice(0, -1);
+        const prefix = r.pattern.slice(0, -2);
         if (pathname === prefix || pathname.startsWith(prefix + "/"))
           return { handler: r.handler, path: pathname };
       } else if (pathname === r.pattern) {
