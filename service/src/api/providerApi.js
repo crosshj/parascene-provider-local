@@ -6,8 +6,32 @@ const path = require("path");
 const { runGenerator } = require("../../../server/generator");
 const { getModels, resolveModel } = require("../../../server/models");
 
-const PUBLIC_DIR = path.join(__dirname, "..", "..", "..", "public");
-const OUTPUT_DIR = path.join(__dirname, "..", "..", "..", "outputs");
+function getPublicDir() {
+  const sourceRelativePath = path.join(__dirname, "..", "..", "..", "public");
+  if (fs.existsSync(sourceRelativePath)) {
+    return sourceRelativePath;
+  }
+  const cwdRelativePath = path.join(process.cwd(), "public");
+  if (fs.existsSync(cwdRelativePath)) {
+    return cwdRelativePath;
+  }
+  return sourceRelativePath;
+}
+
+function getOutputDir() {
+  const sourceRelativePath = path.join(__dirname, "..", "..", "..", "outputs");
+  if (fs.existsSync(sourceRelativePath)) {
+    return sourceRelativePath;
+  }
+  const cwdRelativePath = path.join(process.cwd(), "outputs");
+  if (fs.existsSync(cwdRelativePath)) {
+    return cwdRelativePath;
+  }
+  return sourceRelativePath;
+}
+
+const PUBLIC_DIR = getPublicDir();
+const OUTPUT_DIR = getOutputDir();
 const MAX_JSON_BODY_BYTES = 1_000_000;
 
 if (!fs.existsSync(OUTPUT_DIR)) {
