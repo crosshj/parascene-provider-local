@@ -174,7 +174,12 @@ function main() {
       return;
     }
     shuttingDown = true;
-    log.info("service.stop", { reason });
+    const isDeploymentRestart = reason === "restart_from_updater";
+    log.info("service.stop", {
+      reason,
+      type: isDeploymentRestart ? "deployment_restart" : "shutdown",
+      timestamp: new Date().toISOString(),
+    });
     try {
       if (workerManager) {
         await workerManager.stop();
@@ -196,7 +201,12 @@ function main() {
     } catch (err) {
       log.error("service.stop.gpu.error", { error: err.message });
     }
-    server.close(() => process.exit(0));
+    server.close(() => {
+      // Use exit code 1 for deployment restarts so WinSW will auto-restart
+      // Use exit code 0 for normal shutdowns
+      const exitCode = isDeploymentRestart ? 1 : 0;
+      process.exit(exitCode);
+    });
   }
 
   // Make shutdown available to requestServiceRestart
