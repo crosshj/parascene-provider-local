@@ -9,6 +9,8 @@ const { getServiceRoot, loadConfig } = require("../config");
 const { createLogger } = require("../utils/logger");
 const { healthzHandler } = require("../api/healthz");
 const { createStatusHandler } = require("../api/status");
+const { createGitHubWebhookHandler } = require("../api/githubWebhook");
+const { UpdateQueue } = require("../updater/updateQueue");
 const { WorkerManager } = require("./workerManager");
 
 const serviceRoot = getServiceRoot(__dirname);
@@ -17,6 +19,7 @@ const log = createLogger(serviceRoot);
 
 const startTime = Date.now();
 let workerManager;
+let updateQueue;
 
 function ensureDirs() {
   const runtimeDir = path.join(serviceRoot, "runtime");
@@ -36,7 +39,7 @@ function getStatusState() {
     uptimeMs: Date.now() - startTime,
     worker: workerManager ? workerManager.getStatus() : {},
     gpu: {},
-    updater: {},
+    updater: updateQueue ? updateQueue.getStatus() : {},
   };
 }
 
@@ -61,8 +64,15 @@ function main() {
     log,
     mode: process.env.WORKER_MODE || "normal",
   });
+  updateQueue = new UpdateQueue({ serviceRoot, log });
+  updateQueue.start();
 
   const statusHandler = createStatusHandler(getStatusState);
+  const githubWebhookHandler = createGitHubWebhookHandler({
+    config,
+    log,
+    updateQueue,
+  });
 
   const server = http.createServer((req, res) => {
     const url = req.url?.split("?")[0] || "/";
@@ -71,6 +81,17 @@ function main() {
     }
     if (req.method === "GET" && url === "/status") {
       return statusHandler(req, res);
+    }
+    if (req.method === "POST" && url === "/webhooks/github") {
+      githubWebhookHandler(req, res).catch((err) => {
+        log.error("webhook.github.unhandled", { error: err.message });
+        if (!res.headersSent) {
+          res.statusCode = 500;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ error: "Internal error" }));
+        }
+      });
+      return;
     }
     res.statusCode = 404;
     res.setHeader("Content-Type", "application/json");

@@ -5,5 +5,8 @@
   "private": true,
   "scripts": {
     "start": "node src/supervisor/index.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.3.1"
   }
 }

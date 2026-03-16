@@ -1,7 +1,8 @@
-'use strict';
+"use strict";
 
-const path = require('path');
-const fs = require('fs');
+const path = require("path");
+const fs = require("fs");
+const dotenv = require("dotenv");
 
 /**
  * Resolve paths relative to the service directory.
@@ -9,7 +10,7 @@ const fs = require('fs');
  * __dirname in supervisor is service/src/supervisor, so service root is ../..
  */
 function getServiceRoot(fromDirname) {
-  return path.resolve(fromDirname, '..', '..');
+  return path.resolve(fromDirname, "..", "..");
 }
 
 /**
@@ -17,22 +18,46 @@ function getServiceRoot(fromDirname) {
  * Reads version from repo root package.json.
  */
 function loadConfig(serviceRoot) {
-  const repoRoot = path.join(serviceRoot, '..');
-  const pkgPath = path.join(repoRoot, 'package.json');
-  let version = '0.0.0';
+  const repoRoot = path.join(serviceRoot, "..");
+  loadDotenvFiles(serviceRoot, repoRoot);
+  const pkgPath = path.join(repoRoot, "package.json");
+  let version = "0.0.0";
   try {
-    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
     version = pkg.version || version;
   } catch (_) {
     // use default
   }
-  const port = parseInt(process.env.SERVICE_PORT || '3090', 10);
+  const port = parseInt(process.env.SERVICE_PORT || "3090", 10);
+  const githubWebhookSecret = process.env.GITHUB_WEBHOOK_SECRET || "";
+  const githubWebhookRepo = process.env.GITHUB_WEBHOOK_REPO || "";
+  const githubWebhookBranch = process.env.GITHUB_WEBHOOK_BRANCH || "main";
   return {
     version,
     port,
     serviceRoot,
     repoRoot,
+    githubWebhookSecret,
+    githubWebhookRepo,
+    githubWebhookBranch,
   };
+}
+
+function loadDotenvFiles(serviceRoot, repoRoot) {
+  const dotenvFiles = [
+    path.join(serviceRoot, ".env"),
+    path.join(repoRoot, ".env"),
+  ];
+
+  for (const dotenvPath of dotenvFiles) {
+    if (!fs.existsSync(dotenvPath)) {
+      continue;
+    }
+    dotenv.config({
+      path: dotenvPath,
+      override: false,
+    });
+  }
 }
 
 module.exports = {

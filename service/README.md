@@ -1,65 +1,52 @@
-# Windows AI Service (Phase 2)
+# Windows AI Service
 
-Supervisor for the local AI provider: bootable Windows service, worker supervision (heartbeat + restart), `/healthz`, `/status`, structured logging.
+Node supervisor service for local provider operations:
 
-## Local run
+- `GET /healthz`
+- `GET /status`
+- `POST /webhooks/github`
 
-From **service/**:
+## Env (`dotenv`)
+
+Loaded in this order:
+
+1. `service/.env`
+2. repo root `.env`
+
+Start from [service/.env.example](service/.env.example).
+
+Required for webhooks:
+
+- `GITHUB_WEBHOOK_SECRET`
+- `GITHUB_WEBHOOK_REPO`
+- `GITHUB_WEBHOOK_BRANCH`
+
+Optional:
+
+- `SERVICE_PORT` (default `3090`)
+- `WORKER_MODE` (default `normal`)
+
+## Run
+
+From [service](service):
 
 ```bash
 npm start
 ```
 
-From **repo root** (same working directory as service mode):
+## Windows service control (WinSW)
 
-```bash
-node service/src/supervisor/index.js
+From repo root:
+
+```powershell
+.\service\scripts\parascene-service.exe restart
 ```
 
-Default port: `3090` (override with `SERVICE_PORT`).
+Use this after changing `service/.env` or deploying new service code.
 
-Worker simulation mode (override with `WORKER_MODE`):
+Note: direct `sc stop/start ParasceneProviderLocal` can fail with Access Denied in a non-elevated shell; use the WinSW wrapper restart command above.
 
-- `normal`
-- `crash-after=<seconds>`
-- `hang-after=<seconds>`
-- `stop-heartbeat-after=<seconds>`
+## Quick verify
 
-## Windows service install (single path)
-
-Use this exact flow:
-
-1. Place `WinSW.exe` at `service/scripts/` and rename it to `parascene-service.exe`.
-2. From the repo root, run:
-
-   ```bash
-   node service/scripts/install.js
-   ```
-
-   The script validates paths, creates `service/runtime` and `service/logs`, and generates `service/scripts/parascene-service.xml`.
-
-3. In an **Administrator** terminal, install and start the service:
-
-   ```powershell
-   .\service\scripts\parascene-service.exe install
-   .\service\scripts\parascene-service.exe start
-   ```
-
-4. Set recovery:
-
-   ```powershell
-   sc.exe failure "ParasceneProviderLocal" reset= 86400 actions= restart/5000/restart/10000/restart/30000
-   ```
-
-## Verify
-
-- `curl http://localhost:3090/healthz` → `{"ok":true}`
-- `curl http://localhost:3090/status` → JSON with version, uptime, parentPid, worker/gpu/updater
-- Check `worker.state`, `worker.restartCount`, and `worker.lastHeartbeat` in `/status`
-- Check `service/runtime/worker-heartbeat.json` for latest heartbeat
-- Check `service/logs/service.log` for `service.start`
-
-## Verify (GUI)
-
-- Open `services.msc` and confirm `ParasceneProviderLocal` is `Running`.
-- Open `eventvwr.msc` → **Windows Logs > Application** for service start/error events.
+- `curl https://provider-green.parascene.com/healthz`
+- `curl https://provider-green.parascene.com/status`
