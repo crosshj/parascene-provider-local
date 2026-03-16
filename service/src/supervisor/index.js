@@ -26,6 +26,32 @@ let updateQueue;
 let gpuProbe;
 let restartRequested = false;
 
+function resolveWrapperExe() {
+  const candidates = [
+    process.env.SERVICE_WRAPPER_EXE,
+    path.join(
+      config.dataRoot || serviceRoot,
+      "scripts",
+      "parascene-service.exe",
+    ),
+    path.join(serviceRoot, "scripts", "parascene-service.exe"),
+  ].filter(Boolean);
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return {
+        wrapperExe: candidate,
+        candidates,
+      };
+    }
+  }
+
+  return {
+    wrapperExe: null,
+    candidates,
+  };
+}
+
 function ensureDirs() {
   const root = config.dataRoot || serviceRoot;
   const runtimeDir = path.join(root, "runtime");
@@ -54,11 +80,11 @@ function requestServiceRestart(details = {}) {
     return;
   }
 
-  const wrapperExe = path.join(serviceRoot, "scripts", "parascene-service.exe");
-  if (!fs.existsSync(wrapperExe)) {
+  const { wrapperExe, candidates } = resolveWrapperExe();
+  if (!wrapperExe) {
     log.warn("service.restart.unavailable", {
       reason: "winsw_wrapper_missing",
-      wrapperExe,
+      wrapperCandidates: candidates,
       ...details,
     });
     return;
@@ -73,12 +99,23 @@ function requestServiceRestart(details = {}) {
 
   setTimeout(() => {
     try {
-      const child = spawn(wrapperExe, ["restart"], {
-        cwd: serviceRoot,
-        detached: true,
-        stdio: "ignore",
-        windowsHide: true,
-      });
+      const child =
+        process.platform === "win32"
+          ? spawn(
+              "cmd.exe",
+              ["/d", "/s", "/c", "start", "", `\"${wrapperExe}\"`, "restart"],
+              {
+                cwd: path.dirname(wrapperExe),
+                detached: true,
+                stdio: "ignore",
+                windowsHide: true,
+              },
+            )
+          : spawn(wrapperExe, ["restart"], {
+              cwd: path.dirname(wrapperExe),
+              detached: true,
+              stdio: "ignore",
+            });
       child.unref();
     } catch (err) {
       restartRequested = false;
