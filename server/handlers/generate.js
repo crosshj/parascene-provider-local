@@ -276,6 +276,17 @@ function getWorkerStatus() {
   return { running, pid: _worker.pid ?? null };
 }
 
+function ensureWorkerStarted(outDir) {
+  _outDir = _outDir ?? outDir;
+  if (!_outDir) {
+    throw new Error("OUTPUT_DIR not configured");
+  }
+  if (!_worker || _worker.exitCode !== null) {
+    _worker = _spawnWorker();
+  }
+  return getWorkerStatus();
+}
+
 /**
  * Run a generation job.
  * The Python worker is started lazily on first call and kept alive so that
@@ -347,4 +358,9 @@ function handleGenerate(req, res, ctx) {
     );
 }
 
-module.exports = { getWorkerStatus, runGenerator, handleGenerate };
+module.exports = {
+  ensureWorkerStarted,
+  getWorkerStatus,
+  runGenerator,
+  handleGenerate,
+};
