@@ -11,6 +11,7 @@ function createStatusHandler(getState) {
       version: state.version || '0.0.0',
       uptime: state.uptimeMs != null ? state.uptimeMs : 0,
       parentPid: process.pid,
+      workingDirectory: process.cwd(),
       worker: state.worker != null ? state.worker : {},
       gpu: state.gpu != null ? state.gpu : {},
       updater: state.updater != null ? state.updater : {},

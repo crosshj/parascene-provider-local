@@ -13,6 +13,10 @@ class UpdateQueue {
     this.runtimeDir = path.join(this.dataRoot, "runtime");
     this.statePath = path.join(this.runtimeDir, "update-state.json");
     this.eventsPath = path.join(this.runtimeDir, "webhook-events.jsonl");
+    this.currentPointerPath = path.join(
+      this.runtimeDir,
+      "current-release.json",
+    );
 
     this.queue = [];
     this.lastEvent = null;
@@ -43,6 +47,12 @@ class UpdateQueue {
   }
 
   getStatus() {
+    const currentRelease = this._readCurrentRelease();
+    const currentLinkTarget = this._readCurrentLinkTarget();
+    const releaseRetentionMax = Number.parseInt(
+      process.env.UPDATE_MAX_RELEASES || "6",
+      10,
+    );
     return {
       state: this.state,
       processing: this.processing,
@@ -52,6 +62,9 @@ class UpdateQueue {
       lastEvent: this.lastEvent,
       lastCompletedJob: this.lastCompletedJob,
       lastFailedJob: this.lastFailedJob,
+      currentRelease,
+      currentLinkTarget,
+      releaseRetentionMax,
     };
   }
 
@@ -235,6 +248,43 @@ class UpdateQueue {
       fs.writeFileSync(this.statePath, JSON.stringify(payload, null, 2));
     } catch (err) {
       this.log.error("updater.state.write.error", { error: err.message });
+    }
+  }
+
+  _readCurrentRelease() {
+    try {
+      if (!fs.existsSync(this.currentPointerPath)) {
+        return null;
+      }
+      const parsed = JSON.parse(
+        fs.readFileSync(this.currentPointerPath, "utf8"),
+      );
+      return {
+        releaseId: parsed.releaseId || null,
+        resolvedSha: parsed.resolvedSha || null,
+        requestedSha: parsed.requestedSha || null,
+        releaseDir: parsed.releaseDir || null,
+        updatedAt: parsed.updatedAt || null,
+        mode: parsed.mode || null,
+      };
+    } catch (err) {
+      this.log.warn("updater.current.read.error", { error: err.message });
+      return null;
+    }
+  }
+
+  _readCurrentLinkTarget() {
+    try {
+      const currentPath = path.join(this.runtimeDir, "current");
+      if (!fs.existsSync(currentPath)) {
+        return null;
+      }
+      return fs.realpathSync(currentPath);
+    } catch (err) {
+      this.log.warn("updater.current.link.resolve.error", {
+        error: err.message,
+      });
+      return null;
     }
   }
 }
