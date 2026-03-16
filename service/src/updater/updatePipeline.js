@@ -90,8 +90,17 @@ class UpdatePipeline {
       );
       await this._delay();
 
+      const serviceRestart = this.releaseManager.detectServiceCodeChanges({
+        previousTarget: cutoverContext.previousTarget,
+        releaseDir: releaseCtx.releaseDir,
+      });
+
       await transition("restarting", {
-        strategy: "external-service-restart",
+        strategy: serviceRestart.requiresServiceRestart
+          ? "external-service-restart"
+          : "none",
+        requiresServiceRestart: serviceRestart.requiresServiceRestart,
+        serviceChangedCount: serviceRestart.serviceChangedCount,
       });
       await this._delay();
 
@@ -117,6 +126,10 @@ class UpdatePipeline {
         pointerFile: cutoverContext.pointerPath,
         currentPath: this.releaseManager.currentLinkPath,
         prunedReleaseIds: pruneResult.pruned,
+        requiresServiceRestart: serviceRestart.requiresServiceRestart,
+        serviceChangedFiles: serviceRestart.serviceChangedFiles,
+        serviceChangedCount: serviceRestart.serviceChangedCount,
+        serviceRestartReason: serviceRestart.reason,
         mode: "phase-9-staged-cutover",
       };
     } catch (err) {

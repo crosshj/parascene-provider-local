@@ -194,6 +194,8 @@ class UpdateQueue {
             result,
           };
 
+          const requiresServiceRestart = Boolean(result.requiresServiceRestart);
+
           if (typeof this.onRollingNodeRollout === "function") {
             try {
               await this.onRollingNodeRollout(result.releaseDir);
@@ -210,28 +212,69 @@ class UpdateQueue {
                   });
                 }
               }
+
+              if (requiresServiceRestart) {
+                restartRequest = {
+                  jobId: job.id,
+                  eventId: job.eventId,
+                  releaseId: result.releaseId || null,
+                  releaseDir: result.releaseDir || null,
+                  currentPath: result.currentPath || null,
+                  reason: result.serviceRestartReason || "service_code_changed",
+                  serviceChangedCount: result.serviceChangedCount || 0,
+                  serviceChangedFiles: result.serviceChangedFiles || [],
+                };
+              }
             } catch (rolloutErr) {
               this.log.warn("updater.rolling.node.failed", {
                 jobId: job.id,
                 error: rolloutErr.message,
                 releaseDir: result.releaseDir,
               });
+
+              if (requiresServiceRestart) {
+                restartRequest = {
+                  jobId: job.id,
+                  eventId: job.eventId,
+                  releaseId: result.releaseId || null,
+                  releaseDir: result.releaseDir || null,
+                  currentPath: result.currentPath || null,
+                  reason:
+                    result.serviceRestartReason ||
+                    "service_code_changed_rollout_failed",
+                  serviceChangedCount: result.serviceChangedCount || 0,
+                  serviceChangedFiles: result.serviceChangedFiles || [],
+                  rolloutError: rolloutErr.message,
+                };
+              } else {
+                this.log.info("updater.restart.skipped.no_service_code_change", {
+                  jobId: job.id,
+                  eventId: job.eventId,
+                  releaseId: result.releaseId || null,
+                  releaseDir: result.releaseDir || null,
+                });
+              }
+            }
+          } else {
+            if (requiresServiceRestart) {
               restartRequest = {
                 jobId: job.id,
                 eventId: job.eventId,
                 releaseId: result.releaseId || null,
                 releaseDir: result.releaseDir || null,
                 currentPath: result.currentPath || null,
+                reason: result.serviceRestartReason || "service_code_changed",
+                serviceChangedCount: result.serviceChangedCount || 0,
+                serviceChangedFiles: result.serviceChangedFiles || [],
               };
+            } else {
+              this.log.info("updater.restart.skipped.no_service_code_change", {
+                jobId: job.id,
+                eventId: job.eventId,
+                releaseId: result.releaseId || null,
+                releaseDir: result.releaseDir || null,
+              });
             }
-          } else {
-            restartRequest = {
-              jobId: job.id,
-              eventId: job.eventId,
-              releaseId: result.releaseId || null,
-              releaseDir: result.releaseDir || null,
-              currentPath: result.currentPath || null,
-            };
           }
 
           this.log.info("updater.job.complete", {

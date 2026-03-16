@@ -2,6 +2,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 const { spawn } = require("child_process");
 
 class ReleaseManager {
@@ -257,6 +258,31 @@ class ReleaseManager {
     return { pruned, kept };
   }
 
+  detectServiceCodeChanges({ previousTarget, releaseDir }) {
+    const previousRoot = previousTarget ? path.resolve(previousTarget) : null;
+    const nextRoot = path.resolve(releaseDir);
+
+    if (!previousRoot || !fs.existsSync(previousRoot)) {
+      return {
+        requiresServiceRestart: true,
+        serviceChangedFiles: ["service/src/**"],
+        serviceChangedCount: 1,
+        reason: "previous_target_missing",
+      };
+    }
+
+    const previousSnapshot = this._buildServiceCodeSnapshot(previousRoot);
+    const nextSnapshot = this._buildServiceCodeSnapshot(nextRoot);
+    const changed = this._diffSnapshotKeys(previousSnapshot, nextSnapshot);
+
+    return {
+      requiresServiceRestart: changed.length > 0,
+      serviceChangedFiles: changed,
+      serviceChangedCount: changed.length,
+      reason: changed.length > 0 ? "service_code_changed" : "service_code_unchanged",
+    };
+  }
+
   _setCurrentLink(targetDir) {
     const resolvedTarget = path.resolve(targetDir);
     if (!fs.existsSync(resolvedTarget)) {
@@ -289,6 +315,71 @@ class ReleaseManager {
     }
 
     fs.symlinkSync(resolvedTarget, this.currentLinkPath, "junction");
+  }
+
+  _buildServiceCodeSnapshot(repoRoot) {
+    const snapshot = new Map();
+    const serviceSrcRoot = path.join(repoRoot, "service", "src");
+
+    if (fs.existsSync(serviceSrcRoot)) {
+      this._walkFiles(serviceSrcRoot, (absoluteFilePath) => {
+        const relativePath = path
+          .relative(repoRoot, absoluteFilePath)
+          .split(path.sep)
+          .join("/");
+        snapshot.set(relativePath, this._hashFile(absoluteFilePath));
+      });
+    }
+
+    for (const relativePath of [
+      "service/package.json",
+      "service/package-lock.json",
+      "service/npm-shrinkwrap.json",
+    ]) {
+      const absolutePath = path.join(repoRoot, ...relativePath.split("/"));
+      if (fs.existsSync(absolutePath) && fs.statSync(absolutePath).isFile()) {
+        snapshot.set(relativePath, this._hashFile(absolutePath));
+      }
+    }
+
+    return snapshot;
+  }
+
+  _walkFiles(rootDir, onFile) {
+    const stack = [rootDir];
+    while (stack.length > 0) {
+      const currentDir = stack.pop();
+      const entries = fs.readdirSync(currentDir, { withFileTypes: true });
+      for (const entry of entries) {
+        const fullPath = path.join(currentDir, entry.name);
+        if (entry.isDirectory()) {
+          stack.push(fullPath);
+        } else if (entry.isFile()) {
+          onFile(fullPath);
+        }
+      }
+    }
+  }
+
+  _hashFile(filePath) {
+    const hash = crypto.createHash("sha256");
+    hash.update(fs.readFileSync(filePath));
+    return hash.digest("hex");
+  }
+
+  _diffSnapshotKeys(previousSnapshot, nextSnapshot) {
+    const changed = [];
+    const keys = new Set([
+      ...previousSnapshot.keys(),
+      ...nextSnapshot.keys(),
+    ]);
+    for (const key of keys) {
+      if (previousSnapshot.get(key) !== nextSnapshot.get(key)) {
+        changed.push(key);
+      }
+    }
+    changed.sort();
+    return changed;
   }
 
   _buildRepoUrl(repo) {

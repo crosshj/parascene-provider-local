@@ -1,0 +1,129 @@
+.status-shell {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: clamp(0.6rem, 2vw, 1.1rem);
+}
+
+.status-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.75rem;
+  align-items: baseline;
+  margin-bottom: 0.75rem;
+}
+
+.status-head h1 {
+  font-size: clamp(1rem, 1.7vw, 1.2rem);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.subtle {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.status-toolbar {
+  display: flex;
+  gap: 0.42rem;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.16rem 0.5rem;
+  border: 1px solid var(--sep);
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.pill.ok {
+  color: #0b8f3a;
+}
+
+.pill.warn {
+  color: #b37400;
+}
+
+.pill.bad {
+  color: #b00020;
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.status-card {
+  grid-column: span 12;
+  background: var(--surface-lo);
+  border: 1px solid var(--sep);
+  border-radius: var(--r-lg);
+  padding: 0.62rem 0.7rem;
+}
+
+.span-4 {
+  grid-column: span 4;
+}
+
+.span-8 {
+  grid-column: span 8;
+}
+
+.status-card h3 {
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 0.36rem;
+}
+
+.status-row {
+  display: grid;
+  grid-template-columns: 165px 1fr;
+  gap: 0.35rem;
+  padding: 0.1rem 0;
+}
+
+.status-k {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.status-v {
+  font-size: 0.76rem;
+  word-break: break-word;
+}
+
+.sha {
+  font-family: ui-monospace, Consolas, monospace;
+  letter-spacing: 0.01em;
+}
+
+.raw {
+  margin-top: 0.3rem;
+  padding: 0.5rem;
+  border: 1px solid var(--sep);
+  border-radius: var(--r);
+  max-height: 320px;
+  overflow: auto;
+  font-size: 0.69rem;
+  line-height: 1.45;
+  background: color-mix(in oklab, var(--surface-lo), Canvas 10%);
+}
+
+@media (max-width: 960px) {
+
+  .span-4,
+  .span-8 {
+    grid-column: span 12;
+  }
+
+  .status-row {
+    grid-template-columns: 1fr;
+    gap: 0.1rem;
+  }
+}
