@@ -103,19 +103,54 @@ function requestServiceRestart(details = {}) {
         process.platform === "win32"
           ? spawn(
               "cmd.exe",
-              ["/d", "/s", "/c", "start", "", `\"${wrapperExe}\"`, "restart"],
+              ["/d", "/s", "/c", `\"${wrapperExe}\"`, "restart"],
               {
                 cwd: path.dirname(wrapperExe),
-                detached: true,
-                stdio: "ignore",
+                detached: false,
+                stdio: ["ignore", "pipe", "pipe"],
                 windowsHide: true,
               },
             )
           : spawn(wrapperExe, ["restart"], {
               cwd: path.dirname(wrapperExe),
-              detached: true,
-              stdio: "ignore",
+              detached: false,
+              stdio: ["ignore", "pipe", "pipe"],
             });
+
+      let stdoutData = "";
+      let stderrData = "";
+
+      if (child.stdout) {
+        child.stdout.on("data", (chunk) => {
+          stdoutData += chunk.toString();
+        });
+      }
+
+      if (child.stderr) {
+        child.stderr.on("data", (chunk) => {
+          stderrData += chunk.toString();
+        });
+      }
+
+      child.on("close", (code) => {
+        log.info("service.restart.process.exit", {
+          code,
+          stdout: stdoutData,
+          stderr: stderrData,
+          wrapperExe,
+          ...details,
+        });
+      });
+
+      child.on("error", (err) => {
+        restartRequested = false;
+        log.error("service.restart.process.error", {
+          error: err.message,
+          wrapperExe,
+          ...details,
+        });
+      });
+
       child.unref();
     } catch (err) {
       restartRequested = false;
