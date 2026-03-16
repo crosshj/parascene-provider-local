@@ -279,7 +279,8 @@ class ReleaseManager {
       requiresServiceRestart: changed.length > 0,
       serviceChangedFiles: changed,
       serviceChangedCount: changed.length,
-      reason: changed.length > 0 ? "service_code_changed" : "service_code_unchanged",
+      reason:
+        changed.length > 0 ? "service_code_changed" : "service_code_unchanged",
     };
   }
 
@@ -369,10 +370,7 @@ class ReleaseManager {
 
   _diffSnapshotKeys(previousSnapshot, nextSnapshot) {
     const changed = [];
-    const keys = new Set([
-      ...previousSnapshot.keys(),
-      ...nextSnapshot.keys(),
-    ]);
+    const keys = new Set([...previousSnapshot.keys(), ...nextSnapshot.keys()]);
     for (const key of keys) {
       if (previousSnapshot.get(key) !== nextSnapshot.get(key)) {
         changed.push(key);

@@ -25,10 +25,12 @@ function relTime(d) {
 function classifyState(state) {
   if (!state) return "warn";
   const s = String(state).toLowerCase();
-  if (["healthy", "running", "complete", "idle", "ok"].includes(s))
+  if (["healthy", "running", "complete", "idle", "ok"].includes(s)) {
     return "ok";
-  if (["failed", "error", "unhealthy", "degraded", "stopped"].includes(s))
+  }
+  if (["failed", "error", "unhealthy", "degraded", "stopped"].includes(s)) {
     return "bad";
+  }
   return "warn";
 }
 
@@ -137,13 +139,9 @@ async function refresh() {
   set("corePid", st.parentPid);
   set("coreCwd", st.workingDirectory);
 
-  const wk = st.worker || {};
-  set("wkState", wk.state);
-  set("wkImpl", wk.impl);
-  set("wkPid", wk.pid);
-  set("wkRestarts", wk.restartCount);
-  set("wkHeartbeat", fmtTime(wk.lastHeartbeat));
-  set("wkEndpoint", wk.endpoint);
+  const wk = ah.data && ah.data.worker ? ah.data.worker : {};
+  set("wkState", wk.running === true ? "running" : "stopped (or not started)");
+  set("wkPid", wk.pid != null ? wk.pid : "—");
 
   const gpu = st.gpu || {};
   set("gpuState", gpu.status);
@@ -187,12 +185,12 @@ async function refresh() {
   );
 
   const coreGood = h.ok && s.ok;
-  const workerGood = classifyState(wk.state) === "ok";
+  const workerGood = wk.running === true;
   const gpuGood = classifyState(gpu.status) === "ok";
-  const updaterBad =
-    classifyState(up.state) === "bad" || !!up.lastFailedJob;
+  const apiGood = ah.ok && ah.data?.ok !== false;
+  const updaterBad = classifyState(up.state) === "bad" || !!up.lastFailedJob;
 
-  if (!coreGood || updaterBad) setPill("NOT HEALTHY", "bad");
+  if (!coreGood || updaterBad || !apiGood) setPill("NOT HEALTHY", "bad");
   else if (!workerGood || !gpuGood) setPill("DEGRADED", "warn");
   else setPill("HEALTHY", "ok");
 }

@@ -116,7 +116,6 @@
 }
 
 @media (max-width: 960px) {
-
   .span-4,
   .span-8 {
     grid-column: span 12;

@@ -247,12 +247,15 @@ class UpdateQueue {
                   rolloutError: rolloutErr.message,
                 };
               } else {
-                this.log.info("updater.restart.skipped.no_service_code_change", {
-                  jobId: job.id,
-                  eventId: job.eventId,
-                  releaseId: result.releaseId || null,
-                  releaseDir: result.releaseDir || null,
-                });
+                this.log.info(
+                  "updater.restart.skipped.no_service_code_change",
+                  {
+                    jobId: job.id,
+                    eventId: job.eventId,
+                    releaseId: result.releaseId || null,
+                    releaseDir: result.releaseDir || null,
+                  },
+                );
               }
             }
           } else {
