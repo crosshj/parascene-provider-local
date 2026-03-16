@@ -29,6 +29,7 @@ Optional:
 
 - `SERVICE_PORT` (default `3090`)
 - `WORKER_MODE` (default `normal`)
+- `GPU_PROBE_INTERVAL_MS` (default `30000`)
 
 ## Run
 

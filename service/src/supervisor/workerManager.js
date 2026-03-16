@@ -94,6 +94,10 @@ class WorkerManager {
     };
   }
 
+  requestRestart(reason = "external_request") {
+    this._scheduleRestart(reason);
+  }
+
   _spawnWorker() {
     const workerPath = path.join(
       this.serviceRoot,

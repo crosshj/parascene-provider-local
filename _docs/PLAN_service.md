@@ -131,7 +131,7 @@ sc.exe failure "<ServiceName>" reset= 86400 actions= restart/5000/restart/10000/
 - **Phase 3:** GitHub webhook ingress (`POST /webhooks/github`). ✅ DONE (2026-03-16)
 - **Phase 4:** Fake update pipeline (state machine). ✅ DONE (2026-03-16)
 - **Phase 5:** Real GitHub fetch; staged releases; `current` pointer. ✅ DONE (2026-03-16)
-- **Phase 6:** GPU probe (nvidia-smi, `runtime/gpu-state.json`).
+- **Phase 6:** GPU probe (nvidia-smi, `runtime/gpu-state.json`). ✅ DONE (2026-03-16)
 - **Phase 7:** Replace dummy worker with Python generator (this repo’s `generator/`).
 - **Phase 8:** Replace placeholder API with real routes; keep `/healthz`, `/status`, `/webhooks/github`.
 - **Phase 9:** Production safety (stage → smoke test → cutover; rollback always possible).

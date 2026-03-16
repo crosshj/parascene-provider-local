@@ -306,7 +306,7 @@ Cutover occurs by updating a `current` pointer.
 
 ---
 
-# Phase 6 — GPU Probe
+# Phase 6 — GPU Probe — ✅ IMPLEMENTED IN THIS REPO (2026-03-16)
 
 Add GPU health monitoring.
 

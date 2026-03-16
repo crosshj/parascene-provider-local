@@ -11,6 +11,7 @@ const { healthzHandler } = require("../api/healthz");
 const { createStatusHandler } = require("../api/status");
 const { createGitHubWebhookHandler } = require("../api/githubWebhook");
 const { UpdateQueue } = require("../updater/updateQueue");
+const { GpuProbe } = require("../gpu/gpuProbe");
 const { WorkerManager } = require("./workerManager");
 
 const serviceRoot = getServiceRoot(__dirname);
@@ -20,6 +21,7 @@ const log = createLogger(serviceRoot);
 const startTime = Date.now();
 let workerManager;
 let updateQueue;
+let gpuProbe;
 
 function ensureDirs() {
   const runtimeDir = path.join(serviceRoot, "runtime");
@@ -38,7 +40,7 @@ function getStatusState() {
     version: config.version,
     uptimeMs: Date.now() - startTime,
     worker: workerManager ? workerManager.getStatus() : {},
-    gpu: {},
+    gpu: gpuProbe ? gpuProbe.getStatus() : {},
     updater: updateQueue ? updateQueue.getStatus() : {},
   };
 }
@@ -66,6 +68,24 @@ function main() {
   });
   updateQueue = new UpdateQueue({ serviceRoot, log });
   updateQueue.start();
+
+  gpuProbe = new GpuProbe({
+    serviceRoot,
+    log,
+    onFailure: ({ at, state }) => {
+      const worker = workerManager ? workerManager.getStatus() : {};
+      if (worker && worker.state === "unhealthy") {
+        log.warn("gpu.probe.escalate.worker.restart", {
+          at,
+          workerState: worker.state,
+          gpuStatus: state.status,
+          gpuLastError: state.lastError,
+        });
+        workerManager.requestRestart("gpu_failure_and_worker_unhealthy");
+      }
+    },
+  });
+  gpuProbe.start();
 
   const statusHandler = createStatusHandler(getStatusState);
   const githubWebhookHandler = createGitHubWebhookHandler({
@@ -133,6 +153,13 @@ function main() {
       }
     } catch (err) {
       log.error("service.stop.updater.error", { error: err.message });
+    }
+    try {
+      if (gpuProbe) {
+        gpuProbe.stop();
+      }
+    } catch (err) {
+      log.error("service.stop.gpu.error", { error: err.message });
     }
     server.close(() => process.exit(0));
   }

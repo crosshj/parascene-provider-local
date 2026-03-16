@@ -221,7 +221,7 @@ C:\svc\service
 
 ---
 
-# Step 9 — GPU Probe
+# Step 9 — GPU Probe — ✅ DONE (2026-03-16)
 
 Create:
 
