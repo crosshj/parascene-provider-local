@@ -84,6 +84,52 @@ def _log(msg: str) -> None:
     sys.stderr.write(f"[worker] {msg}\n")
     sys.stderr.flush()
 
+
+def _is_cuda_oom(exc: Exception) -> bool:
+    """Best-effort detection for CUDA out-of-memory exceptions."""
+    needles = (
+        "cuda out of memory",
+        "cuda error: out of memory",
+        "cudaerrormemoryallocation",
+        "cudamemoryallocation",
+    )
+
+    seen = set()
+    current: BaseException | None = exc
+    depth = 0
+    while current is not None and depth < 8 and id(current) not in seen:
+        seen.add(id(current))
+        msg = str(current).lower()
+        if any(n in msg for n in needles):
+            return True
+        current = current.__cause__ or current.__context__
+        depth += 1
+
+    return False
+
+
+def _clear_cuda_cache(torch_module=None) -> None:
+    """Release as much cached CUDA memory as possible."""
+    try:
+        gc.collect()
+    except Exception:
+        pass
+
+    try:
+        torch = torch_module or _get_torch()
+    except Exception:
+        return
+
+    try:
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            try:
+                torch.cuda.ipc_collect()
+            except Exception:
+                pass
+    except Exception:
+        pass
+
 # ---------------------------------------------------------------------------
 # VRAM / CPU model cache
 # ---------------------------------------------------------------------------
@@ -255,10 +301,26 @@ def _process_one(payload: Dict[str, Any], out_dir: Path) -> Dict[str, Any]:
             raise ValueError("Missing required field: model")
 
         started = time.time()
-        _log(f"loading family={family} model={model}")
-        pipe, torch_module = load_pipeline(family, model)
-        _log("running inference")
-        image, seed = run_generation(pipe, family, payload, torch_module)
+        torch_module = None
+        image = None
+        seed = None
+
+        for attempt in (1, 2):
+            try:
+                _log(f"loading family={family} model={model}")
+                pipe, torch_module = load_pipeline(family, model)
+                _log("running inference")
+                image, seed = run_generation(pipe, family, payload, torch_module)
+                break
+            except Exception as exc:
+                if attempt == 1 and _is_cuda_oom(exc):
+                    _log("CUDA OOM detected; clearing cache and retrying once with same settings")
+                    _clear_cuda_cache(torch_module)
+                    continue
+                raise
+
+        if image is None or seed is None:
+            raise RuntimeError("Generation failed after retry.")
 
         stamp = time.strftime("%Y%m%d-%H%M%S")
         file_name = f"img-{stamp}-{seed}.png"

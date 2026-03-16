@@ -67,6 +67,41 @@ function readJson(req) {
   });
 }
 
+function sanitizePromptText(value) {
+  if (value == null) return "";
+
+  // Normalize compatibility forms first, then replace known problematic punctuation.
+  let out = String(value).normalize("NFKC");
+
+  const map = {
+    "\u2018": "'", // left single quote
+    "\u2019": "'", // right single quote
+    "\u201A": "'", // single low-9 quote
+    "\u201B": "'", // single high-reversed-9 quote
+    "\u2032": "'", // prime
+    "\u201C": '"', // left double quote
+    "\u201D": '"', // right double quote
+    "\u201E": '"', // double low-9 quote
+    "\u201F": '"', // double high-reversed-9 quote
+    "\u2033": '"', // double prime
+    "\u2013": "-", // en dash
+    "\u2014": "-", // em dash
+    "\u2212": "-", // minus sign
+    "\u2026": "...", // ellipsis
+    "\u00A0": " ", // non-breaking space
+  };
+
+  out = out.replace(
+    /[\u2018\u2019\u201A\u201B\u2032\u201C\u201D\u201E\u201F\u2033\u2013\u2014\u2212\u2026\u00A0]/g,
+    (ch) => map[ch] ?? ch,
+  );
+
+  // Drop control chars except newline/tab to keep tokenizer input safe.
+  out = out.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
+
+  return out.trim();
+}
+
 function logRequest(req) {
   const h = req.headers || {};
   const ip =
@@ -130,7 +165,7 @@ function handleOutputImage(_req, res, reqPath) {
 function handleGenerate(req, res) {
   readJson(req)
     .then((body) => {
-      const prompt = String(body.prompt || "").trim();
+      const prompt = sanitizePromptText(body.prompt);
       if (!prompt)
         return sendJson(res, 400, {
           error: "Missing required field: prompt",
@@ -151,6 +186,8 @@ function handleGenerate(req, res) {
       const payload = {
         ...body,
         prompt,
+        prompt_2: sanitizePromptText(body.prompt_2 || ""),
+        negative_prompt: sanitizePromptText(body.negative_prompt || ""),
         model: entry.fullPath,
         family: entry.family,
       };
