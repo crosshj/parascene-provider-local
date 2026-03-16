@@ -284,6 +284,10 @@
           <div class="status-k">output dir</div>
           <div id="apiOutputDir" class="status-v">—</div>
         </div>
+        <div class="status-row">
+          <div class="status-k">public dir</div>
+          <div id="apiPublicDir" class="status-v">—</div>
+        </div>
       </section>
 
       <section class="status-card span-12">
@@ -299,6 +303,22 @@
         <div class="status-row">
           <div class="status-k">queue length</div>
           <div id="upQueue" class="status-v">—</div>
+        </div>
+        <div class="status-row">
+          <div class="status-k">active candidate</div>
+          <div id="upCurrent" class="status-v sha">—</div>
+        </div>
+        <div class="status-row">
+          <div class="status-k">active stage</div>
+          <div id="upCurrentStage" class="status-v">—</div>
+        </div>
+        <div class="status-row">
+          <div class="status-k">stage transition</div>
+          <div id="upCurrentTransition" class="status-v">—</div>
+        </div>
+        <div class="status-row">
+          <div class="status-k">queued candidates</div>
+          <div id="upQueuedShas" class="status-v sha">—</div>
         </div>
         <div class="status-row">
           <div class="status-k">last event</div>
@@ -373,6 +393,21 @@
       const sha = job.sha ? job.sha.slice(0, 12) : "?";
       const when = job.completedAt || job.failedAt || null;
       return `${id} (${sha}) @ ${fmtTime(when)}`;
+    }
+
+    function fmtCurrentJob(job) {
+      if (!job) return "none";
+      const id = job.id || "?";
+      const sha = job.sha ? job.sha.slice(0, 12) : "?";
+      const ref = job.ref || "?";
+      return `${id} (${sha}) ${ref}`;
+    }
+
+    function fmtQueueShas(queue) {
+      if (!Array.isArray(queue) || queue.length === 0) return "none";
+      return queue
+        .map((job) => `${(job.sha || "?").slice(0, 12)}:${job.state || "?"}`)
+        .join(" | ");
     }
 
     function normalizePath(p) {
@@ -465,6 +500,10 @@
       set("upState", up.state);
       set("upProcessing", up.processing);
       set("upQueue", up.queueLength);
+      set("upCurrent", fmtCurrentJob(up.currentJob));
+      set("upCurrentStage", up.currentJob?.state || "none");
+      set("upCurrentTransition", fmtTime(up.currentJob?.transitionedAt));
+      set("upQueuedShas", fmtQueueShas(up.queue));
       set("upLastEvent", fmtLastEvent(up.lastEvent));
       set("upCompleted", fmtJob(up.lastCompletedJob));
       set("upFailed", fmtJob(up.lastFailedJob));
@@ -485,6 +524,7 @@
       const apiHealth = ah.data || {};
       set("apiHealth", `${ah.status} ${apiHealth.ok ? "OK" : "FAIL"}`);
       set("apiOutputDir", apiHealth.output_dir);
+      set("apiPublicDir", apiHealth.public_dir);
       set(
         "apiModelsCount",
         Array.isArray(am.data?.models) ? am.data.models.length : "—",

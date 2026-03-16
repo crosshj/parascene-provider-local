@@ -44,10 +44,12 @@ function createProviderApiHandler({ log }) {
     const method = req.method || "GET";
 
     if (method === "GET" && reqPath === "/api/health") {
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
       sendJson(res, 200, {
         ok: true,
         models: getModels().length,
         output_dir: OUTPUT_DIR,
+        public_dir: PUBLIC_DIR,
       });
       return true;
     }
@@ -175,7 +177,12 @@ function createProviderApiHandler({ log }) {
               : ext === ".js"
                 ? "text/javascript; charset=utf-8"
                 : "application/octet-stream";
-        res.writeHead(200, { "Content-Type": mime });
+        res.writeHead(200, {
+          "Content-Type": mime,
+          "Cache-Control": "no-store, no-cache, must-revalidate",
+          "X-Service-Public-Dir": PUBLIC_DIR,
+          "X-Service-Public-File": filePath,
+        });
         res.end(data);
       });
       return true;

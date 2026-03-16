@@ -58,6 +58,13 @@ class UpdateQueue {
       state: this.state,
       processing: this.processing,
       queueLength: this.queue.length,
+      queue: this.queue.map((job) => ({
+        id: job.id,
+        state: job.state,
+        ref: job.ref,
+        sha: job.sha,
+        queuedAt: job.queuedAt,
+      })),
       currentJob: this.currentJob,
       lastQueuedAt: this.lastQueuedAt,
       lastEvent: this.lastEvent,
