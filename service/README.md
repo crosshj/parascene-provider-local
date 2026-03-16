@@ -64,5 +64,5 @@ Note: direct `sc stop/start ParasceneProviderLocal` can fail with Access Denied 
 
 ## Quick verify
 
-- `curl https://provider-green.parascene.com/healthz`
-- `curl https://provider-green.parascene.com/status`
+- `curl https://blue.parascene.com/healthz`
+- `curl https://blue.parascene.com/status`

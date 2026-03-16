@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * GET /status — runtime information.
@@ -6,9 +6,9 @@
  */
 function createStatusHandler(getState) {
   return function statusHandler(_req, res) {
-    const state = typeof getState === 'function' ? getState() : {};
+    const state = typeof getState === "function" ? getState() : {};
     const payload = {
-      version: state.version || '0.0.0',
+      version: state.version || "0.0.0",
       uptime: state.uptimeMs != null ? state.uptimeMs : 0,
       parentPid: process.pid,
       workingDirectory: process.cwd(),
@@ -16,7 +16,7 @@ function createStatusHandler(getState) {
       gpu: state.gpu != null ? state.gpu : {},
       updater: state.updater != null ? state.updater : {},
     };
-    res.setHeader('Content-Type', 'application/json');
+    res.setHeader("Content-Type", "application/json");
     res.statusCode = 200;
     res.end(JSON.stringify(payload, null, 2));
   };

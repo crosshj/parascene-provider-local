@@ -2,19 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1"
-    />
-    <meta
-      name="color-scheme"
-      content="light dark"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
     <title>Service Status</title>
-    <link
-      rel="stylesheet"
-      href="/app.css"
-    />
+    <link rel="stylesheet" href="/app.css" />
     <style>
       .status-shell {
         max-width: 1160px;
@@ -150,24 +141,18 @@
     <div class="status-shell">
       <header class="status-head">
         <h1>Service Status</h1>
-        <p class="subtle">Operational view for service, worker, updater, GPU, and provider API.</p>
+        <p class="subtle">
+          Operational view for service, worker, updater, GPU, and provider API.
+        </p>
       </header>
 
       <div class="status-toolbar">
         <button id="refreshBtn">Refresh now</button>
         <label class="subtle"
-          ><input
-            id="autoChk"
-            type="checkbox"
-            checked
-          />
-          auto-refresh (5s)</label
+          ><input id="autoChk" type="checkbox" checked /> auto-refresh
+          (5s)</label
         >
-        <span
-          id="overall"
-          class="pill"
-          >Checking…</span
-        >
+        <span id="overall" class="pill">Checking…</span>
         <span class="subtle"
           >Last refresh: <span id="lastRefresh">never</span></span
         >
@@ -176,80 +161,182 @@
       <div class="status-grid">
         <section class="status-card span-8">
           <h3>Current Running Release</h3>
-          <div class="status-row"><div class="status-k">execution source</div><div id="curSource" class="status-v">—</div></div>
-          <div class="status-row"><div class="status-k">service cwd</div><div id="coreCwd" class="status-v">—</div></div>
-          <div class="status-row"><div class="status-k">current link target</div><div id="curLinkTarget" class="status-v">—</div></div>
-          <div class="status-row"><div class="status-k">Git commit SHA</div><div id="curSha" class="status-v sha">—</div></div>
-          <div class="status-row"><div class="status-k">release id</div><div id="curReleaseId" class="status-v">—</div></div>
-          <div class="status-row"><div class="status-k">release mode</div><div id="curMode" class="status-v">—</div></div>
-          <div class="status-row"><div class="status-k">release updated</div><div id="curUpdated" class="status-v">—</div></div>
-          <div class="status-row"><div class="status-k">release dir</div><div id="curDir" class="status-v">—</div></div>
+          <div class="status-row">
+            <div class="status-k">execution source</div>
+            <div id="curSource" class="status-v">—</div>
+          </div>
+          <div class="status-row">
+            <div class="status-k">service cwd</div>
+            <div id="coreCwd" class="status-v">—</div>
+          </div>
+          <div class="status-row">
+            <div class="status-k">current link target</div>
+            <div id="curLinkTarget" class="status-v">—</div>
+          </div>
+          <div class="status-row">
+            <div class="status-k">Git commit SHA</div>
+            <div id="curSha" class="status-v sha">—</div>
+          </div>
+          <div class="status-row">
+            <div class="status-k">release id</div>
+            <div id="curReleaseId" class="status-v">—</div>
+          </div>
+          <div class="status-row">
+            <div class="status-k">release mode</div>
+            <div id="curMode" class="status-v">—</div>
+          </div>
+          <div class="status-row">
+            <div class="status-k">release updated</div>
+            <div id="curUpdated" class="status-v">—</div>
+          </div>
+          <div class="status-row">
+            <div class="status-k">release dir</div>
+            <div id="curDir" class="status-v">—</div>
+          </div>
         </section>
 
         <section class="status-card span-4">
           <h3>Core</h3>
-          <div class="status-row"><div class="status-k">/healthz</div><div id="coreHealthz" class="status-v">—</div></div>
-          <div class="status-row"><div class="status-k">/status</div><div id="coreStatus" class="status-v">—</div></div>
-          <div class="status-row"><div class="status-k">version</div><div id="coreVersion" class="status-v">—</div></div>
-          <div class="status-row"><div class="status-k">uptime</div><div id="coreUptime" class="status-v">—</div></div>
-          <div class="status-row"><div class="status-k">pid</div><div id="corePid" class="status-v">—</div></div>
+          <div class="status-row">
+            <div class="status-k">/healthz</div>
+            <div id="coreHealthz" class="status-v">—</div>
+          </div>
+          <div class="status-row">
+            <div class="status-k">/status</div>
+            <div id="coreStatus" class="status-v">—</div>
+          </div>
+          <div class="status-row">
+            <div class="status-k">version</div>
+            <div id="coreVersion" class="status-v">—</div>
+          </div>
+          <div class="status-row">
+            <div class="status-k">uptime</div>
+            <div id="coreUptime" class="status-v">—</div>
+          </div>
+          <div class="status-row">
+            <div class="status-k">pid</div>
+            <div id="corePid" class="status-v">—</div>
+          </div>
         </section>
 
         <section class="status-card span-4">
           <h3>Worker</h3>
-          <div class="status-row"><div class="status-k">state</div><div id="wkState" class="status-v">—</div></div>
-          <div class="status-row"><div class="status-k">impl</div><div id="wkImpl" class="status-v">—</div></div>
-          <div class="status-row"><div class="status-k">pid</div><div id="wkPid" class="status-v">—</div></div>
-          <div class="status-row"><div class="status-k">restarts</div><div id="wkRestarts" class="status-v">—</div></div>
-          <div class="status-row"><div class="status-k">last heartbeat</div><div id="wkHeartbeat" class="status-v">—</div></div>
-          <div class="status-row"><div class="status-k">endpoint</div><div id="wkEndpoint" class="status-v">—</div></div>
+          <div class="status-row">
+            <div class="status-k">state</div>
+            <div id="wkState" class="status-v">—</div>
+          </div>
+          <div class="status-row">
+            <div class="status-k">impl</div>
+            <div id="wkImpl" class="status-v">—</div>
+          </div>
+          <div class="status-row">
+            <div class="status-k">pid</div>
+            <div id="wkPid" class="status-v">—</div>
+          </div>
+          <div class="status-row">
+            <div class="status-k">restarts</div>
+            <div id="wkRestarts" class="status-v">—</div>
+          </div>
+          <div class="status-row">
+            <div class="status-k">last heartbeat</div>
+            <div id="wkHeartbeat" class="status-v">—</div>
+          </div>
+          <div class="status-row">
+            <div class="status-k">endpoint</div>
+            <div id="wkEndpoint" class="status-v">—</div>
+          </div>
         </section>
 
         <section class="status-card span-4">
           <h3>GPU</h3>
-          <div class="status-row"><div class="status-k">probe status</div><div id="gpuState" class="status-v">—</div></div>
-          <div class="status-row"><div class="status-k">last success</div><div id="gpuLastSuccess" class="status-v">—</div></div>
-          <div class="status-row"><div class="status-k">last failure</div><div id="gpuLastFailure" class="status-v">—</div></div>
-          <div class="status-row"><div class="status-k">failure count</div><div id="gpuFailCount" class="status-v">—</div></div>
-          <div class="status-row"><div class="status-k">gpu count</div><div id="gpuCount" class="status-v">—</div></div>
+          <div class="status-row">
+            <div class="status-k">probe status</div>
+            <div id="gpuState" class="status-v">—</div>
+          </div>
+          <div class="status-row">
+            <div class="status-k">last success</div>
+            <div id="gpuLastSuccess" class="status-v">—</div>
+          </div>
+          <div class="status-row">
+            <div class="status-k">last failure</div>
+            <div id="gpuLastFailure" class="status-v">—</div>
+          </div>
+          <div class="status-row">
+            <div class="status-k">failure count</div>
+            <div id="gpuFailCount" class="status-v">—</div>
+          </div>
+          <div class="status-row">
+            <div class="status-k">gpu count</div>
+            <div id="gpuCount" class="status-v">—</div>
+          </div>
         </section>
 
         <section class="status-card span-4">
           <h3>Provider API</h3>
-          <div class="status-row"><div class="status-k">/api/health</div><div id="apiHealth" class="status-v">—</div></div>
-          <div class="status-row"><div class="status-k">models count</div><div id="apiModelsCount" class="status-v">—</div></div>
-          <div class="status-row"><div class="status-k">output dir</div><div id="apiOutputDir" class="status-v">—</div></div>
+          <div class="status-row">
+            <div class="status-k">/api/health</div>
+            <div id="apiHealth" class="status-v">—</div>
+          </div>
+          <div class="status-row">
+            <div class="status-k">models count</div>
+            <div id="apiModelsCount" class="status-v">—</div>
+          </div>
+          <div class="status-row">
+            <div class="status-k">output dir</div>
+            <div id="apiOutputDir" class="status-v">—</div>
+          </div>
         </section>
 
         <section class="status-card span-12">
           <h3>Updater / Webhook</h3>
-          <div class="status-row"><div class="status-k">queue state</div><div id="upState" class="status-v">—</div></div>
-          <div class="status-row"><div class="status-k">processing</div><div id="upProcessing" class="status-v">—</div></div>
-          <div class="status-row"><div class="status-k">queue length</div><div id="upQueue" class="status-v">—</div></div>
-          <div class="status-row"><div class="status-k">last event</div><div id="upLastEvent" class="status-v">—</div></div>
-          <div class="status-row"><div class="status-k">last completed</div><div id="upCompleted" class="status-v">—</div></div>
-          <div class="status-row"><div class="status-k">last failed</div><div id="upFailed" class="status-v">—</div></div>
-          <div class="status-row"><div class="status-k">pipeline mode</div><div id="upMode" class="status-v">—</div></div>
-          <div class="status-row"><div class="status-k">retention max</div><div id="upRetention" class="status-v">—</div></div>
+          <div class="status-row">
+            <div class="status-k">queue state</div>
+            <div id="upState" class="status-v">—</div>
+          </div>
+          <div class="status-row">
+            <div class="status-k">processing</div>
+            <div id="upProcessing" class="status-v">—</div>
+          </div>
+          <div class="status-row">
+            <div class="status-k">queue length</div>
+            <div id="upQueue" class="status-v">—</div>
+          </div>
+          <div class="status-row">
+            <div class="status-k">last event</div>
+            <div id="upLastEvent" class="status-v">—</div>
+          </div>
+          <div class="status-row">
+            <div class="status-k">last completed</div>
+            <div id="upCompleted" class="status-v">—</div>
+          </div>
+          <div class="status-row">
+            <div class="status-k">last failed</div>
+            <div id="upFailed" class="status-v">—</div>
+          </div>
+          <div class="status-row">
+            <div class="status-k">pipeline mode</div>
+            <div id="upMode" class="status-v">—</div>
+          </div>
+          <div class="status-row">
+            <div class="status-k">retention max</div>
+            <div id="upRetention" class="status-v">—</div>
+          </div>
         </section>
 
         <section class="status-card span-12">
           <h3>Raw /status payload</h3>
-          <pre
-            id="rawStatus"
-            class="raw"
-            >(not loaded)</pre
-          >
+          <pre id="rawStatus" class="raw">(not loaded)</pre>
         </section>
       </div>
     </div>
 
     <script>
       const $ = (id) => document.getElementById(id);
-      const set = (id, v) => ($(id).textContent = v == null || v === '' ? '—' : String(v));
+      const set = (id, v) =>
+        ($(id).textContent = v == null || v === "" ? "—" : String(v));
 
       function fmtTime(iso) {
-        if (!iso) return '—';
+        if (!iso) return "—";
         const d = new Date(iso);
         if (Number.isNaN(d.getTime())) return String(iso);
         return `${d.toLocaleString()} (${relTime(d)})`;
@@ -267,65 +354,73 @@
       }
 
       function classifyState(state) {
-        if (!state) return 'warn';
+        if (!state) return "warn";
         const s = String(state).toLowerCase();
-        if (['healthy', 'running', 'complete', 'idle', 'ok'].includes(s)) return 'ok';
-        if (['failed', 'error', 'unhealthy', 'degraded', 'stopped'].includes(s)) return 'bad';
-        return 'warn';
+        if (["healthy", "running", "complete", "idle", "ok"].includes(s))
+          return "ok";
+        if (["failed", "error", "unhealthy", "degraded", "stopped"].includes(s))
+          return "bad";
+        return "warn";
       }
 
       function setPill(label, cls) {
-        const el = $('overall');
+        const el = $("overall");
         el.textContent = label;
         el.className = `pill ${cls}`;
       }
 
       function fmtLastEvent(ev) {
-        if (!ev) return 'none';
-        return `${ev.type || '?'} ${ev.ref || ''} ${ev.sha ? ev.sha.slice(0, 12) : ''} @ ${fmtTime(ev.receivedAt)}`;
+        if (!ev) return "none";
+        return `${ev.type || "?"} ${ev.ref || ""} ${ev.sha ? ev.sha.slice(0, 12) : ""} @ ${fmtTime(ev.receivedAt)}`;
       }
 
       function fmtJob(job) {
-        if (!job) return 'none';
-        const id = job.id || '?';
-        const sha = job.sha ? job.sha.slice(0, 12) : '?';
+        if (!job) return "none";
+        const id = job.id || "?";
+        const sha = job.sha ? job.sha.slice(0, 12) : "?";
         const when = job.completedAt || job.failedAt || null;
         return `${id} (${sha}) @ ${fmtTime(when)}`;
       }
 
       function normalizePath(p) {
-        return String(p || '')
-          .replace(/\\/g, '/')
-          .replace(/\/+$/g, '')
+        return String(p || "")
+          .replace(/\\/g, "/")
+          .replace(/\/+$/g, "")
           .toLowerCase();
       }
 
       function inferSource(st, up) {
-        const cwd = st.workingDirectory || '';
+        const cwd = st.workingDirectory || "";
         const cur = up.currentRelease || null;
-        const currentTarget = up.currentLinkTarget || '';
-        const releaseDir = cur?.releaseDir || '';
+        const currentTarget = up.currentLinkTarget || "";
+        const releaseDir = cur?.releaseDir || "";
         const sameAsRelease =
           normalizePath(currentTarget) &&
           normalizePath(releaseDir) &&
           normalizePath(currentTarget) === normalizePath(releaseDir);
-        if (cwd.includes('\\service\\runtime\\current') || cwd.includes('/service/runtime/current')) {
+        if (
+          cwd.includes("\\service\\runtime\\current") ||
+          cwd.includes("/service/runtime/current")
+        ) {
           if (sameAsRelease) {
-            return 'runtime/current -> auto-updated release';
+            return "runtime/current -> auto-updated release";
           }
-          if (cur?.mode === 'phase-9-bootstrap' || cur?.releaseId === 'seed-local-working-copy') {
-            return 'runtime/current -> repo working copy (seed/bootstrap)';
+          if (
+            cur?.mode === "phase-9-bootstrap" ||
+            cur?.releaseId === "seed-local-working-copy"
+          ) {
+            return "runtime/current -> repo working copy (seed/bootstrap)";
           }
-          return 'runtime/current -> manual/local target (pointer mismatch)';
+          return "runtime/current -> manual/local target (pointer mismatch)";
         }
         if (!cwd) {
-          return 'unknown';
+          return "unknown";
         }
-        return 'direct repo execution (not through runtime/current)';
+        return "direct repo execution (not through runtime/current)";
       }
 
       async function getJson(url) {
-        const res = await fetch(url, { cache: 'no-store' });
+        const res = await fetch(url, { cache: "no-store" });
         const text = await res.text();
         let data;
         try {
@@ -338,83 +433,93 @@
 
       async function refresh() {
         const [h, s, ah, am] = await Promise.all([
-          getJson('/healthz'),
-          getJson('/status'),
-          getJson('/api/health'),
-          getJson('/api/models'),
+          getJson("/healthz"),
+          getJson("/status"),
+          getJson("/api/health"),
+          getJson("/api/models"),
         ]);
 
-        set('lastRefresh', new Date().toLocaleTimeString());
+        set("lastRefresh", new Date().toLocaleTimeString());
 
-        set('coreHealthz', `${h.status} ${h.ok ? 'OK' : 'FAIL'}`);
-        set('coreStatus', `${s.status} ${s.ok ? 'OK' : 'FAIL'}`);
+        set("coreHealthz", `${h.status} ${h.ok ? "OK" : "FAIL"}`);
+        set("coreStatus", `${s.status} ${s.ok ? "OK" : "FAIL"}`);
 
         const st = s.data || {};
-        set('coreVersion', st.version);
-        set('coreUptime', st.uptime != null ? `${Math.round(st.uptime / 1000)}s` : '—');
-        set('corePid', st.parentPid);
-        set('coreCwd', st.workingDirectory);
+        set("coreVersion", st.version);
+        set(
+          "coreUptime",
+          st.uptime != null ? `${Math.round(st.uptime / 1000)}s` : "—",
+        );
+        set("corePid", st.parentPid);
+        set("coreCwd", st.workingDirectory);
 
         const wk = st.worker || {};
-        set('wkState', wk.state);
-        set('wkImpl', wk.impl);
-        set('wkPid', wk.pid);
-        set('wkRestarts', wk.restartCount);
-        set('wkHeartbeat', fmtTime(wk.lastHeartbeat));
-        set('wkEndpoint', wk.endpoint);
+        set("wkState", wk.state);
+        set("wkImpl", wk.impl);
+        set("wkPid", wk.pid);
+        set("wkRestarts", wk.restartCount);
+        set("wkHeartbeat", fmtTime(wk.lastHeartbeat));
+        set("wkEndpoint", wk.endpoint);
 
         const gpu = st.gpu || {};
-        set('gpuState', gpu.status);
-        set('gpuLastSuccess', fmtTime(gpu.lastSuccessAt));
-        set('gpuLastFailure', fmtTime(gpu.lastFailureAt));
-        set('gpuFailCount', gpu.failureCount);
-        set('gpuCount', Array.isArray(gpu.gpus) ? gpu.gpus.length : '—');
+        set("gpuState", gpu.status);
+        set("gpuLastSuccess", fmtTime(gpu.lastSuccessAt));
+        set("gpuLastFailure", fmtTime(gpu.lastFailureAt));
+        set("gpuFailCount", gpu.failureCount);
+        set("gpuCount", Array.isArray(gpu.gpus) ? gpu.gpus.length : "—");
 
         const up = st.updater || {};
-        set('upState', up.state);
-        set('upProcessing', up.processing);
-        set('upQueue', up.queueLength);
-        set('upLastEvent', fmtLastEvent(up.lastEvent));
-        set('upCompleted', fmtJob(up.lastCompletedJob));
-        set('upFailed', fmtJob(up.lastFailedJob));
-        set('upMode', up.lastCompletedJob?.result?.mode || up.currentRelease?.mode || 'n/a');
-        set('upRetention', up.releaseRetentionMax);
+        set("upState", up.state);
+        set("upProcessing", up.processing);
+        set("upQueue", up.queueLength);
+        set("upLastEvent", fmtLastEvent(up.lastEvent));
+        set("upCompleted", fmtJob(up.lastCompletedJob));
+        set("upFailed", fmtJob(up.lastFailedJob));
+        set(
+          "upMode",
+          up.lastCompletedJob?.result?.mode || up.currentRelease?.mode || "n/a",
+        );
+        set("upRetention", up.releaseRetentionMax);
 
-        set('curSha', up.currentRelease?.resolvedSha || 'unknown (no pointer)');
-        set('curReleaseId', up.currentRelease?.releaseId);
-        set('curMode', up.currentRelease?.mode);
-        set('curUpdated', fmtTime(up.currentRelease?.updatedAt));
-        set('curDir', up.currentRelease?.releaseDir);
-        set('curLinkTarget', up.currentLinkTarget);
-        set('curSource', inferSource(st, up));
+        set("curSha", up.currentRelease?.resolvedSha || "unknown (no pointer)");
+        set("curReleaseId", up.currentRelease?.releaseId);
+        set("curMode", up.currentRelease?.mode);
+        set("curUpdated", fmtTime(up.currentRelease?.updatedAt));
+        set("curDir", up.currentRelease?.releaseDir);
+        set("curLinkTarget", up.currentLinkTarget);
+        set("curSource", inferSource(st, up));
 
         const apiHealth = ah.data || {};
-        set('apiHealth', `${ah.status} ${apiHealth.ok ? 'OK' : 'FAIL'}`);
-        set('apiOutputDir', apiHealth.output_dir);
-        set('apiModelsCount', Array.isArray(am.data?.models) ? am.data.models.length : '—');
+        set("apiHealth", `${ah.status} ${apiHealth.ok ? "OK" : "FAIL"}`);
+        set("apiOutputDir", apiHealth.output_dir);
+        set(
+          "apiModelsCount",
+          Array.isArray(am.data?.models) ? am.data.models.length : "—",
+        );
 
-        $('rawStatus').textContent = JSON.stringify(st, null, 2);
+        $("rawStatus").textContent = JSON.stringify(st, null, 2);
 
         const coreGood = h.ok && s.ok;
-        const workerGood = classifyState(wk.state) === 'ok';
-        const gpuGood = classifyState(gpu.status) === 'ok';
-        const updaterBad = classifyState(up.state) === 'bad' || !!up.lastFailedJob;
+        const workerGood = classifyState(wk.state) === "ok";
+        const gpuGood = classifyState(gpu.status) === "ok";
+        const updaterBad =
+          classifyState(up.state) === "bad" || !!up.lastFailedJob;
 
-        if (!coreGood || updaterBad) setPill('NOT HEALTHY', 'bad');
-        else if (!workerGood || !gpuGood) setPill('DEGRADED', 'warn');
-        else setPill('HEALTHY', 'ok');
+        if (!coreGood || updaterBad) setPill("NOT HEALTHY", "bad");
+        else if (!workerGood || !gpuGood) setPill("DEGRADED", "warn");
+        else setPill("HEALTHY", "ok");
       }
 
       let timer = null;
       function syncAuto() {
         if (timer) clearInterval(timer);
-        if ($('autoChk').checked) {
+        if ($("autoChk").checked) {
           timer = setInterval(refresh, 5000);
         }
       }
 
-      $('refreshBtn').addEventListener('click', refresh);
-      $('autoChk').addEventListener('change', syncAuto);
+      $("refreshBtn").addEventListener("click", refresh);
+      $("autoChk").addEventListener("change", syncAuto);
 
       refresh();
       syncAuto();

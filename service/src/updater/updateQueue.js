@@ -5,10 +5,11 @@ const path = require("path");
 const { UpdatePipeline } = require("./updatePipeline");
 
 class UpdateQueue {
-  constructor({ serviceRoot, dataRoot, log }) {
+  constructor({ serviceRoot, dataRoot, log, onRestartRequired }) {
     this.serviceRoot = serviceRoot;
     this.dataRoot = dataRoot || serviceRoot;
     this.log = log;
+    this.onRestartRequired = onRestartRequired;
 
     this.runtimeDir = path.join(this.dataRoot, "runtime");
     this.statePath = path.join(this.runtimeDir, "update-state.json");
@@ -137,6 +138,7 @@ class UpdateQueue {
     }
 
     this.processing = true;
+    let restartRequest = null;
     try {
       while (this.queue.length > 0 && !this.stopping) {
         const job = this.queue[0];
@@ -175,6 +177,13 @@ class UpdateQueue {
             completedAt: new Date().toISOString(),
             result,
           };
+          restartRequest = {
+            jobId: job.id,
+            eventId: job.eventId,
+            releaseId: result.releaseId || null,
+            releaseDir: result.releaseDir || null,
+            currentPath: result.currentPath || null,
+          };
 
           this.log.info("updater.job.complete", {
             jobId: job.id,
@@ -210,6 +219,22 @@ class UpdateQueue {
         this.state = "idle";
       }
       this._writeState();
+
+      if (
+        restartRequest &&
+        !this.stopping &&
+        this.queue.length === 0 &&
+        typeof this.onRestartRequired === "function"
+      ) {
+        try {
+          this.onRestartRequired(restartRequest);
+        } catch (err) {
+          this.log.error("updater.restart.request.error", {
+            error: err.message,
+            ...restartRequest,
+          });
+        }
+      }
     }
   }
 

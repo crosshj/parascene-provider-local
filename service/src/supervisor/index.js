@@ -4,6 +4,7 @@ const http = require("http");
 const path = require("path");
 const fs = require("fs");
 const os = require("os");
+const { spawn } = require("child_process");
 
 const { getServiceRoot, loadConfig } = require("../config");
 const { createLogger } = require("../utils/logger");
@@ -23,6 +24,7 @@ const startTime = Date.now();
 let workerManager;
 let updateQueue;
 let gpuProbe;
+let restartRequested = false;
 
 function ensureDirs() {
   const root = config.dataRoot || serviceRoot;
@@ -45,6 +47,48 @@ function getStatusState() {
     gpu: gpuProbe ? gpuProbe.getStatus() : {},
     updater: updateQueue ? updateQueue.getStatus() : {},
   };
+}
+
+function requestServiceRestart(details = {}) {
+  if (restartRequested) {
+    return;
+  }
+
+  const wrapperExe = path.join(serviceRoot, "scripts", "parascene-service.exe");
+  if (!fs.existsSync(wrapperExe)) {
+    log.warn("service.restart.unavailable", {
+      reason: "winsw_wrapper_missing",
+      wrapperExe,
+      ...details,
+    });
+    return;
+  }
+
+  restartRequested = true;
+  log.warn("service.restart.requested", {
+    strategy: "winsw_wrapper_restart",
+    wrapperExe,
+    ...details,
+  });
+
+  setTimeout(() => {
+    try {
+      const child = spawn(wrapperExe, ["restart"], {
+        cwd: serviceRoot,
+        detached: true,
+        stdio: "ignore",
+        windowsHide: true,
+      });
+      child.unref();
+    } catch (err) {
+      restartRequested = false;
+      log.error("service.restart.request.error", {
+        error: err.message,
+        wrapperExe,
+        ...details,
+      });
+    }
+  }, 250);
 }
 
 function main() {
@@ -74,6 +118,7 @@ function main() {
     serviceRoot,
     dataRoot: config.dataRoot,
     log,
+    onRestartRequired: requestServiceRestart,
   });
   updateQueue.start();
 

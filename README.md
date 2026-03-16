@@ -15,5 +15,5 @@ image gen:
 https://provider1.parascene.com/
 
 service:
-https://provider-green.parascene.com/status
-https://provider-green.parascene.com/healthx
+https://blue.parascene.com/status
+https://blue.parascene.com/healthx
