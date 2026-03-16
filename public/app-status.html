@@ -1,562 +1,561 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="light dark" />
-    <title>Service Status</title>
-    <link rel="stylesheet" href="/app.css" />
-    <style>
-      .status-shell {
-        max-width: 1160px;
-        margin: 0 auto;
-        padding: clamp(0.6rem, 2vw, 1.1rem);
-      }
 
-      .status-head {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.45rem 0.75rem;
-        align-items: baseline;
-        margin-bottom: 0.75rem;
-      }
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Service Status</title>
+  <link rel="stylesheet" href="/app.css" />
+  <style>
+    .status-shell {
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: clamp(0.6rem, 2vw, 1.1rem);
+    }
 
-      .status-head h1 {
-        font-size: clamp(1rem, 1.7vw, 1.2rem);
-        font-weight: 600;
-        letter-spacing: -0.01em;
-      }
+    .status-head {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem 0.75rem;
+      align-items: baseline;
+      margin-bottom: 0.75rem;
+    }
 
-      .subtle {
-        font-size: 0.78rem;
-        color: var(--muted);
-      }
+    .status-head h1 {
+      font-size: clamp(1rem, 1.7vw, 1.2rem);
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
 
-      .status-toolbar {
-        display: flex;
-        gap: 0.42rem;
-        flex-wrap: wrap;
-        align-items: center;
-        margin-bottom: 0.75rem;
-      }
+    .subtle {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
 
-      .pill {
-        display: inline-flex;
-        align-items: center;
-        padding: 0.16rem 0.5rem;
-        border: 1px solid var(--sep);
-        border-radius: 999px;
-        font-size: 0.72rem;
-        font-weight: 600;
-      }
+    .status-toolbar {
+      display: flex;
+      gap: 0.42rem;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
 
-      .pill.ok {
-        color: #0b8f3a;
-      }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.16rem 0.5rem;
+      border: 1px solid var(--sep);
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
 
-      .pill.warn {
-        color: #b37400;
-      }
+    .pill.ok {
+      color: #0b8f3a;
+    }
 
-      .pill.bad {
-        color: #b00020;
-      }
+    .pill.warn {
+      color: #b37400;
+    }
 
-      .status-grid {
-        display: grid;
-        grid-template-columns: repeat(12, minmax(0, 1fr));
-        gap: 0.6rem;
-      }
+    .pill.bad {
+      color: #b00020;
+    }
 
-      .status-card {
-        grid-column: span 12;
-        background: var(--surface-lo);
-        border: 1px solid var(--sep);
-        border-radius: var(--r-lg);
-        padding: 0.62rem 0.7rem;
-      }
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 0.6rem;
+    }
 
-      .span-4 {
-        grid-column: span 4;
-      }
+    .status-card {
+      grid-column: span 12;
+      background: var(--surface-lo);
+      border: 1px solid var(--sep);
+      border-radius: var(--r-lg);
+      padding: 0.62rem 0.7rem;
+    }
 
+    .span-4 {
+      grid-column: span 4;
+    }
+
+    .span-8 {
+      grid-column: span 8;
+    }
+
+    .status-card h3 {
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 0.36rem;
+    }
+
+    .status-row {
+      display: grid;
+      grid-template-columns: 165px 1fr;
+      gap: 0.35rem;
+      padding: 0.1rem 0;
+    }
+
+    .status-k {
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+
+    .status-v {
+      font-size: 0.76rem;
+      word-break: break-word;
+    }
+
+    .sha {
+      font-family: ui-monospace, Consolas, monospace;
+      letter-spacing: 0.01em;
+    }
+
+    .raw {
+      margin-top: 0.3rem;
+      padding: 0.5rem;
+      border: 1px solid var(--sep);
+      border-radius: var(--r);
+      max-height: 320px;
+      overflow: auto;
+      font-size: 0.69rem;
+      line-height: 1.45;
+      background: color-mix(in oklab, var(--surface-lo), Canvas 10%);
+    }
+
+    @media (max-width: 960px) {
+
+      .span-4,
       .span-8 {
-        grid-column: span 8;
-      }
-
-      .status-card h3 {
-        font-size: 0.8rem;
-        font-weight: 600;
-        margin-bottom: 0.36rem;
+        grid-column: span 12;
       }
 
       .status-row {
-        display: grid;
-        grid-template-columns: 165px 1fr;
-        gap: 0.35rem;
-        padding: 0.1rem 0;
+        grid-template-columns: 1fr;
+        gap: 0.1rem;
       }
+    }
+  </style>
+</head>
 
-      .status-k {
-        font-size: 0.72rem;
-        color: var(--muted);
-      }
+<body>
+  <div class="status-shell">
+    <header class="status-head">
+      <h1>Service Status</h1>
+      <p class="subtle">
+        Operational view for service, worker, updater, GPU, and provider API.
+        TEST1234!!
+      </p>
+    </header>
 
-      .status-v {
-        font-size: 0.76rem;
-        word-break: break-word;
-      }
-
-      .sha {
-        font-family: ui-monospace, Consolas, monospace;
-        letter-spacing: 0.01em;
-      }
-
-      .raw {
-        margin-top: 0.3rem;
-        padding: 0.5rem;
-        border: 1px solid var(--sep);
-        border-radius: var(--r);
-        max-height: 320px;
-        overflow: auto;
-        font-size: 0.69rem;
-        line-height: 1.45;
-        background: color-mix(in oklab, var(--surface-lo), Canvas 10%);
-      }
-
-      @media (max-width: 960px) {
-        .span-4,
-        .span-8 {
-          grid-column: span 12;
-        }
-
-        .status-row {
-          grid-template-columns: 1fr;
-          gap: 0.1rem;
-        }
-      }
-    </style>
-  </head>
-
-  <body>
-    <div class="status-shell">
-      <header class="status-head">
-        <h1>Service Status</h1>
-        <p class="subtle">
-          Operational view for service, worker, updater, GPU, and provider API.
-          TEST12!!
-        </p>
-      </header>
-
-      <div class="status-toolbar">
-        <button id="refreshBtn">Refresh now</button>
-        <label class="subtle"
-          ><input id="autoChk" type="checkbox" checked /> auto-refresh
-          (5s)</label
-        >
-        <span id="overall" class="pill">Checking…</span>
-        <span class="subtle"
-          >Last refresh: <span id="lastRefresh">never</span></span
-        >
-      </div>
-
-      <div class="status-grid">
-        <section class="status-card span-8">
-          <h3>Current Running Release</h3>
-          <div class="status-row">
-            <div class="status-k">execution source</div>
-            <div id="curSource" class="status-v">—</div>
-          </div>
-          <div class="status-row">
-            <div class="status-k">service cwd</div>
-            <div id="coreCwd" class="status-v">—</div>
-          </div>
-          <div class="status-row">
-            <div class="status-k">current link target</div>
-            <div id="curLinkTarget" class="status-v">—</div>
-          </div>
-          <div class="status-row">
-            <div class="status-k">Git commit SHA</div>
-            <div id="curSha" class="status-v sha">—</div>
-          </div>
-          <div class="status-row">
-            <div class="status-k">release id</div>
-            <div id="curReleaseId" class="status-v">—</div>
-          </div>
-          <div class="status-row">
-            <div class="status-k">release mode</div>
-            <div id="curMode" class="status-v">—</div>
-          </div>
-          <div class="status-row">
-            <div class="status-k">release updated</div>
-            <div id="curUpdated" class="status-v">—</div>
-          </div>
-          <div class="status-row">
-            <div class="status-k">release dir</div>
-            <div id="curDir" class="status-v">—</div>
-          </div>
-        </section>
-
-        <section class="status-card span-4">
-          <h3>Core</h3>
-          <div class="status-row">
-            <div class="status-k">/healthz</div>
-            <div id="coreHealthz" class="status-v">—</div>
-          </div>
-          <div class="status-row">
-            <div class="status-k">/status</div>
-            <div id="coreStatus" class="status-v">—</div>
-          </div>
-          <div class="status-row">
-            <div class="status-k">version</div>
-            <div id="coreVersion" class="status-v">—</div>
-          </div>
-          <div class="status-row">
-            <div class="status-k">uptime</div>
-            <div id="coreUptime" class="status-v">—</div>
-          </div>
-          <div class="status-row">
-            <div class="status-k">pid</div>
-            <div id="corePid" class="status-v">—</div>
-          </div>
-        </section>
-
-        <section class="status-card span-4">
-          <h3>Worker</h3>
-          <div class="status-row">
-            <div class="status-k">state</div>
-            <div id="wkState" class="status-v">—</div>
-          </div>
-          <div class="status-row">
-            <div class="status-k">impl</div>
-            <div id="wkImpl" class="status-v">—</div>
-          </div>
-          <div class="status-row">
-            <div class="status-k">pid</div>
-            <div id="wkPid" class="status-v">—</div>
-          </div>
-          <div class="status-row">
-            <div class="status-k">restarts</div>
-            <div id="wkRestarts" class="status-v">—</div>
-          </div>
-          <div class="status-row">
-            <div class="status-k">last heartbeat</div>
-            <div id="wkHeartbeat" class="status-v">—</div>
-          </div>
-          <div class="status-row">
-            <div class="status-k">endpoint</div>
-            <div id="wkEndpoint" class="status-v">—</div>
-          </div>
-        </section>
-
-        <section class="status-card span-4">
-          <h3>GPU</h3>
-          <div class="status-row">
-            <div class="status-k">probe status</div>
-            <div id="gpuState" class="status-v">—</div>
-          </div>
-          <div class="status-row">
-            <div class="status-k">last success</div>
-            <div id="gpuLastSuccess" class="status-v">—</div>
-          </div>
-          <div class="status-row">
-            <div class="status-k">last failure</div>
-            <div id="gpuLastFailure" class="status-v">—</div>
-          </div>
-          <div class="status-row">
-            <div class="status-k">failure count</div>
-            <div id="gpuFailCount" class="status-v">—</div>
-          </div>
-          <div class="status-row">
-            <div class="status-k">gpu count</div>
-            <div id="gpuCount" class="status-v">—</div>
-          </div>
-        </section>
-
-        <section class="status-card span-4">
-          <h3>Provider API</h3>
-          <div class="status-row">
-            <div class="status-k">/api/health</div>
-            <div id="apiHealth" class="status-v">—</div>
-          </div>
-          <div class="status-row">
-            <div class="status-k">models count</div>
-            <div id="apiModelsCount" class="status-v">—</div>
-          </div>
-          <div class="status-row">
-            <div class="status-k">output dir</div>
-            <div id="apiOutputDir" class="status-v">—</div>
-          </div>
-          <div class="status-row">
-            <div class="status-k">public dir</div>
-            <div id="apiPublicDir" class="status-v">—</div>
-          </div>
-        </section>
-
-        <section class="status-card span-12">
-          <h3>Updater / Webhook</h3>
-          <div class="status-row">
-            <div class="status-k">queue state</div>
-            <div id="upState" class="status-v">—</div>
-          </div>
-          <div class="status-row">
-            <div class="status-k">processing</div>
-            <div id="upProcessing" class="status-v">—</div>
-          </div>
-          <div class="status-row">
-            <div class="status-k">queue length</div>
-            <div id="upQueue" class="status-v">—</div>
-          </div>
-          <div class="status-row">
-            <div class="status-k">active candidate</div>
-            <div id="upCurrent" class="status-v sha">—</div>
-          </div>
-          <div class="status-row">
-            <div class="status-k">active stage</div>
-            <div id="upCurrentStage" class="status-v">—</div>
-          </div>
-          <div class="status-row">
-            <div class="status-k">stage transition</div>
-            <div id="upCurrentTransition" class="status-v">—</div>
-          </div>
-          <div class="status-row">
-            <div class="status-k">queued candidates</div>
-            <div id="upQueuedShas" class="status-v sha">—</div>
-          </div>
-          <div class="status-row">
-            <div class="status-k">last event</div>
-            <div id="upLastEvent" class="status-v">—</div>
-          </div>
-          <div class="status-row">
-            <div class="status-k">last completed</div>
-            <div id="upCompleted" class="status-v">—</div>
-          </div>
-          <div class="status-row">
-            <div class="status-k">last failed</div>
-            <div id="upFailed" class="status-v">—</div>
-          </div>
-          <div class="status-row">
-            <div class="status-k">pipeline mode</div>
-            <div id="upMode" class="status-v">—</div>
-          </div>
-          <div class="status-row">
-            <div class="status-k">retention max</div>
-            <div id="upRetention" class="status-v">—</div>
-          </div>
-        </section>
-      </div>
+    <div class="status-toolbar">
+      <button id="refreshBtn">Refresh now</button>
+      <label class="subtle"><input id="autoChk" type="checkbox" checked /> auto-refresh
+        (5s)</label>
+      <span id="overall" class="pill">Checking…</span>
+      <span class="subtle">Last refresh: <span id="lastRefresh">never</span></span>
     </div>
-    <script>
-      const $ = (id) => document.getElementById(id);
-      const set = (id, v) =>
-        ($(id).textContent = v == null || v === "" ? "—" : String(v));
 
-      function fmtTime(iso) {
-        if (!iso) return "—";
-        const d = new Date(iso);
-        if (Number.isNaN(d.getTime())) return String(iso);
-        return `${d.toLocaleString()} (${relTime(d)})`;
-      }
+    <div class="status-grid">
+      <section class="status-card span-8">
+        <h3>Current Running Release</h3>
+        <div class="status-row">
+          <div class="status-k">execution source</div>
+          <div id="curSource" class="status-v">—</div>
+        </div>
+        <div class="status-row">
+          <div class="status-k">service cwd</div>
+          <div id="coreCwd" class="status-v">—</div>
+        </div>
+        <div class="status-row">
+          <div class="status-k">current link target</div>
+          <div id="curLinkTarget" class="status-v">—</div>
+        </div>
+        <div class="status-row">
+          <div class="status-k">Git commit SHA</div>
+          <div id="curSha" class="status-v sha">—</div>
+        </div>
+        <div class="status-row">
+          <div class="status-k">release id</div>
+          <div id="curReleaseId" class="status-v">—</div>
+        </div>
+        <div class="status-row">
+          <div class="status-k">release mode</div>
+          <div id="curMode" class="status-v">—</div>
+        </div>
+        <div class="status-row">
+          <div class="status-k">release updated</div>
+          <div id="curUpdated" class="status-v">—</div>
+        </div>
+        <div class="status-row">
+          <div class="status-k">release dir</div>
+          <div id="curDir" class="status-v">—</div>
+        </div>
+      </section>
 
-      function relTime(d) {
-        const s = Math.round((Date.now() - d.getTime()) / 1000);
-        if (s < 60) return `${s}s ago`;
-        const m = Math.round(s / 60);
-        if (m < 60) return `${m}m ago`;
-        const h = Math.round(m / 60);
-        if (h < 24) return `${h}h ago`;
-        const dd = Math.round(h / 24);
-        return `${dd}d ago`;
-      }
+      <section class="status-card span-4">
+        <h3>Core</h3>
+        <div class="status-row">
+          <div class="status-k">/healthz</div>
+          <div id="coreHealthz" class="status-v">—</div>
+        </div>
+        <div class="status-row">
+          <div class="status-k">/status</div>
+          <div id="coreStatus" class="status-v">—</div>
+        </div>
+        <div class="status-row">
+          <div class="status-k">version</div>
+          <div id="coreVersion" class="status-v">—</div>
+        </div>
+        <div class="status-row">
+          <div class="status-k">uptime</div>
+          <div id="coreUptime" class="status-v">—</div>
+        </div>
+        <div class="status-row">
+          <div class="status-k">pid</div>
+          <div id="corePid" class="status-v">—</div>
+        </div>
+      </section>
 
-      function classifyState(state) {
-        if (!state) return "warn";
-        const s = String(state).toLowerCase();
-        if (["healthy", "running", "complete", "idle", "ok"].includes(s))
-          return "ok";
-        if (["failed", "error", "unhealthy", "degraded", "stopped"].includes(s))
-          return "bad";
-        return "warn";
-      }
+      <section class="status-card span-4">
+        <h3>Worker</h3>
+        <div class="status-row">
+          <div class="status-k">state</div>
+          <div id="wkState" class="status-v">—</div>
+        </div>
+        <div class="status-row">
+          <div class="status-k">impl</div>
+          <div id="wkImpl" class="status-v">—</div>
+        </div>
+        <div class="status-row">
+          <div class="status-k">pid</div>
+          <div id="wkPid" class="status-v">—</div>
+        </div>
+        <div class="status-row">
+          <div class="status-k">restarts</div>
+          <div id="wkRestarts" class="status-v">—</div>
+        </div>
+        <div class="status-row">
+          <div class="status-k">last heartbeat</div>
+          <div id="wkHeartbeat" class="status-v">—</div>
+        </div>
+        <div class="status-row">
+          <div class="status-k">endpoint</div>
+          <div id="wkEndpoint" class="status-v">—</div>
+        </div>
+      </section>
 
-      function setPill(label, cls) {
-        const el = $("overall");
-        el.textContent = label;
-        el.className = `pill ${cls}`;
-      }
+      <section class="status-card span-4">
+        <h3>GPU</h3>
+        <div class="status-row">
+          <div class="status-k">probe status</div>
+          <div id="gpuState" class="status-v">—</div>
+        </div>
+        <div class="status-row">
+          <div class="status-k">last success</div>
+          <div id="gpuLastSuccess" class="status-v">—</div>
+        </div>
+        <div class="status-row">
+          <div class="status-k">last failure</div>
+          <div id="gpuLastFailure" class="status-v">—</div>
+        </div>
+        <div class="status-row">
+          <div class="status-k">failure count</div>
+          <div id="gpuFailCount" class="status-v">—</div>
+        </div>
+        <div class="status-row">
+          <div class="status-k">gpu count</div>
+          <div id="gpuCount" class="status-v">—</div>
+        </div>
+      </section>
 
-      function fmtLastEvent(ev) {
-        if (!ev) return "none";
-        return `${ev.type || "?"} ${ev.ref || ""} ${ev.sha ? ev.sha.slice(0, 12) : ""} @ ${fmtTime(ev.receivedAt)}`;
-      }
+      <section class="status-card span-4">
+        <h3>Provider API</h3>
+        <div class="status-row">
+          <div class="status-k">/api/health</div>
+          <div id="apiHealth" class="status-v">—</div>
+        </div>
+        <div class="status-row">
+          <div class="status-k">models count</div>
+          <div id="apiModelsCount" class="status-v">—</div>
+        </div>
+        <div class="status-row">
+          <div class="status-k">output dir</div>
+          <div id="apiOutputDir" class="status-v">—</div>
+        </div>
+        <div class="status-row">
+          <div class="status-k">public dir</div>
+          <div id="apiPublicDir" class="status-v">—</div>
+        </div>
+      </section>
 
-      function fmtJob(job) {
-        if (!job) return "none";
-        const id = job.id || "?";
-        const sha = job.sha ? job.sha.slice(0, 12) : "?";
-        const when = job.completedAt || job.failedAt || null;
-        return `${id} (${sha}) @ ${fmtTime(when)}`;
-      }
+      <section class="status-card span-12">
+        <h3>Updater / Webhook</h3>
+        <div class="status-row">
+          <div class="status-k">queue state</div>
+          <div id="upState" class="status-v">—</div>
+        </div>
+        <div class="status-row">
+          <div class="status-k">processing</div>
+          <div id="upProcessing" class="status-v">—</div>
+        </div>
+        <div class="status-row">
+          <div class="status-k">queue length</div>
+          <div id="upQueue" class="status-v">—</div>
+        </div>
+        <div class="status-row">
+          <div class="status-k">active candidate</div>
+          <div id="upCurrent" class="status-v sha">—</div>
+        </div>
+        <div class="status-row">
+          <div class="status-k">active stage</div>
+          <div id="upCurrentStage" class="status-v">—</div>
+        </div>
+        <div class="status-row">
+          <div class="status-k">stage transition</div>
+          <div id="upCurrentTransition" class="status-v">—</div>
+        </div>
+        <div class="status-row">
+          <div class="status-k">queued candidates</div>
+          <div id="upQueuedShas" class="status-v sha">—</div>
+        </div>
+        <div class="status-row">
+          <div class="status-k">last event</div>
+          <div id="upLastEvent" class="status-v">—</div>
+        </div>
+        <div class="status-row">
+          <div class="status-k">last completed</div>
+          <div id="upCompleted" class="status-v">—</div>
+        </div>
+        <div class="status-row">
+          <div class="status-k">last failed</div>
+          <div id="upFailed" class="status-v">—</div>
+        </div>
+        <div class="status-row">
+          <div class="status-k">pipeline mode</div>
+          <div id="upMode" class="status-v">—</div>
+        </div>
+        <div class="status-row">
+          <div class="status-k">retention max</div>
+          <div id="upRetention" class="status-v">—</div>
+        </div>
+      </section>
+    </div>
+  </div>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const set = (id, v) =>
+      ($(id).textContent = v == null || v === "" ? "—" : String(v));
 
-      function fmtCurrentJob(job) {
-        if (!job) return "none";
-        const id = job.id || "?";
-        const sha = job.sha ? job.sha.slice(0, 12) : "?";
-        const ref = job.ref || "?";
-        return `${id} (${sha}) ${ref}`;
-      }
+    function fmtTime(iso) {
+      if (!iso) return "—";
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return String(iso);
+      return `${d.toLocaleString()} (${relTime(d)})`;
+    }
 
-      function fmtQueueShas(queue) {
-        if (!Array.isArray(queue) || queue.length === 0) return "none";
-        return queue
-          .map((job) => `${(job.sha || "?").slice(0, 12)}:${job.state || "?"}`)
-          .join(" | ");
-      }
+    function relTime(d) {
+      const s = Math.round((Date.now() - d.getTime()) / 1000);
+      if (s < 60) return `${s}s ago`;
+      const m = Math.round(s / 60);
+      if (m < 60) return `${m}m ago`;
+      const h = Math.round(m / 60);
+      if (h < 24) return `${h}h ago`;
+      const dd = Math.round(h / 24);
+      return `${dd}d ago`;
+    }
 
-      function normalizePath(p) {
-        return String(p || "")
-          .replace(/\\/g, "/")
-          .replace(/\/+$/g, "")
-          .toLowerCase();
-      }
+    function classifyState(state) {
+      if (!state) return "warn";
+      const s = String(state).toLowerCase();
+      if (["healthy", "running", "complete", "idle", "ok"].includes(s))
+        return "ok";
+      if (["failed", "error", "unhealthy", "degraded", "stopped"].includes(s))
+        return "bad";
+      return "warn";
+    }
 
-      function inferSource(st, up) {
-        const cwd = st.workingDirectory || "";
-        const cur = up.currentRelease || null;
-        const currentTarget = up.currentLinkTarget || "";
-        const releaseDir = cur?.releaseDir || "";
-        const sameAsRelease =
-          normalizePath(currentTarget) &&
-          normalizePath(releaseDir) &&
-          normalizePath(currentTarget) === normalizePath(releaseDir);
+    function setPill(label, cls) {
+      const el = $("overall");
+      el.textContent = label;
+      el.className = `pill ${cls}`;
+    }
+
+    function fmtLastEvent(ev) {
+      if (!ev) return "none";
+      return `${ev.type || "?"} ${ev.ref || ""} ${ev.sha ? ev.sha.slice(0, 12) : ""} @ ${fmtTime(ev.receivedAt)}`;
+    }
+
+    function fmtJob(job) {
+      if (!job) return "none";
+      const id = job.id || "?";
+      const sha = job.sha ? job.sha.slice(0, 12) : "?";
+      const when = job.completedAt || job.failedAt || null;
+      return `${id} (${sha}) @ ${fmtTime(when)}`;
+    }
+
+    function fmtCurrentJob(job) {
+      if (!job) return "none";
+      const id = job.id || "?";
+      const sha = job.sha ? job.sha.slice(0, 12) : "?";
+      const ref = job.ref || "?";
+      return `${id} (${sha}) ${ref}`;
+    }
+
+    function fmtQueueShas(queue) {
+      if (!Array.isArray(queue) || queue.length === 0) return "none";
+      return queue
+        .map((job) => `${(job.sha || "?").slice(0, 12)}:${job.state || "?"}`)
+        .join(" | ");
+    }
+
+    function normalizePath(p) {
+      return String(p || "")
+        .replace(/\\/g, "/")
+        .replace(/\/+$/g, "")
+        .toLowerCase();
+    }
+
+    function inferSource(st, up) {
+      const cwd = st.workingDirectory || "";
+      const cur = up.currentRelease || null;
+      const currentTarget = up.currentLinkTarget || "";
+      const releaseDir = cur?.releaseDir || "";
+      const sameAsRelease =
+        normalizePath(currentTarget) &&
+        normalizePath(releaseDir) &&
+        normalizePath(currentTarget) === normalizePath(releaseDir);
+      if (
+        cwd.includes("\\service\\runtime\\current") ||
+        cwd.includes("/service/runtime/current")
+      ) {
+        if (sameAsRelease) {
+          return "runtime/current -> auto-updated release";
+        }
         if (
-          cwd.includes("\\service\\runtime\\current") ||
-          cwd.includes("/service/runtime/current")
+          cur?.mode === "phase-9-bootstrap" ||
+          cur?.releaseId === "seed-local-working-copy"
         ) {
-          if (sameAsRelease) {
-            return "runtime/current -> auto-updated release";
-          }
-          if (
-            cur?.mode === "phase-9-bootstrap" ||
-            cur?.releaseId === "seed-local-working-copy"
-          ) {
-            return "runtime/current -> repo working copy (seed/bootstrap)";
-          }
-          return "runtime/current -> manual/local target (pointer mismatch)";
+          return "runtime/current -> repo working copy (seed/bootstrap)";
         }
-        if (!cwd) {
-          return "unknown";
-        }
-        return "direct repo execution (not through runtime/current)";
+        return "runtime/current -> manual/local target (pointer mismatch)";
       }
-
-      async function getJson(url) {
-        const res = await fetch(url, { cache: "no-store" });
-        const text = await res.text();
-        let data;
-        try {
-          data = text ? JSON.parse(text) : {};
-        } catch {
-          data = { raw: text };
-        }
-        return { ok: res.ok, status: res.status, data };
+      if (!cwd) {
+        return "unknown";
       }
+      return "direct repo execution (not through runtime/current)";
+    }
 
-      async function refresh() {
-        const [h, s, ah, am] = await Promise.all([
-          getJson("/healthz"),
-          getJson("/status"),
-          getJson("/api/health"),
-          getJson("/api/models"),
-        ]);
-
-        set("lastRefresh", new Date().toLocaleTimeString());
-
-        set("coreHealthz", `${h.status} ${h.ok ? "OK" : "FAIL"}`);
-        set("coreStatus", `${s.status} ${s.ok ? "OK" : "FAIL"}`);
-
-        const st = s.data || {};
-        set("coreVersion", st.version);
-        set(
-          "coreUptime",
-          st.uptime != null ? `${Math.round(st.uptime / 1000)}s` : "—",
-        );
-        set("corePid", st.parentPid);
-        set("coreCwd", st.workingDirectory);
-
-        const wk = st.worker || {};
-        set("wkState", wk.state);
-        set("wkImpl", wk.impl);
-        set("wkPid", wk.pid);
-        set("wkRestarts", wk.restartCount);
-        set("wkHeartbeat", fmtTime(wk.lastHeartbeat));
-        set("wkEndpoint", wk.endpoint);
-
-        const gpu = st.gpu || {};
-        set("gpuState", gpu.status);
-        set("gpuLastSuccess", fmtTime(gpu.lastSuccessAt));
-        set("gpuLastFailure", fmtTime(gpu.lastFailureAt));
-        set("gpuFailCount", gpu.failureCount);
-        set("gpuCount", Array.isArray(gpu.gpus) ? gpu.gpus.length : "—");
-
-        const up = st.updater || {};
-        set("upState", up.state);
-        set("upProcessing", up.processing);
-        set("upQueue", up.queueLength);
-        set("upCurrent", fmtCurrentJob(up.currentJob));
-        set("upCurrentStage", up.currentJob?.state || "none");
-        set("upCurrentTransition", fmtTime(up.currentJob?.transitionedAt));
-        set("upQueuedShas", fmtQueueShas(up.queue));
-        set("upLastEvent", fmtLastEvent(up.lastEvent));
-        set("upCompleted", fmtJob(up.lastCompletedJob));
-        set("upFailed", fmtJob(up.lastFailedJob));
-        set(
-          "upMode",
-          up.lastCompletedJob?.result?.mode || up.currentRelease?.mode || "n/a",
-        );
-        set("upRetention", up.releaseRetentionMax);
-
-        set("curSha", up.currentRelease?.resolvedSha || "unknown (no pointer)");
-        set("curReleaseId", up.currentRelease?.releaseId);
-        set("curMode", up.currentRelease?.mode);
-        set("curUpdated", fmtTime(up.currentRelease?.updatedAt));
-        set("curDir", up.currentRelease?.releaseDir);
-        set("curLinkTarget", up.currentLinkTarget);
-        set("curSource", inferSource(st, up));
-
-        const apiHealth = ah.data || {};
-        set("apiHealth", `${ah.status} ${apiHealth.ok ? "OK" : "FAIL"}`);
-        set("apiOutputDir", apiHealth.output_dir);
-        set("apiPublicDir", apiHealth.public_dir);
-        set(
-          "apiModelsCount",
-          Array.isArray(am.data?.models) ? am.data.models.length : "—",
-        );
-
-        const coreGood = h.ok && s.ok;
-        const workerGood = classifyState(wk.state) === "ok";
-        const gpuGood = classifyState(gpu.status) === "ok";
-        const updaterBad =
-          classifyState(up.state) === "bad" || !!up.lastFailedJob;
-
-        if (!coreGood || updaterBad) setPill("NOT HEALTHY", "bad");
-        else if (!workerGood || !gpuGood) setPill("DEGRADED", "warn");
-        else setPill("HEALTHY", "ok");
+    async function getJson(url) {
+      const res = await fetch(url, { cache: "no-store" });
+      const text = await res.text();
+      let data;
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        data = { raw: text };
       }
+      return { ok: res.ok, status: res.status, data };
+    }
 
-      let timer = null;
-      function syncAuto() {
-        if (timer) clearInterval(timer);
-        if ($("autoChk").checked) {
-          timer = setInterval(refresh, 5000);
-        }
+    async function refresh() {
+      const [h, s, ah, am] = await Promise.all([
+        getJson("/healthz"),
+        getJson("/status"),
+        getJson("/api/health"),
+        getJson("/api/models"),
+      ]);
+
+      set("lastRefresh", new Date().toLocaleTimeString());
+
+      set("coreHealthz", `${h.status} ${h.ok ? "OK" : "FAIL"}`);
+      set("coreStatus", `${s.status} ${s.ok ? "OK" : "FAIL"}`);
+
+      const st = s.data || {};
+      set("coreVersion", st.version);
+      set(
+        "coreUptime",
+        st.uptime != null ? `${Math.round(st.uptime / 1000)}s` : "—",
+      );
+      set("corePid", st.parentPid);
+      set("coreCwd", st.workingDirectory);
+
+      const wk = st.worker || {};
+      set("wkState", wk.state);
+      set("wkImpl", wk.impl);
+      set("wkPid", wk.pid);
+      set("wkRestarts", wk.restartCount);
+      set("wkHeartbeat", fmtTime(wk.lastHeartbeat));
+      set("wkEndpoint", wk.endpoint);
+
+      const gpu = st.gpu || {};
+      set("gpuState", gpu.status);
+      set("gpuLastSuccess", fmtTime(gpu.lastSuccessAt));
+      set("gpuLastFailure", fmtTime(gpu.lastFailureAt));
+      set("gpuFailCount", gpu.failureCount);
+      set("gpuCount", Array.isArray(gpu.gpus) ? gpu.gpus.length : "—");
+
+      const up = st.updater || {};
+      set("upState", up.state);
+      set("upProcessing", up.processing);
+      set("upQueue", up.queueLength);
+      set("upCurrent", fmtCurrentJob(up.currentJob));
+      set("upCurrentStage", up.currentJob?.state || "none");
+      set("upCurrentTransition", fmtTime(up.currentJob?.transitionedAt));
+      set("upQueuedShas", fmtQueueShas(up.queue));
+      set("upLastEvent", fmtLastEvent(up.lastEvent));
+      set("upCompleted", fmtJob(up.lastCompletedJob));
+      set("upFailed", fmtJob(up.lastFailedJob));
+      set(
+        "upMode",
+        up.lastCompletedJob?.result?.mode || up.currentRelease?.mode || "n/a",
+      );
+      set("upRetention", up.releaseRetentionMax);
+
+      set("curSha", up.currentRelease?.resolvedSha || "unknown (no pointer)");
+      set("curReleaseId", up.currentRelease?.releaseId);
+      set("curMode", up.currentRelease?.mode);
+      set("curUpdated", fmtTime(up.currentRelease?.updatedAt));
+      set("curDir", up.currentRelease?.releaseDir);
+      set("curLinkTarget", up.currentLinkTarget);
+      set("curSource", inferSource(st, up));
+
+      const apiHealth = ah.data || {};
+      set("apiHealth", `${ah.status} ${apiHealth.ok ? "OK" : "FAIL"}`);
+      set("apiOutputDir", apiHealth.output_dir);
+      set("apiPublicDir", apiHealth.public_dir);
+      set(
+        "apiModelsCount",
+        Array.isArray(am.data?.models) ? am.data.models.length : "—",
+      );
+
+      const coreGood = h.ok && s.ok;
+      const workerGood = classifyState(wk.state) === "ok";
+      const gpuGood = classifyState(gpu.status) === "ok";
+      const updaterBad =
+        classifyState(up.state) === "bad" || !!up.lastFailedJob;
+
+      if (!coreGood || updaterBad) setPill("NOT HEALTHY", "bad");
+      else if (!workerGood || !gpuGood) setPill("DEGRADED", "warn");
+      else setPill("HEALTHY", "ok");
+    }
+
+    let timer = null;
+    function syncAuto() {
+      if (timer) clearInterval(timer);
+      if ($("autoChk").checked) {
+        timer = setInterval(refresh, 5000);
       }
+    }
 
-      $("refreshBtn").addEventListener("click", refresh);
-      $("autoChk").addEventListener("change", syncAuto);
+    $("refreshBtn").addEventListener("click", refresh);
+    $("autoChk").addEventListener("change", syncAuto);
 
-      refresh();
-      syncAuto();
-    </script>
-  </body>
+    refresh();
+    syncAuto();
+  </script>
+</body>
+
 </html>
