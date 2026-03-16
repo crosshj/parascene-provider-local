@@ -65,6 +65,7 @@ function main() {
     serviceRoot,
     log,
     mode: process.env.WORKER_MODE || "normal",
+    impl: process.env.WORKER_IMPL || "python",
   });
   updateQueue = new UpdateQueue({ serviceRoot, log });
   updateQueue.start();

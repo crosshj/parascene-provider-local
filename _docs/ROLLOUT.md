@@ -332,7 +332,7 @@ worker unhealthy + GPU failure -> escalate restart
 
 ---
 
-# Phase 7 — Replace Dummy Worker
+# Phase 7 — Replace Dummy Worker — ✅ IMPLEMENTED IN THIS REPO (2026-03-16, with Python-runtime prerequisite)
 
 Replace dummy worker with the real Python AI worker.
 

@@ -29,7 +29,14 @@ Optional:
 
 - `SERVICE_PORT` (default `3090`)
 - `WORKER_MODE` (default `normal`)
+- `WORKER_IMPL` (`python` or `dummy`, default `python`)
 - `GPU_PROBE_INTERVAL_MS` (default `30000`)
+- `PY_WORKER_HOST` / `PY_WORKER_PORT` (default `127.0.0.1:3199`)
+- `PYTHON_WORKER_EXECUTABLE_OVERRIDE` (optional override)
+- `PYTHON_WORKER_SCRIPT` (optional override)
+- `PYTHON_WORKER_ALLOW_VENV` (`1` to allow direct `.venv` launcher)
+
+Phase 7 note: if Python is unavailable to the Windows service account, the supervisor logs a fallback and runs `dummy` worker to keep the service up.
 
 ## Run
 
