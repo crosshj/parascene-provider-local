@@ -128,7 +128,7 @@ sc.exe failure "<ServiceName>" reset= 86400 actions= restart/5000/restart/10000/
 ## 6. Later phases (summary)
 
 - **Phase 2:** Worker manager + dummy worker (heartbeat, restart rules). ✅ DONE (2026-03-16)
-- **Phase 3:** GitHub webhook ingress (`POST /webhooks/github`).
+- **Phase 3:** GitHub webhook ingress (`POST /webhooks/github`). ✅ DONE (2026-03-16)
 - **Phase 4:** Fake update pipeline (state machine).
 - **Phase 5:** Real GitHub fetch; staged releases; `current` pointer.
 - **Phase 6:** GPU probe (nvidia-smi, `runtime/gpu-state.json`).
