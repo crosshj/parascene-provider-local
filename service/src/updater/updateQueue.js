@@ -5,11 +5,20 @@ const path = require("path");
 const { UpdatePipeline } = require("./updatePipeline");
 
 class UpdateQueue {
-  constructor({ serviceRoot, dataRoot, log, onRestartRequired }) {
+  constructor({
+    serviceRoot,
+    dataRoot,
+    log,
+    onRestartRequired,
+    onRollingNodeRollout,
+    onRollingPythonRecycle,
+  }) {
     this.serviceRoot = serviceRoot;
     this.dataRoot = dataRoot || serviceRoot;
     this.log = log;
     this.onRestartRequired = onRestartRequired;
+    this.onRollingNodeRollout = onRollingNodeRollout;
+    this.onRollingPythonRecycle = onRollingPythonRecycle;
 
     this.runtimeDir = path.join(this.dataRoot, "runtime");
     this.statePath = path.join(this.runtimeDir, "update-state.json");
@@ -184,13 +193,46 @@ class UpdateQueue {
             completedAt: new Date().toISOString(),
             result,
           };
-          restartRequest = {
-            jobId: job.id,
-            eventId: job.eventId,
-            releaseId: result.releaseId || null,
-            releaseDir: result.releaseDir || null,
-            currentPath: result.currentPath || null,
-          };
+
+          if (typeof this.onRollingNodeRollout === "function") {
+            try {
+              await this.onRollingNodeRollout(result.releaseDir);
+              this.log.info("updater.rolling.node.done", {
+                jobId: job.id,
+                releaseDir: result.releaseDir,
+              });
+              if (typeof this.onRollingPythonRecycle === "function") {
+                try {
+                  this.onRollingPythonRecycle();
+                } catch (recycleErr) {
+                  this.log.warn("updater.rolling.python.recycle.error", {
+                    error: recycleErr.message,
+                  });
+                }
+              }
+            } catch (rolloutErr) {
+              this.log.warn("updater.rolling.node.failed", {
+                jobId: job.id,
+                error: rolloutErr.message,
+                releaseDir: result.releaseDir,
+              });
+              restartRequest = {
+                jobId: job.id,
+                eventId: job.eventId,
+                releaseId: result.releaseId || null,
+                releaseDir: result.releaseDir || null,
+                currentPath: result.currentPath || null,
+              };
+            }
+          } else {
+            restartRequest = {
+              jobId: job.id,
+              eventId: job.eventId,
+              releaseId: result.releaseId || null,
+              releaseDir: result.releaseDir || null,
+              currentPath: result.currentPath || null,
+            };
+          }
 
           this.log.info("updater.job.complete", {
             jobId: job.id,

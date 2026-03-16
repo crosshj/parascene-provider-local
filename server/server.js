@@ -1,280 +1,39 @@
 // server.js
 "use strict";
 
-const http = require("http");
-const fs = require("fs");
+const PORT = process.env.PORT;
+const HOST = process.env.HOST;
+if (!PORT || !HOST) {
+  console.error("PORT and HOST env are required");
+  process.exit(1);
+}
+
 const path = require("path");
 
-const { runGenerator } = require("./generator.js");
-const { getModels, resolveModel } = require("./models.js");
+const { createApp } = require("./lib.js");
+const { handleHealth } = require("./handlers/health.js");
+const { handleModels } = require("./handlers/models.js");
+const { handleGpu } = require("./handlers/gpu.js");
+const { handleGenerate } = require("./handlers/generate.js");
+const { handleOutputImage } = require("./handlers/outputs.js");
+const { handlePublic } = require("./handlers/public.js");
 
-const PUBLIC_DIR = path.join(__dirname, "../public");
-const OUTPUT_DIR = path.join(__dirname, "../outputs");
 
-if (!fs.existsSync(OUTPUT_DIR)) fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 
-// ---------------------------------------------------------------------------
-// Utilities
-// ---------------------------------------------------------------------------
-
-const CSP = [
-  "default-src 'self'",
-  "base-uri 'self'",
-  "object-src 'none'",
-  "frame-ancestors 'none'",
-  "script-src 'self'",
-  "connect-src 'self'",
-  "img-src 'self' data:",
-  "style-src 'self'",
-].join("; ");
-
-function setSecurityHeaders(res) {
-  res.setHeader("Content-Security-Policy", CSP);
-  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-  res.setHeader(
-    "Permissions-Policy",
-    "geolocation=(), camera=(), microphone=()",
-  );
-  res.setHeader("X-Content-Type-Options", "nosniff");
-}
-
-function sendJson(res, status, body) {
-  res.writeHead(status, {
-    "Content-Type": "application/json; charset=utf-8",
-  });
-  res.end(JSON.stringify(body));
-}
-
-function readJson(req) {
-  return new Promise((resolve, reject) => {
-    let raw = "";
-    req.setEncoding("utf8");
-    req.on("data", (chunk) => {
-      raw += chunk;
-      if (raw.length > 1_000_000) {
-        reject(new Error("Request too large."));
-        req.destroy();
-      }
-    });
-    req.on("end", () => {
-      try {
-        resolve(raw.trim() ? JSON.parse(raw) : {});
-      } catch {
-        reject(new Error("Invalid JSON body."));
-      }
-    });
-    req.on("error", reject);
-  });
-}
-
-function sanitizePromptText(value) {
-  if (value == null) return "";
-
-  // Normalize compatibility forms first, then replace known problematic punctuation.
-  let out = String(value).normalize("NFKC");
-
-  const map = {
-    "\u2018": "'", // left single quote
-    "\u2019": "'", // right single quote
-    "\u201A": "'", // single low-9 quote
-    "\u201B": "'", // single high-reversed-9 quote
-    "\u2032": "'", // prime
-    "\u201C": '"', // left double quote
-    "\u201D": '"', // right double quote
-    "\u201E": '"', // double low-9 quote
-    "\u201F": '"', // double high-reversed-9 quote
-    "\u2033": '"', // double prime
-    "\u2013": "-", // en dash
-    "\u2014": "-", // em dash
-    "\u2212": "-", // minus sign
-    "\u2026": "...", // ellipsis
-    "\u00A0": " ", // non-breaking space
-  };
-
-  out = out.replace(
-    /[\u2018\u2019\u201A\u201B\u2032\u201C\u201D\u201E\u201F\u2033\u2013\u2014\u2212\u2026\u00A0]/g,
-    (ch) => map[ch] ?? ch,
-  );
-
-  // Drop control chars except newline/tab to keep tokenizer input safe.
-  out = out.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
-
-  return out.trim();
-}
-
-function logRequest(req) {
-  const h = req.headers || {};
-  const ip =
-    h["cf-connecting-ip"] ||
-    h["true-client-ip"] ||
-    (h["x-forwarded-for"] || "").split(",")[0].trim() ||
-    (req.socket?.remoteAddress ?? "");
-  const C = {
-    r: "\x1b[0m",
-    c: "\x1b[36m",
-    g: "\x1b[32m",
-    m: "\x1b[35m",
-    y: "\x1b[33m",
-    d: "\x1b[2m",
-  };
-  const mt = req.method === "GET" || req.method === "POST" ? C.g : C.y;
-  console.log(
-    `${C.c}[${new Date().toISOString()}]${C.r} ${mt}${req.method}${C.r}` +
-      ` ${C.m}${req.url}${C.r} ${C.y}ip=${ip}${C.r}` +
-      (h["user-agent"]
-        ? ` ${C.d}ua="${h["user-agent"].replace(/\s+/g, " ")}"${C.r}`
-        : ""),
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Route handlers
-// ---------------------------------------------------------------------------
-
-function handleModels(_req, res) {
-  const models = getModels().map(({ name, file, family, defaults }) => ({
-    name,
-    file,
-    family,
-    defaults,
-  }));
-  sendJson(res, 200, { ok: true, models });
-}
-
-function handleHealth(_req, res) {
-  sendJson(res, 200, {
-    ok: true,
-    models: getModels().length,
-    output_dir: OUTPUT_DIR,
-  });
-}
-
-function handleOutputImage(_req, res, reqPath) {
-  const file = path.join(OUTPUT_DIR, path.basename(reqPath));
-  fs.readFile(file, (err, data) => {
-    if (err) {
-      res.writeHead(404);
-      res.end("Not Found");
-      return;
-    }
-    res.writeHead(200, { "Content-Type": "image/png" });
-    res.end(data);
-  });
-}
-
-function handleGenerate(req, res) {
-  readJson(req)
-    .then((body) => {
-      const prompt = sanitizePromptText(body.prompt);
-      if (!prompt)
-        return sendJson(res, 400, {
-          error: "Missing required field: prompt",
-        });
-
-      const modelName = String(body.model || "").trim();
-      if (!modelName)
-        return sendJson(res, 400, {
-          error: "Missing required field: model",
-        });
-
-      const entry = resolveModel(modelName);
-      if (!entry)
-        return sendJson(res, 400, {
-          error: `Unknown model: "${modelName}". Check GET /api/models.`,
-        });
-
-      const payload = {
-        ...body,
-        prompt,
-        prompt_2: sanitizePromptText(body.prompt_2 || ""),
-        negative_prompt: sanitizePromptText(body.negative_prompt || ""),
-        model: entry.fullPath,
-        family: entry.family,
-      };
-
-      return runGenerator(payload, OUTPUT_DIR).then((result) => {
-        if (!result?.ok || !result.file_name) {
-          return sendJson(res, 500, {
-            error: result?.error ?? "Generator did not return an image.",
-          });
-        }
-        sendJson(res, 200, {
-          ok: true,
-          file_name: result.file_name,
-          image_url: `/outputs/${result.file_name}`,
-          seed: result.seed,
-          family: result.family,
-          model: result.model,
-          elapsed_ms: result.elapsed_ms,
-        });
-      });
-    })
-    .catch((err) =>
-      sendJson(res, 500, { error: err.message ?? "Generation failed." }),
-    );
-}
-
-const MIME = {
-  ".html": "text/html; charset=utf-8",
-  ".css": "text/css; charset=utf-8",
-  ".js": "text/javascript; charset=utf-8",
-  ".ico": "image/x-icon",
-  ".svg": "image/svg+xml",
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".webp": "image/webp",
+const ctx = {
+  outputDir: process.env.OUTPUT_DIR || null,
+  publicDir: path.join(__dirname, "public"),
 };
 
-function handlePublic(_req, res, reqPath) {
-  // Resolve the requested path inside PUBLIC_DIR; default to app.html
-  const rel = reqPath === "/" ? "app.html" : reqPath.slice(1);
-  const file = path.join(PUBLIC_DIR, path.normalize(rel));
+const app = createApp(ctx);
 
-  // Prevent path traversal outside PUBLIC_DIR
-  if (!file.startsWith(PUBLIC_DIR + path.sep) && file !== PUBLIC_DIR) {
-    res.writeHead(403);
-    res.end("Forbidden");
-    return;
-  }
+app.get("/api/health", handleHealth);
+app.get("/api/gpu", handleGpu);
+app.get("/api/models", handleModels);
+app.post("/api/generate", handleGenerate);
+app.get("/outputs/*", handleOutputImage);
+app.get("*", handlePublic);
 
-  fs.readFile(file, (err, data) => {
-    if (err) {
-      res.writeHead(err.code === "ENOENT" ? 404 : 500);
-      res.end(err.code === "ENOENT" ? "Not Found" : "Server Error");
-      return;
-    }
-    const ext = path.extname(file).toLowerCase();
-    const mime = MIME[ext] || "application/octet-stream";
-    res.writeHead(200, { "Content-Type": mime });
-    res.end(data);
-  });
-}
-
-// ---------------------------------------------------------------------------
-// Router
-// ---------------------------------------------------------------------------
-
-const server = http.createServer((req, res) => {
-  setSecurityHeaders(res);
-  logRequest(req);
-
-  const p = (req.url || "").split("?")[0];
-  const { method } = req;
-
-  if (method === "GET" && p === "/api/health") return handleHealth(req, res);
-  if (method === "GET" && p === "/api/models") return handleModels(req, res);
-  if (method === "POST" && p === "/api/generate")
-    return handleGenerate(req, res);
-  if (method === "GET" && p.startsWith("/outputs/"))
-    return handleOutputImage(req, res, p);
-  if (method === "GET") return handlePublic(req, res, p);
-
-  res.writeHead(404, { "Content-Type": "text/plain" });
-  res.end("404 Not Found");
-});
-
-const PORT = Number(process.env.PORT || 8080);
-const HOST = process.env.HOST || "127.0.0.1";
-server.listen(PORT, HOST, () =>
+app.listen(Number(PORT), HOST, () =>
   console.log(`Server running at http://${HOST}:${PORT}/`),
 );

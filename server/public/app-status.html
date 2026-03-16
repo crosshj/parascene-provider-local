@@ -145,8 +145,7 @@
     <header class="status-head">
       <h1>Service Status</h1>
       <p class="subtle">
-        Operational view for service, worker, updater, GPU, and provider API.
-        TEST_WORK_DAMMIT!!
+        Operational view for orchestrator, Node app, Python worker, GPU, updater, and provider API.
       </p>
     </header>
 
@@ -220,30 +219,14 @@
       </section>
 
       <section class="status-card span-4">
-        <h3>Worker</h3>
+        <h3>Python worker (server-owned)</h3>
         <div class="status-row">
           <div class="status-k">state</div>
           <div id="wkState" class="status-v">—</div>
         </div>
         <div class="status-row">
-          <div class="status-k">impl</div>
-          <div id="wkImpl" class="status-v">—</div>
-        </div>
-        <div class="status-row">
           <div class="status-k">pid</div>
           <div id="wkPid" class="status-v">—</div>
-        </div>
-        <div class="status-row">
-          <div class="status-k">restarts</div>
-          <div id="wkRestarts" class="status-v">—</div>
-        </div>
-        <div class="status-row">
-          <div class="status-k">last heartbeat</div>
-          <div id="wkHeartbeat" class="status-v">—</div>
-        </div>
-        <div class="status-row">
-          <div class="status-k">endpoint</div>
-          <div id="wkEndpoint" class="status-v">—</div>
         </div>
       </section>
 
@@ -482,13 +465,9 @@
       set("corePid", st.parentPid);
       set("coreCwd", st.workingDirectory);
 
-      const wk = st.worker || {};
-      set("wkState", wk.state);
-      set("wkImpl", wk.impl);
-      set("wkPid", wk.pid);
-      set("wkRestarts", wk.restartCount);
-      set("wkHeartbeat", fmtTime(wk.lastHeartbeat));
-      set("wkEndpoint", wk.endpoint);
+      const wk = (ah.data && ah.data.worker) ? ah.data.worker : {};
+      set("wkState", wk.running === true ? "running" : "stopped (or not started)");
+      set("wkPid", wk.pid != null ? wk.pid : "—");
 
       const gpu = st.gpu || {};
       set("gpuState", gpu.status);
@@ -532,12 +511,13 @@
       );
 
       const coreGood = h.ok && s.ok;
-      const workerGood = classifyState(wk.state) === "ok";
+      const workerGood = wk.running === true;
       const gpuGood = classifyState(gpu.status) === "ok";
+      const apiGood = ah.ok && ah.data?.ok !== false;
       const updaterBad =
         classifyState(up.state) === "bad" || !!up.lastFailedJob;
 
-      if (!coreGood || updaterBad) setPill("NOT HEALTHY", "bad");
+      if (!coreGood || updaterBad || !apiGood) setPill("NOT HEALTHY", "bad");
       else if (!workerGood || !gpuGood) setPill("DEGRADED", "warn");
       else setPill("HEALTHY", "ok");
     }

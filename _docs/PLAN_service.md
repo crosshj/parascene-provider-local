@@ -20,9 +20,9 @@ parascene-provider-local/           # repo root = release root when pulled
 │
 └── service/                       # NEW — everything from ROLLOUT Phase 0
     ├── src/
-    │   ├── supervisor/            # index.js (Phase 1), workerManager.js (Phase 2), …
+    │   ├── supervisor/            # index.js, nodeAppManager.js, proxy.js, deployState.js (no WorkerManager; Python owned by server)
     │   ├── api/                   # healthz, status, githubWebhook (Phases 1, 2, 5, …)
-    │   ├── worker/                # dummyWorker.js (Phase 2), later spawns generator
+    │   ├── worker/                # (obsolete — was dummyWorker; Python is now server-owned)
     │   ├── updater/               # Phase 4+
     │   ├── gpu/                   # Phase 6
     │   └── config/                # config loader

@@ -43,31 +43,9 @@ Acceptance criteria:
 
 ---
 
-# Step 2 — Worker Manager — ✅ DONE (2026-03-16)
+# Step 2 — Worker (superseded)
 
-Create:
-
-```text
-src/supervisor/workerManager.js
-```
-
-Responsibilities:
-
-- spawn worker
-- track PID
-- monitor heartbeat
-- restart worker when needed
-
-Heartbeat file:
-
-```text
-runtime/worker-heartbeat.json
-```
-
-Acceptance criteria:
-
-- worker restarts on crash
-- worker restarts on heartbeat loss
+**As-built:** The Python worker is owned by the **Node server** (`server/handlers/generate.js` spawns `generate.py --worker`). The service does not run a separate WorkerManager or worker process. No `src/supervisor/workerManager.js`. See `_docs/BIRDS_EYE_VIEW.md`.
 
 ---
 

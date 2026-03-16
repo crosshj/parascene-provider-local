@@ -1,4 +1,4 @@
-// generator/models.js
+// handlers/models.js
 // Scans local model directories and builds a model registry.
 // Directory path is used as the primary family signal; filename patterns
 // are used as a fallback for ambiguous cases.
@@ -7,6 +7,8 @@
 
 const fs = require("fs");
 const path = require("path");
+
+const { sendJson } = require("../lib.js");
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -160,4 +162,14 @@ function resolveModel(name) {
   return getModels().find((m) => m.name === name || m.file === name) ?? null;
 }
 
-module.exports = { getModels, resolveModel, FAMILY_DEFAULTS };
+function handleModels(_req, res, _ctx) {
+  const models = getModels().map(({ name, file, family, defaults }) => ({
+    name,
+    file,
+    family,
+    defaults,
+  }));
+  sendJson(res, 200, { ok: true, models });
+}
+
+module.exports = { getModels, resolveModel, FAMILY_DEFAULTS, handleModels };

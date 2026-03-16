@@ -44,9 +44,19 @@ function loadConfig(serviceRoot) {
   const githubWebhookSecret = process.env.GITHUB_WEBHOOK_SECRET || "";
   const githubWebhookRepo = process.env.GITHUB_WEBHOOK_REPO || "";
   const githubWebhookBranch = process.env.GITHUB_WEBHOOK_BRANCH || "main";
+
+  // Port block 3090–3099: orchestrator, Node app(s). Python is owned by the server
+  // (spawned on first generate, torn down when the server exits).
+  const ports = {
+    orchestrator: port,
+    nodeAppActive: parseInt(process.env.NODE_APP_PORT_ACTIVE || "3091", 10),
+    nodeAppStaging: parseInt(process.env.NODE_APP_PORT_STAGING || "3092", 10),
+  };
+
   return {
     version,
     port,
+    ports,
     serviceRoot,
     repoRoot,
     dataRoot,

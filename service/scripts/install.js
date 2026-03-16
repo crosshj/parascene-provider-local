@@ -63,7 +63,7 @@ const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <service>
   <id>ParasceneProviderLocal</id>
   <name>Parascene Provider Local</name>
-  <description>Local AI provider service (supervisor + worker).</description>
+  <description>Local AI provider service (orchestrator + Node app).</description>
   <executable>node</executable>
   <arguments>service/src/supervisor/index.js</arguments>
   <workingdirectory>${xmlEscape(currentDir)}</workingdirectory>

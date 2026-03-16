@@ -1,4 +1,4 @@
-// server/generator.js
+// handlers/generate.js
 // Manages a persistent Python worker for image generation.
 // The worker process stays alive between requests so models remain loaded in VRAM.
 
@@ -8,7 +8,26 @@ const fs = require("fs");
 const path = require("path");
 const { spawn } = require("child_process");
 
-const PY_DIR = path.join(__dirname, "..", "generator");
+const { readJson, sendJson } = require("../lib.js");
+const { resolveModel } = require("./models.js");
+
+function sanitizePromptText(value) {
+  if (value == null) return "";
+  let out = String(value).normalize("NFKC");
+  const map = {
+    "\u2018": "'", "\u2019": "'", "\u201A": "'", "\u201B": "'", "\u2032": "'",
+    "\u201C": '"', "\u201D": '"', "\u201E": '"', "\u201F": '"', "\u2033": '"',
+    "\u2013": "-", "\u2014": "-", "\u2212": "-", "\u2026": "...", "\u00A0": " ",
+  };
+  out = out.replace(
+    /[\u2018\u2019\u201A\u201B\u2032\u201C\u201D\u201E\u201F\u2033\u2013\u2014\u2212\u2026\u00A0]/g,
+    (ch) => map[ch] ?? ch,
+  );
+  out = out.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
+  return out.trim();
+}
+
+const PY_DIR = path.join(__dirname, "..", "..", "generator");
 const PYTHON_SCRIPT = path.join(PY_DIR, "generate.py");
 const TIMEOUT_MS = Number(process.env.GENERATE_TIMEOUT_MS || 600_000);
 
@@ -156,13 +175,23 @@ function _tick() {
 // ── Graceful shutdown ──────────────────────────────────────────────────────
 // SIGINT / SIGTERM: handlers fire reliably — kill worker then exit.
 // Hard kill (SIGKILL / Task Manager): nothing we can do from JS, but the
-//   PID file below lets a future server startup detect and kill orphans.
+//   PID file below lets a future server startup (or the service) detect and kill orphans.
+//   When DATA_ROOT is set we use dataRoot/runtime/.worker.pid so service and server
+//   share one location; otherwise generator/.worker.pid (release-relative).
 
-const PID_FILE = path.join(PY_DIR, ".worker.pid");
+function _getPidFilePath() {
+  const dataRoot = process.env.DATA_ROOT;
+  if (dataRoot) {
+    return path.join(dataRoot, "runtime", ".worker.pid");
+  }
+  return path.join(PY_DIR, ".worker.pid");
+}
 
 function _writePid(pid) {
   try {
-    fs.writeFileSync(PID_FILE, String(pid));
+    const pidFile = _getPidFilePath();
+    fs.mkdirSync(path.dirname(pidFile), { recursive: true });
+    fs.writeFileSync(pidFile, String(pid));
   } catch {
     /* ignore */
   }
@@ -170,27 +199,47 @@ function _writePid(pid) {
 
 function _clearPid() {
   try {
-    fs.unlinkSync(PID_FILE);
+    fs.unlinkSync(_getPidFilePath());
   } catch {
     /* ignore */
   }
 }
 
 function _killOrphan() {
+  const pidFile = _getPidFilePath();
+  let pid;
   try {
-    const pid = parseInt(fs.readFileSync(PID_FILE, "utf8").trim(), 10);
-    if (!pid || isNaN(pid)) return;
+    pid = parseInt(fs.readFileSync(pidFile, "utf8").trim(), 10);
+  } catch {
+    _clearPid();
+    return;
+  }
+  if (!pid || isNaN(pid)) {
+    _clearPid();
+    return;
+  }
+  try {
     process.kill(pid, 0); // throws if process is gone
+  } catch {
+    console.log(`[generator] stale worker PID file (process ${pid} gone), removed`);
+    _clearPid();
+    return;
+  }
+  try {
     process.kill(pid, "SIGTERM");
     console.log(`[generator] killed orphaned worker pid=${pid}`);
-  } catch {
-    /* process gone or no pid file — ok */
+  } catch (err) {
+    console.warn(`[generator] failed to kill orphan pid=${pid}:`, err.message);
   }
   _clearPid();
 }
 
-// Kill any orphan from a previous hard-killed server run.
-_killOrphan();
+// Kill any orphan from a previous hard-killed server run. Skip when DATA_ROOT is
+// set so we don't kill the old server's worker during a rollout (service cleans
+// up after tearing down the old process).
+if (!process.env.DATA_ROOT) {
+  _killOrphan();
+}
 
 function _stopWorker() {
   if (!_worker) return;
@@ -216,6 +265,18 @@ process.on("SIGINT", () => {
 // ── Public API ─────────────────────────────────────────────────────────────
 
 /**
+ * Current Python worker status for health reporting.
+ * @returns {{ running: boolean, pid: number | null }}
+ */
+function getWorkerStatus() {
+  if (!_worker) {
+    return { running: false, pid: null };
+  }
+  const running = _worker.exitCode === null;
+  return { running, pid: _worker.pid ?? null };
+}
+
+/**
  * Run a generation job.
  * The Python worker is started lazily on first call and kept alive so that
  * loaded models remain in VRAM for subsequent requests.
@@ -232,4 +293,58 @@ function runGenerator(payload, outDir) {
   });
 }
 
-module.exports = { runGenerator };
+function handleGenerate(req, res, ctx) {
+  if (!ctx.outputDir) {
+    return sendJson(res, 503, { error: "OUTPUT_DIR not configured" });
+  }
+  readJson(req)
+    .then((body) => {
+      const prompt = sanitizePromptText(body.prompt);
+      if (!prompt) {
+        return sendJson(res, 400, { error: "Missing required field: prompt" });
+      }
+
+      const modelName = String(body.model || "").trim();
+      if (!modelName) {
+        return sendJson(res, 400, { error: "Missing required field: model" });
+      }
+
+      const entry = resolveModel(modelName);
+      if (!entry) {
+        return sendJson(res, 400, {
+          error: `Unknown model: "${modelName}". Check GET /api/models.`,
+        });
+      }
+
+      const payload = {
+        ...body,
+        prompt,
+        prompt_2: sanitizePromptText(body.prompt_2 || ""),
+        negative_prompt: sanitizePromptText(body.negative_prompt || ""),
+        model: entry.fullPath,
+        family: entry.family,
+      };
+
+      return runGenerator(payload, ctx.outputDir).then((result) => {
+        if (!result?.ok || !result.file_name) {
+          return sendJson(res, 500, {
+            error: result?.error ?? "Generator did not return an image.",
+          });
+        }
+        sendJson(res, 200, {
+          ok: true,
+          file_name: result.file_name,
+          image_url: `/outputs/${result.file_name}`,
+          seed: result.seed,
+          family: result.family,
+          model: result.model,
+          elapsed_ms: result.elapsed_ms,
+        });
+      });
+    })
+    .catch((err) =>
+      sendJson(res, 500, { error: err.message ?? "Generation failed." }),
+    );
+}
+
+module.exports = { getWorkerStatus, runGenerator, handleGenerate };
