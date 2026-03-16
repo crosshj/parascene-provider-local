@@ -2,32 +2,55 @@
 
 Supervisor for the local AI provider: bootable Windows service, `/healthz`, `/status`, structured logging.
 
-## Run locally
+## Local run
 
-From **service/** directory:
+From **service/**:
 
 ```bash
 npm start
 ```
 
-Or from **repo root** (matches deployed layout; working directory = repo root):
+From **repo root** (same working directory as service mode):
 
 ```bash
 node service/src/supervisor/index.js
 ```
 
-Default port: 3090 (override with `SERVICE_PORT`).
+Default port: `3090` (override with `SERVICE_PORT`).
 
-- **GET** http://localhost:3090/healthz → `{ "ok": true }`
-- **GET** http://localhost:3090/status → version, uptime, parentPid, worker/gpu/updater
+## Windows service install (single path)
 
-Logs: `service/logs/service.log` (JSON lines). This path is **created at runtime** and is **gitignored** — it is never committed and is local to the machine where the service runs.
+Use this exact flow:
 
-## Install as Windows service
+1. Place `WinSW.exe` at `service/scripts/` and rename it to `parascene-service.exe`.
+2. From the repo root, run:
 
-See **PHASE1_QUICKSTART.md** in this folder for full steps; summary:
+   ```bash
+   node service/scripts/install.js
+   ```
 
-1. Deploy repo to a release directory (e.g. `C:\svc\service\current`).
-2. From that directory, run `node service/scripts/install.js` (or pass the base path as first arg) to create runtime/logs dirs and generate `service/scripts/service.generated.xml`.
-3. Use WinSW to install the service (config: `service/scripts/service.generated.xml`).
-4. Set recovery: `sc failure ParasceneProviderLocal reset=86400 actions=restart/5000/restart/10000/restart/30000`
+   The script validates paths, creates `service/runtime` and `service/logs`, and generates `service/scripts/parascene-service.xml`.
+
+3. In an **Administrator** terminal, install and start the service:
+
+   ```powershell
+   .\service\scripts\parascene-service.exe install
+   .\service\scripts\parascene-service.exe start
+   ```
+
+4. Set recovery:
+
+   ```powershell
+   sc.exe failure "ParasceneProviderLocal" reset= 86400 actions= restart/5000/restart/10000/restart/30000
+   ```
+
+## Verify
+
+- `curl http://localhost:3090/healthz` → `{"ok":true}`
+- `curl http://localhost:3090/status` → JSON with version, uptime, parentPid, worker/gpu/updater
+- Check `service/logs/service.log` for `service.start`
+
+## Verify (GUI)
+
+- Open `services.msc` and confirm `ParasceneProviderLocal` is `Running`.
+- Open `eventvwr.msc` → **Windows Logs > Application** for service start/error events.

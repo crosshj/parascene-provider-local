@@ -1,28 +1,53 @@
-'use strict';
+"use strict";
 
 /**
- * Prepare install: create runtime/logs dirs and generate service.generated.xml.
- * Run from repo root (release root), or pass base path as first argument.
+ * Prepare install: create runtime/logs dirs and generate parascene-service.xml.
+ * Run from repo root, or pass base path as first argument.
  *
  *   node service/scripts/install.js
- *   node service/scripts/install.js D:\svc\current
+ *   node service/scripts/install.js C:\repos\crosshj\parascene-provider-local
  */
 
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
 const scriptDir = __dirname;
 const basePath = process.argv[2] || process.cwd();
-const serviceDir = path.join(basePath, 'service');
-const runtimeDir = path.join(serviceDir, 'runtime');
-const logsDir = path.join(serviceDir, 'logs');
-const serviceName = 'ParasceneProviderLocal';
+const serviceDir = path.join(basePath, "service");
+const runtimeDir = path.join(serviceDir, "runtime");
+const logsDir = path.join(serviceDir, "logs");
+const serviceName = "ParasceneProviderLocal";
+const wrapperBaseName = "parascene-service";
+const supervisorEntry = path.join(serviceDir, "src", "supervisor", "index.js");
+const winswExe = path.join(serviceDir, "scripts", `${wrapperBaseName}.exe`);
+const scriptsDir = path.join(serviceDir, "scripts");
+
+if (!fs.existsSync(supervisorEntry)) {
+  console.error("ERROR: base path does not look like a repo root:");
+  console.error("  Missing:", supervisorEntry);
+  console.error(
+    "Run from the repo root or pass it explicitly, e.g. node service/scripts/install.js C:\\\\repos\\\\crosshj\\\\parascene-provider-local",
+  );
+  process.exit(1);
+}
+
+if (!fs.existsSync(winswExe)) {
+  console.error("ERROR: missing bundled WinSW wrapper executable.");
+  console.error("Expected:", winswExe);
+  console.error("");
+  console.error("Download WinSW from:");
+  console.error("  https://github.com/winsw/winsw/releases");
+  console.error("Place it at:", scriptsDir);
+  console.error("Rename it to exactly:", `${wrapperBaseName}.exe`);
+  console.error("Then run this installer again.");
+  process.exit(1);
+}
 
 // Create directories
 for (const dir of [runtimeDir, logsDir]) {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
-    console.log('Created:', dir);
+    console.log("Created:", dir);
   }
 }
 
@@ -42,14 +67,20 @@ const xml = `<?xml version="1.0" encoding="UTF-8"?>
   </log>
 </service>
 `;
-const outPath = path.join(scriptDir, 'service.generated.xml');
-fs.writeFileSync(outPath, xml, 'utf8');
+const outPath = path.join(scriptDir, `${wrapperBaseName}.xml`);
+fs.writeFileSync(outPath, xml, "utf8");
 
-console.log('Generated:', outPath);
-console.log('Base path:', basePath);
-console.log('Service directory:', serviceDir);
-console.log('');
-console.log('Next: use this config with WinSW (run as Administrator), e.g.:');
-console.log('  WinSW.exe install -c "' + outPath + '"');
-console.log('Then set recovery:');
-console.log('  sc failure ' + serviceName + ' reset=86400 actions=restart/5000/restart/10000/restart/30000');
+console.log("Generated:", outPath);
+console.log("Base path:", basePath);
+console.log("Service directory:", serviceDir);
+console.log("");
+console.log("WinSW bundled check: OK");
+console.log("Next: run as Administrator from the repo root:");
+console.log(`  .\\service\\scripts\\${wrapperBaseName}.exe install`);
+console.log(`  .\\service\\scripts\\${wrapperBaseName}.exe start`);
+console.log("Then set recovery:");
+console.log(
+  '  sc.exe failure "' +
+    serviceName +
+    '" reset= 86400 actions= restart/5000/restart/10000/restart/30000',
+);

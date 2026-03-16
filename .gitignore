@@ -171,3 +171,5 @@ build/
 service/runtime/
 service/logs/
 service/scripts/service.generated.xml
+service/scripts/*.exe
+service/scripts/*.xml

@@ -92,6 +92,7 @@ def _is_cuda_oom(exc: Exception) -> bool:
         "cuda error: out of memory",
         "cudaerrormemoryallocation",
         "cudamemoryallocation",
+        "out of memory",
     )
 
     seen = set()
@@ -99,6 +100,13 @@ def _is_cuda_oom(exc: Exception) -> bool:
     depth = 0
     while current is not None and depth < 8 and id(current) not in seen:
         seen.add(id(current))
+        # Type-based check: torch.cuda.OutOfMemoryError (PyTorch >= 1.12)
+        try:
+            import torch
+            if isinstance(current, torch.cuda.OutOfMemoryError):
+                return True
+        except Exception:
+            pass
         msg = str(current).lower()
         if any(n in msg for n in needles):
             return True
@@ -108,8 +116,18 @@ def _is_cuda_oom(exc: Exception) -> bool:
     return False
 
 
-def _clear_cuda_cache(torch_module=None) -> None:
+def _clear_cuda_cache(torch_module=None, evict_cache_key: str | None = None) -> None:
     """Release as much cached CUDA memory as possible."""
+    # Evict the failing pipeline from PIPE_CACHE so a retry starts fresh.
+    if evict_cache_key and evict_cache_key in PIPE_CACHE:
+        pipe = PIPE_CACHE.pop(evict_cache_key, None)
+        if pipe is not None:
+            try:
+                pipe.to("cpu")
+            except Exception:
+                pass
+            del pipe
+
     try:
         gc.collect()
     except Exception:
@@ -122,11 +140,33 @@ def _clear_cuda_cache(torch_module=None) -> None:
 
     try:
         if torch.cuda.is_available():
+            try:
+                torch.cuda.synchronize()
+            except Exception:
+                pass
             torch.cuda.empty_cache()
             try:
                 torch.cuda.ipc_collect()
             except Exception:
                 pass
+    except Exception:
+        pass
+
+    # If the Comfy runtime is loaded, ask it to unload models from VRAM too.
+    try:
+        import comfy.model_management as _cmm
+        if hasattr(_cmm, "soft_empty_cache"):
+            _cmm.soft_empty_cache()
+        elif hasattr(_cmm, "unload_all_models"):
+            _cmm.unload_all_models()
+    except Exception:
+        pass
+
+    # Second gc + empty_cache after Comfy unload.
+    try:
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
     except Exception:
         pass
 
@@ -304,6 +344,7 @@ def _process_one(payload: Dict[str, Any], out_dir: Path) -> Dict[str, Any]:
         torch_module = None
         image = None
         seed = None
+        _cache_key = f"{family}:{model}"
 
         for attempt in (1, 2):
             try:
@@ -314,8 +355,8 @@ def _process_one(payload: Dict[str, Any], out_dir: Path) -> Dict[str, Any]:
                 break
             except Exception as exc:
                 if attempt == 1 and _is_cuda_oom(exc):
-                    _log("CUDA OOM detected; clearing cache and retrying once with same settings")
-                    _clear_cuda_cache(torch_module)
+                    _log("CUDA OOM detected; evicting pipeline cache and retrying once")
+                    _clear_cuda_cache(torch_module, evict_cache_key=_cache_key)
                     continue
                 raise
 

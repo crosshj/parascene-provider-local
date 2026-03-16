@@ -105,20 +105,20 @@ service/
 
 Directory responsibilities:
 
-| Directory | Purpose |
-|---|---|
-| supervisor | service orchestration |
-| api | HTTP endpoints |
-| worker | dummy worker initially |
-| updater | update pipeline |
-| gpu | GPU probe module |
-| config | configuration loader |
-| runtime | pid/state files |
-| logs | structured logs |
+| Directory  | Purpose                |
+| ---------- | ---------------------- |
+| supervisor | service orchestration  |
+| api        | HTTP endpoints         |
+| worker     | dummy worker initially |
+| updater    | update pipeline        |
+| gpu        | GPU probe module       |
+| config     | configuration loader   |
+| runtime    | pid/state files        |
+| logs       | structured logs        |
 
 ---
 
-# Phase 1 — Bootable Windows Service
+# Phase 1 — Bootable Windows Service — ✅ IMPLEMENTED IN THIS REPO (2026-03-16)
 
 Create the parent supervisor.
 
@@ -151,7 +151,7 @@ Startup log must include:
 Configure recovery policy:
 
 ```text
-sc failure MyService reset=86400 actions=restart/5000/restart/10000/restart/30000
+sc.exe failure "MyService" reset= 86400 actions= restart/5000/restart/10000/restart/30000
 ```
 
 Meaning:
@@ -190,11 +190,11 @@ Supervisor responsibilities:
 
 Restart rules:
 
-| Condition | Action |
-|---|---|
-| worker exit | restart immediately |
-| 3 missed heartbeats | restart |
-| worker unresponsive | kill + restart |
+| Condition           | Action              |
+| ------------------- | ------------------- |
+| worker exit         | restart immediately |
+| 3 missed heartbeats | restart             |
+| worker unresponsive | kill + restart      |
 
 ## Worker State Model
 

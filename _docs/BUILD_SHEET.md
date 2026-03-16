@@ -270,7 +270,7 @@ logs/service.log
 
 ---
 
-# Step 11 — WinSW config and install script
+# Step 11 — WinSW config and install script — ✅ DONE (2026-03-16)
 
 Create:
 
@@ -281,10 +281,11 @@ scripts/install.js
 Responsibilities:
 
 - create service/runtime and service/logs
-- generate service.generated.xml (WinSW config: executable node, args service/src/supervisor/index.js, workingdirectory = release root, logpath = service/logs)
-- print WinSW install and recovery-policy commands
+- require bundled `service/scripts/parascene-service.exe` (fail fast with download/place/rename guidance if missing)
+- generate `service/scripts/parascene-service.xml` (WinSW config: executable node, args service/src/supervisor/index.js, workingdirectory = repo root, logpath = service/logs)
+- print WinSW install/start and recovery-policy commands
 
-Recovery is configured separately (e.g. `sc failure ...`).
+Recovery is configured separately (e.g. `sc.exe failure "ParasceneProviderLocal" reset= 86400 actions= restart/5000/restart/10000/restart/30000`).
 
 ---
 
