@@ -10,9 +10,27 @@ const { spawn } = require("child_process");
 
 const PY_DIR = path.join(__dirname, "..", "generator");
 const PYTHON_SCRIPT = path.join(PY_DIR, "generate.py");
-const PYTHON_CMD =
-  "C:\\repos\\crosshj\\parascene-provider-local\\generator\\.venv\\Scripts\\python.exe";
 const TIMEOUT_MS = Number(process.env.GENERATE_TIMEOUT_MS || 600_000);
+
+function resolvePythonCommand() {
+  const candidates = [
+    process.env.GENERATOR_PYTHON_EXECUTABLE,
+    process.env.PYTHON_WORKER_EXECUTABLE_OVERRIDE,
+    path.join(PY_DIR, ".venv", "Scripts", "python.exe"),
+    "python",
+  ].filter(Boolean);
+
+  for (const candidate of candidates) {
+    if (candidate === "python") {
+      return candidate;
+    }
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  return "python";
+}
 
 // ── Persistent worker state ────────────────────────────────────────────────
 
@@ -23,11 +41,13 @@ let _currentJob = null; // { resolve, reject, timer } | null
 const _queue = []; // pending jobs
 
 function _spawnWorker() {
-  if (!fs.existsSync(PYTHON_CMD)) {
-    throw new Error(`Hard-coded Python interpreter not found: ${PYTHON_CMD}`);
+  const pythonCmd = resolvePythonCommand();
+
+  if (pythonCmd !== "python" && !fs.existsSync(pythonCmd)) {
+    throw new Error(`Configured Python interpreter not found: ${pythonCmd}`);
   }
   const child = spawn(
-    PYTHON_CMD,
+    pythonCmd,
     [PYTHON_SCRIPT, "--worker", "--out-dir", _outDir],
     {
       cwd: PY_DIR,
@@ -91,7 +111,7 @@ function _spawnWorker() {
     }
   });
 
-  console.log(`[generator] Python worker started (python=${PYTHON_CMD})`);
+  console.log(`[generator] Python worker started (python=${pythonCmd})`);
   _writePid(child.pid);
   return child;
 }

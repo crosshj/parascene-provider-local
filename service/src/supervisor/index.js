@@ -10,6 +10,7 @@ const { createLogger } = require("../utils/logger");
 const { healthzHandler } = require("../api/healthz");
 const { createStatusHandler } = require("../api/status");
 const { createGitHubWebhookHandler } = require("../api/githubWebhook");
+const { createProviderApiHandler } = require("../api/providerApi");
 const { UpdateQueue } = require("../updater/updateQueue");
 const { GpuProbe } = require("../gpu/gpuProbe");
 const { WorkerManager } = require("./workerManager");
@@ -94,6 +95,9 @@ function main() {
     log,
     updateQueue,
   });
+  const providerApiHandler = createProviderApiHandler({
+    log,
+  });
 
   const server = http.createServer((req, res) => {
     const url = req.url?.split("?")[0] || "/";
@@ -114,9 +118,28 @@ function main() {
       });
       return;
     }
-    res.statusCode = 404;
-    res.setHeader("Content-Type", "application/json");
-    res.end(JSON.stringify({ error: "Not found" }));
+
+    providerApiHandler(req, res)
+      .then((handled) => {
+        if (handled) {
+          return;
+        }
+        if (res.headersSent) {
+          return;
+        }
+        res.statusCode = 404;
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify({ error: "Not found" }));
+      })
+      .catch((err) => {
+        log.error("api.unhandled", { error: err.message });
+        if (!res.headersSent) {
+          res.statusCode = 500;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ error: "Internal error" }));
+        }
+      });
+    return;
   });
 
   let workersStarted = false;

@@ -5,6 +5,10 @@ Node supervisor service for local provider operations:
 - `GET /healthz`
 - `GET /status`
 - `POST /webhooks/github`
+- `GET /api/health`
+- `GET /api/models`
+- `POST /api/generate`
+- `GET /outputs/:file`
 
 ## Env (`dotenv`)
 

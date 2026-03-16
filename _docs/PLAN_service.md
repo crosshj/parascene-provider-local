@@ -133,7 +133,7 @@ sc.exe failure "<ServiceName>" reset= 86400 actions= restart/5000/restart/10000/
 - **Phase 5:** Real GitHub fetch; staged releases; `current` pointer. ✅ DONE (2026-03-16)
 - **Phase 6:** GPU probe (nvidia-smi, `runtime/gpu-state.json`). ✅ DONE (2026-03-16)
 - **Phase 7:** Replace dummy worker with Python generator (this repo’s `generator/`). ✅ DONE (2026-03-16, requires runnable Python for service account; falls back to dummy if unavailable)
-- **Phase 8:** Replace placeholder API with real routes; keep `/healthz`, `/status`, `/webhooks/github`.
+- **Phase 8:** Replace placeholder API with real routes; keep `/healthz`, `/status`, `/webhooks/github`. ✅ DONE (2026-03-16)
 - **Phase 9:** Production safety (stage → smoke test → cutover; rollback always possible).
 
 All new code continues to live under `service/`; worker runs from repo root (`generator/`).
