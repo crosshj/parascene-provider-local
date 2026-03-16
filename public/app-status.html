@@ -137,6 +137,7 @@
       }
     </style>
   </head>
+
   <body>
     <div class="status-shell">
       <header class="status-head">
@@ -322,11 +323,6 @@
             <div id="upRetention" class="status-v">—</div>
           </div>
         </section>
-
-        <section class="status-card span-12">
-          <h3>Raw /status payload</h3>
-          <pre id="rawStatus" class="raw">(not loaded)</pre>
-        </section>
       </div>
     </div>
 
@@ -496,8 +492,6 @@
           "apiModelsCount",
           Array.isArray(am.data?.models) ? am.data.models.length : "—",
         );
-
-        $("rawStatus").textContent = JSON.stringify(st, null, 2);
 
         const coreGood = h.ok && s.ok;
         const workerGood = classifyState(wk.state) === "ok";
