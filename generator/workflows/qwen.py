@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import random
 from pathlib import Path
 
@@ -42,7 +43,7 @@ def load_pipeline(
 
     comfy = _init_comfy_runtime()
     folder_paths = comfy["folder_paths"]
-    nodes = comfy["nodes"]
+    comfy_sd = comfy["comfy_sd"]
 
     ckpt_name = _find_comfy_model_name(folder_paths, "checkpoints", model_path)
     if not ckpt_name:
@@ -50,7 +51,39 @@ def load_pipeline(
             f"Comfy could not resolve model in checkpoints: {model_path}"
         )
 
-    loaded = _node_result(nodes.CheckpointLoaderSimple().load_checkpoint(ckpt_name))
+    ckpt_path = folder_paths.get_full_path_or_raise("checkpoints", ckpt_name)
+
+    model_options = {
+        "dtype": qwen_dtype,
+    }
+    te_model_options = {
+        "dtype": torch_module.float16,
+        "load_device": torch_module.device("cpu"),
+        "offload_device": torch_module.device("cpu"),
+        "initial_device": torch_module.device("cpu"),
+    }
+
+    try:
+        loaded = comfy_sd.load_checkpoint_guess_config(
+            ckpt_path,
+            output_vae=True,
+            output_clip=True,
+            output_clipvision=False,
+            embedding_directory=folder_paths.get_folder_paths("embeddings"),
+            output_model=True,
+            model_options=model_options,
+            te_model_options=te_model_options,
+        )
+    except OSError as exc:
+        message = str(exc).lower()
+        if os.name == "nt" and ("os error 1455" in message or "paging file is too small" in message):
+            raise RuntimeError(
+                "Windows could not memory-map the Qwen checkpoint while loading it. "
+                "The worker now disables safetensors mmap by default on Windows, but if the process was already running, restart the server/service and try again. "
+                "If it still fails, increase the Windows paging file size or set COMFY_DISABLE_MMAP=1 explicitly for the service environment."
+            ) from exc
+        raise
+
     if not isinstance(loaded, tuple) or len(loaded) < 3:
         raise RuntimeError("Checkpoint loader did not return model, clip, vae.")
 

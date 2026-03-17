@@ -52,10 +52,19 @@ def _init_comfy_runtime():
 
     os.environ.setdefault("XFORMERS_FORCE_DISABLE_TRITON", "1")
     disable_xformers = os.environ.get("FLUX_CCR_DISABLE_XFORMERS", "1") == "1"
+    disable_mmap = os.environ.get(
+        "COMFY_DISABLE_MMAP",
+        "1" if os.name == "nt" else "0",
+    ) == "1"
 
     original_argv = list(sys.argv)
+    argv = [original_argv[0]]
     if disable_xformers:
-        sys.argv = [original_argv[0], "--disable-xformers"]
+        argv.append("--disable-xformers")
+    if disable_mmap:
+        argv.append("--disable-mmap")
+    if len(argv) > 1:
+        sys.argv = argv
 
     import comfy.options as comfy_options
 
@@ -116,6 +125,7 @@ def _init_comfy_runtime():
     _COMFY = {
         "folder_paths": folder_paths,
         "nodes": nodes,
+        "comfy_sd": __import__("comfy.sd", fromlist=["sd"]),
         "CLIPTextEncodeFlux": CLIPTextEncodeFlux,
         "EmptySD3LatentImage": EmptySD3LatentImage,
     }
