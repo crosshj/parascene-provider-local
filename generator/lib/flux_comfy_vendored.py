@@ -60,6 +60,7 @@ def _init_comfy_runtime():
         "COMFY_DISABLE_ASYNC_OFFLOAD",
         "1" if os.name == "nt" else "0",
     ) == "1"
+    gpu_only = os.environ.get("COMFY_GPU_ONLY", "1") == "1"
 
     original_argv = list(sys.argv)
     argv = [original_argv[0]]
@@ -69,6 +70,9 @@ def _init_comfy_runtime():
         argv.append("--disable-mmap")
     if disable_async_offload:
         argv.append("--disable-async-offload")
+    if gpu_only:
+        argv.append("--gpu-only")
+        argv.append("--highvram")
     if len(argv) > 1:
         sys.argv = argv
 
