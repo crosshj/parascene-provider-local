@@ -34,6 +34,9 @@ body {
   font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   font-size: 13.5px;
   line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
 /* ── Shell ─────────────────────────────────────────── */
@@ -275,9 +278,9 @@ hr {
 }
 
 .micro-footer {
-  margin-top: 0.1rem;
-  padding-top: 0.2rem;
-  text-align: right;
+  margin-top: auto;
+  padding: 0.5rem clamp(0.6rem, 2vw, 1.1rem);
+  text-align: center;
 }
 
 .micro-footer a {
@@ -285,6 +288,12 @@ hr {
   color: var(--muted);
   text-decoration: none;
   border-bottom: 1px dotted transparent;
+}
+
+.micro-footer span {
+  display: inline-block;
+  padding: 0 0.25rem;
+  color: color-mix(in oklab, var(--muted), transparent 35%);
 }
 
 .micro-footer a:hover {
