@@ -1,6 +1,8 @@
 'use strict';
 
 const TOKEN_STORAGE_KEY = 'parascene_api_token';
+const CF_ACCESS_CLIENT_ID_KEY = 'parascene_cf_access_client_id';
+const CF_ACCESS_CLIENT_SECRET_KEY = 'parascene_cf_access_client_secret';
 
 function getStoredToken() {
 	try {
@@ -16,6 +18,46 @@ function setStoredToken(value) {
 			localStorage.removeItem(TOKEN_STORAGE_KEY);
 		} else {
 			localStorage.setItem(TOKEN_STORAGE_KEY, value);
+		}
+	} catch {
+		// Ignore storage failures.
+	}
+}
+
+function getStoredCfAccessClientId() {
+	try {
+		return localStorage.getItem(CF_ACCESS_CLIENT_ID_KEY);
+	} catch {
+		return null;
+	}
+}
+
+function setStoredCfAccessClientId(value) {
+	try {
+		if (value == null || value === '') {
+			localStorage.removeItem(CF_ACCESS_CLIENT_ID_KEY);
+		} else {
+			localStorage.setItem(CF_ACCESS_CLIENT_ID_KEY, value);
+		}
+	} catch {
+		// Ignore storage failures.
+	}
+}
+
+function getStoredCfAccessClientSecret() {
+	try {
+		return localStorage.getItem(CF_ACCESS_CLIENT_SECRET_KEY);
+	} catch {
+		return null;
+	}
+}
+
+function setStoredCfAccessClientSecret(value) {
+	try {
+		if (value == null || value === '') {
+			localStorage.removeItem(CF_ACCESS_CLIENT_SECRET_KEY);
+		} else {
+			localStorage.setItem(CF_ACCESS_CLIENT_SECRET_KEY, value);
 		}
 	} catch {
 		// Ignore storage failures.
@@ -38,19 +80,26 @@ function showAppRoot() {
 
 async function apiFetch(path, options = {}) {
 	const token = getStoredToken();
+	const cfAccessClientId = getStoredCfAccessClientId();
+	const cfAccessClientSecret = getStoredCfAccessClientSecret();
+
 	const init = { ...options };
 	const headers = new Headers(init.headers || {});
 	if (token) {
 		headers.set('Authorization', `Bearer ${token}`);
 	}
+	if (cfAccessClientId) {
+		headers.set('CF-Access-Client-Id', cfAccessClientId);
+	}
+	if (cfAccessClientSecret) {
+		headers.set('CF-Access-Client-Secret', cfAccessClientSecret);
+	}
 	init.headers = headers;
 
 	const res = await fetch(path, init);
 	if (res.status === 401) {
-		// Token is invalid; clear and force user to re-enter.
-		setStoredToken('');
-		showTokenGate();
-		throw new Error('Unauthorized: token invalid or missing.');
+		// Surface 401 to callers without clearing stored credentials.
+		throw new Error('Unauthorized: token or access credentials invalid or missing.');
 	}
 	return res;
 }
@@ -58,12 +107,34 @@ async function apiFetch(path, options = {}) {
 function initTokenForm() {
 	const form = document.getElementById('token-form');
 	if (!form) return;
+	const tokenInput = document.getElementById('provider-token');
+	const cfIdInput = document.getElementById('cf-access-client-id');
+	const cfSecretInput = document.getElementById('cf-access-client-secret');
+
+	// Prefill from storage if available.
+	if (tokenInput) {
+		const storedToken = getStoredToken();
+		if (storedToken) tokenInput.value = storedToken;
+	}
+	if (cfIdInput) {
+		const storedId = getStoredCfAccessClientId();
+		if (storedId) cfIdInput.value = storedId;
+	}
+	if (cfSecretInput) {
+		const storedSecret = getStoredCfAccessClientSecret();
+		if (storedSecret) cfSecretInput.value = storedSecret;
+	}
+
 	form.addEventListener('submit', (e) => {
 		e.preventDefault();
-		const input = document.getElementById('provider-token');
-		const token = input?.value.trim() || '';
+		const token = tokenInput?.value.trim() || '';
+		const cfId = cfIdInput?.value.trim() || '';
+		const cfSecret = cfSecretInput?.value.trim() || '';
 		if (!token) return;
+
 		setStoredToken(token);
+		setStoredCfAccessClientId(cfId);
+		setStoredCfAccessClientSecret(cfSecret);
 		showAppRoot();
 		initApp();
 	});
