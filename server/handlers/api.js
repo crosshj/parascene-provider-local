@@ -1,8 +1,13 @@
 "use strict";
 
+const fs = require("fs");
+const path = require("path");
+
 const { sendJson, readJson } = require("../lib.js");
 const { runGenerator, sanitizePromptText } = require("./generate.js");
 const { getModels, resolveModel } = require("./models.js");
+
+const TEXT2IMG_CREDITS = 1;
 
 // Shared API key for simple bearer auth.
 // For now we allow a hardcoded default; in production this should be set via env.
@@ -101,13 +106,19 @@ function startText2ImgJob(jobId, args, outputDir) {
     return { error: `Unknown model: "${modelName}". Check GET /api or GET /api/models.` };
   }
 
+  // Only prompt and model come from the client; everything else is determined by the API.
+  const defaults = entry.defaults || {};
   const payload = {
-    ...args,
     prompt,
-    prompt_2: sanitizePromptText(args.prompt_2 || ""),
-    negative_prompt: sanitizePromptText(args.negative_prompt || ""),
+    prompt_2: "",
+    negative_prompt: "",
     model: entry.fullPath,
     family: entry.family,
+    width: defaults.width ?? 1024,
+    height: defaults.height ?? 1024,
+    steps: defaults.steps ?? 20,
+    cfg: defaults.cfg ?? 7,
+    // seed omitted: generator uses random when not provided
   };
 
   const job = {
@@ -118,6 +129,9 @@ function startText2ImgJob(jobId, args, outputDir) {
     created_at: new Date().toISOString(),
     result: null,
     error: null,
+    imageWidth: defaults.width ?? 1024,
+    imageHeight: defaults.height ?? 1024,
+    credits: TEXT2IMG_CREDITS,
   };
   jobs.set(jobId, job);
 
@@ -214,7 +228,44 @@ async function handleApiPost(req, res, ctx = {}) {
     if (job.status === "pending") {
       return sendJson(res, 202, { status: job.status, job_id: job.id });
     }
-    // Succeeded or failed: return 200 with final result (provider API pattern).
+    if (job.status === "failed") {
+      return sendJson(res, 200, {
+        status: job.status,
+        job_id: job.id,
+        result: job.result,
+      });
+    }
+    // Succeeded + text2img: return image binary (Content-Type: image/png) and metadata headers.
+    if (
+      job.method === "text2img" &&
+      job.result?.file_name &&
+      ctx.outputDir
+    ) {
+      const filePath = path.join(ctx.outputDir, job.result.file_name);
+      return fs.readFile(filePath, (err, data) => {
+        if (err) {
+          return sendJson(res, 500, {
+            error: "Image file missing",
+            job_id: job.id,
+          });
+        }
+        const headers = {
+          "Content-Type": "image/png",
+          "X-Image-Width": String(job.imageWidth ?? job.result.width ?? ""),
+          "X-Image-Height": String(job.imageHeight ?? job.result.height ?? ""),
+          "X-Credits": String(job.credits ?? TEXT2IMG_CREDITS),
+        };
+        if (job.result.seed != null) headers["X-Seed"] = String(job.result.seed);
+        if (job.result.elapsed_ms != null)
+          headers["X-Elapsed-Ms"] = String(job.result.elapsed_ms);
+        if (job.result.family != null) headers["X-Family"] = String(job.result.family);
+        if (job.result.model != null)
+          headers["X-Model"] = String(path.basename(job.result.model));
+        res.writeHead(200, headers);
+        res.end(data);
+      });
+    }
+    // Fallback: succeeded but not image (e.g. stub method) — return JSON.
     return sendJson(res, 200, {
       status: job.status,
       job_id: job.id,

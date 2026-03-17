@@ -79,7 +79,6 @@ function initApp() {
 	const badge = document.getElementById('family-badge');
 	const statusEl = document.getElementById('status');
 	const copyErrorBtn = document.getElementById('copy-error-btn');
-	const randomizeSeedBtn = document.getElementById('randomize-seed-btn');
 	const previewWrap = document.getElementById('preview-wrap');
 	const idleEl = document.getElementById('preview-idle');
 	const imageEl = document.getElementById('image');
@@ -117,24 +116,12 @@ function initApp() {
 		}
 	}
 
-	function randomizeSeed() {
-		const seed = Math.floor(Math.random() * 2_147_483_647) + 1;
-		form.seed.value = String(seed);
-		saveFormValues();
-	}
-
-	// ── Form persistence ──────────────────────────────────
+	// ── Form persistence (only prompt and model; rest from API) ─────────────
 
 	function collectFormValues() {
 		return {
 			prompt: form.prompt.value,
-			negative_prompt: form.negative_prompt.value,
 			model: modelSel.value,
-			width: form.width.value,
-			height: form.height.value,
-			steps: form.steps.value,
-			cfg: form.cfg.value,
-			seed: form.seed.value,
 		};
 	}
 
@@ -179,11 +166,19 @@ function initApp() {
 	}
 
 	function renderMeta(data) {
+		const modelLabel =
+			typeof data.model === 'string' && data.model.includes('/')
+				? data.model.split(/[\\/]/).pop()
+				: (data.model ?? '—');
+		const timeLabel =
+			data.elapsed_ms != null && data.elapsed_ms !== '—'
+				? `${data.elapsed_ms}\u202fms`
+				: (data.elapsed_ms ?? '—');
 		const items = [
-			['family', data.family],
-			['model', data.model.split(/[\\/]/).pop()],
-			['seed', data.seed],
-			['time', data.elapsed_ms + '\u202fms'],
+			['family', data.family ?? '—'],
+			['model', modelLabel],
+			['seed', data.seed ?? '—'],
+			['time', timeLabel],
 		];
 		metaRowEl.innerHTML = items
 			.map(
@@ -225,7 +220,7 @@ function initApp() {
 				modelSel.appendChild(opt);
 			}
 
-			// Apply any saved value if still present.
+			// Restore saved prompt and model only.
 			const saved = savedValues;
 			if (
 				saved &&
@@ -235,20 +230,9 @@ function initApp() {
 			) {
 				modelSel.value = saved.model;
 			}
+			if (saved && saved.prompt != null) form.prompt.value = saved.prompt;
 
-			// The provider config doesn't currently describe width/height/steps/cfg,
-			// so we keep the existing defaults but restore saved values if present.
-			if (saved) {
-				if (saved.prompt != null) form.prompt.value = saved.prompt;
-				if (saved.negative_prompt != null)
-					form.negative_prompt.value = saved.negative_prompt;
-				if (saved.width != null) form.width.value = saved.width;
-				if (saved.height != null) form.height.value = saved.height;
-				if (saved.steps != null) form.steps.value = saved.steps;
-				if (saved.cfg != null) form.cfg.value = saved.cfg;
-				if (saved.seed != null) form.seed.value = saved.seed;
-			}
-
+			updateFamilyBadge();
 			saveFormValues();
 		} catch (err) {
 			modelSel.innerHTML = '<option value="">Failed to load models</option>';
@@ -256,17 +240,20 @@ function initApp() {
 		}
 	}
 
+	function updateFamilyBadge() {
+		const opt = modelSel.options[modelSel.selectedIndex];
+		const label = opt ? opt.textContent : '';
+		// Label is "family: modelName" from GET /api options.
+		badge.textContent = label.includes(':') ? label.split(':')[0].trim() : '';
+	}
+
 	// ── Events ────────────────────────────────────────────
 
-	[
-		'prompt',
-		'negative_prompt',
-		'width',
-		'height',
-		'steps',
-		'cfg',
-		'seed',
-	].forEach((n) => form[n].addEventListener('input', saveFormValues));
+	form.prompt.addEventListener('input', saveFormValues);
+	form.model.addEventListener('change', () => {
+		updateFamilyBadge();
+		saveFormValues();
+	});
 
 	form.addEventListener('submit', async (e) => {
 		e.preventDefault();
@@ -276,28 +263,8 @@ function initApp() {
 
 		const body = {
 			prompt: form.prompt.value.trim(),
-			negative_prompt: form.negative_prompt.value.trim(),
 			model: modelSel.value,
-			width: Number(form.width.value),
-			height: Number(form.height.value),
-			steps: Number(form.steps.value),
-			cfg: Number(form.cfg.value),
 		};
-
-		const seedRaw = form.seed.value.trim();
-		if (seedRaw) {
-			const seedVal = Number(seedRaw);
-			if (Number.isInteger(seedVal) && seedVal >= 0) {
-				body.seed = seedVal;
-			} else {
-				setPreviewIdle();
-				setStatusMessage(
-					'Error: Seed must be a non-negative integer',
-					true,
-				);
-				return;
-			}
-		}
 
 		try {
 			// Provider API: start job (POST /api with method + args, no job_id).
@@ -316,7 +283,7 @@ function initApp() {
 
 			const jobId = startData.job_id;
 
-			// Poll until done (202 → still pending, 200 → final result).
+			// Poll until done (202 → still pending, 200 → image binary or JSON error).
 			for (;;) {
 				const pollRes = await apiFetch('/api', {
 					method: 'POST',
@@ -326,24 +293,36 @@ function initApp() {
 						args: { job_id: jobId },
 					}),
 				});
-				const pollData = await pollRes.json();
+
+				if (pollRes.status === 202) {
+					await new Promise((r) => setTimeout(r, 1500));
+					continue;
+				}
 
 				if (pollRes.status === 200) {
-					if (pollData.status === 'succeeded' && pollData.result?.image_url) {
-						setPreviewImage(pollData.result.image_url + '?t=' + Date.now());
-						renderMeta(pollData.result);
+					const contentType = pollRes.headers.get('Content-Type') || '';
+					if (contentType.includes('image/png')) {
+						const blob = await pollRes.blob();
+						const url = URL.createObjectURL(blob);
+						setPreviewImage(url);
+						const meta = {
+							family: pollRes.headers.get('X-Family') ?? badge.textContent ?? '—',
+							model: pollRes.headers.get('X-Model') ?? modelSel.selectedOptions[0]?.textContent?.split(':')[1]?.trim() ?? '—',
+							seed: pollRes.headers.get('X-Seed') ?? '—',
+							elapsed_ms: pollRes.headers.get('X-Elapsed-Ms') ?? '—',
+						};
+						renderMeta(meta);
 						setStatusMessage('Done.');
 					} else {
+						const pollData = await pollRes.json();
 						throw new Error(
 							pollData.result?.error || pollData.error || 'Job failed',
 						);
 					}
 					break;
 				}
-				if (pollRes.status === 202) {
-					await new Promise((r) => setTimeout(r, 1500));
-					continue;
-				}
+
+				const pollData = await pollRes.json().catch(() => ({}));
 				throw new Error(pollData.error || 'Poll failed');
 			}
 		} catch (err) {
@@ -353,7 +332,6 @@ function initApp() {
 	});
 
 	copyErrorBtn?.addEventListener('click', copyLastError);
-	randomizeSeedBtn?.addEventListener('click', randomizeSeed);
 
 	// ── Init ──────────────────────────────────────────────
 

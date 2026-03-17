@@ -56,100 +56,13 @@
             </div>
 
             <div class="field">
-              <label for="negative_prompt">Negative prompt</label>
-              <input
-                id="negative_prompt"
-                name="negative_prompt"
-                placeholder="blurry, low quality"
-              />
-            </div>
-
-            <hr />
-
-            <div class="params">
-              <div class="field c4">
-                <label for="model">
-                  Model
-                  <span id="family-badge" class="badge"></span>
-                </label>
-                <select id="model" name="model" required>
-                  <option value="">Loading models…</option>
-                </select>
-              </div>
-
-              <div class="field c2">
-                <label for="width">Width</label>
-                <input
-                  id="width"
-                  name="width"
-                  type="number"
-                  value="1024"
-                  min="256"
-                  max="2048"
-                />
-              </div>
-              <div class="field c2">
-                <label for="height">Height</label>
-                <input
-                  id="height"
-                  name="height"
-                  type="number"
-                  value="1024"
-                  min="256"
-                  max="2048"
-                />
-              </div>
-              <div class="field c2">
-                <label for="steps">Steps</label>
-                <input
-                  id="steps"
-                  name="steps"
-                  type="number"
-                  value="20"
-                  min="1"
-                  max="80"
-                />
-              </div>
-              <div class="field c2">
-                <label for="cfg">CFG</label>
-                <input id="cfg" name="cfg" type="number" value="4" step="0.1" />
-              </div>
-              <div class="field c4">
-                <label for="seed">Seed (optional)</label>
-                <div class="input-with-icon">
-                  <input
-                    id="seed"
-                    name="seed"
-                    type="number"
-                    placeholder="random"
-                    min="0"
-                    step="1"
-                  />
-                  <button
-                    type="button"
-                    id="randomize-seed-btn"
-                    class="icon-btn seed-randomize-btn"
-                    title="Randomize seed"
-                    aria-label="Randomize seed"
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      width="14"
-                      height="14"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.7"
-                      aria-hidden="true"
-                    >
-                      <rect x="4" y="4" width="16" height="16" rx="3"></rect>
-                      <circle cx="9" cy="9" r="1"></circle>
-                      <circle cx="15" cy="15" r="1"></circle>
-                      <circle cx="15" cy="9" r="1"></circle>
-                      <circle cx="9" cy="15" r="1"></circle>
-                    </svg>
-                  </button>
-                </div>
-              </div>
+              <label for="model">
+                Model
+                <span id="family-badge" class="badge"></span>
+              </label>
+              <select id="model" name="model" required>
+                <option value="">Loading models…</option>
+              </select>
             </div>
 
             <div class="actions">
