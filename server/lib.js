@@ -9,7 +9,7 @@ const CSP = [
   "frame-ancestors 'none'",
   "script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com",
   "connect-src 'self' https://cloudflareinsights.com",
-  "img-src 'self' data:",
+  "img-src 'self' data: blob:",
   "style-src 'self'",
 ].join("; ");
 
