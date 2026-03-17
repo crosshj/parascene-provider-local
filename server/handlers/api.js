@@ -51,18 +51,33 @@ const ALLOWED_SD15 = new Set([
   "liberty_main",
 ]);
 
+const ALLOWED_SDXL = new Set([
+  "cyberrealisticPony_v130",
+  "dreamshaperXL_turboDpmppSDE",
+  "illustriousXL20_v20",
+  "juggernautXL_v7Rundiffusion",
+  "juggernautXL_v9Rdphoto2Lightning",
+  "ponyDiffusionV6XL_v615",
+  "ponyRealism_V23",
+  "protovisionXLHighFidelity3D_releaseV660Bakedvae",
+  "realcartoonXL_v6",
+  "realDream_sdxlLightning1",
+  "sd_xl_base_1.0",
+  "sd_xl_turbo_1.0_fp16",
+  "zavychromaxl_v40",
+]);
+
 function handleApiGet(req, res) {
   if (!ensureAuthorized(req, res)) return;
 
   const now = new Date().toISOString();
   const models = getModels();
-  // TODO: re-enable wan/sdxl/qwen families once they are wired up
-  // correctly for this provider (sampling params, pipelines, licensing, etc.).
+  // WAN/QWEN remain disabled for this provider for now.
   const filteredModels = models.filter(
     (m) =>
       m.family !== "wan" &&
-      m.family !== "sdxl" &&
       m.family !== "qwen" &&
+      (m.family !== "sdxl" || ALLOWED_SDXL.has(m.name)) &&
       (m.family !== "sd15" || ALLOWED_SD15.has(m.name)),
   );
   const modelOptions = filteredModels.map((m) => ({
