@@ -34,9 +34,16 @@ body {
   font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   font-size: 13.5px;
   line-height: 1.5;
+}
+
+.page-shell {
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+}
+
+.page-shell-main {
+  flex: 1 0 auto;
 }
 
 /* ── Shell ─────────────────────────────────────────── */
@@ -45,7 +52,6 @@ body {
   max-width: 1160px;
   margin: 0 auto;
   padding: clamp(0.6rem, 2vw, 1.1rem);
-  flex: 1 0 auto;
 }
 
 /* ── Header ────────────────────────────────────────── */
