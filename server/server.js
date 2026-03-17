@@ -15,6 +15,7 @@ const { execSync } = require("child_process");
 const { createApp } = require("./lib.js");
 const { handleHealth } = require("./handlers/health.js");
 const { handleModels } = require("./handlers/models.js");
+const { handleApiGet, handleApiPost } = require("./handlers/api.js");
 const { handleGpu } = require("./handlers/gpu.js");
 const { ensureWorkerStarted, handleGenerate } = require("./handlers/generate.js");
 const { handleOutputImage } = require("./handlers/outputs.js");
@@ -53,6 +54,10 @@ const ctx = {
 };
 
 const app = createApp(ctx);
+
+// Provider API surface that follows the `/api` pattern.
+app.get("/api", handleApiGet);
+app.post("/api", handleApiPost);
 
 app.get("/api/health", handleHealth);
 app.get("/api/gpu", handleGpu);

@@ -363,4 +363,5 @@ module.exports = {
   getWorkerStatus,
   runGenerator,
   handleGenerate,
+  sanitizePromptText,
 };

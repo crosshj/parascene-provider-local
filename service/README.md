@@ -38,6 +38,10 @@ Optional:
 - `SERVICE_PORT` (default `3090`)
 - `GPU_PROBE_INTERVAL_MS` (default `30000`)
 
+Provider API auth:
+
+- `PARASCENE_API_KEY` (shared bearer token for `/api` and related client calls; defaults to `parascene-local-dev-token` in local development)
+
 The Python image generator is owned by the server (Node app): the server spawns it on first generate and it is torn down when the server process exits. The service does not start or monitor a separate worker.
 
 ## Run
