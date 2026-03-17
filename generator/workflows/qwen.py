@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import random
+import sys
 from pathlib import Path
 
 from lib.flux_comfy_vendored import _init_comfy_runtime, _find_comfy_model_name, _tensor_to_pil
@@ -40,10 +41,12 @@ def load_pipeline(
 ):
     _ = (configs_dir, torch_module, use_cuda, qwen_dtype, use_cpu_offload, enable_xformers)
     model_path = resolve_qwen_model_path(model_path, "qwen")
+    sys.stderr.write(f"[worker] qwen: init comfy runtime for {model_path}\n")
+    sys.stderr.flush()
 
     comfy = _init_comfy_runtime()
     folder_paths = comfy["folder_paths"]
-    comfy_sd = comfy["comfy_sd"]
+    nodes = comfy["nodes"]
 
     ckpt_name = _find_comfy_model_name(folder_paths, "checkpoints", model_path)
     if not ckpt_name:
@@ -51,29 +54,13 @@ def load_pipeline(
             f"Comfy could not resolve model in checkpoints: {model_path}"
         )
 
-    ckpt_path = folder_paths.get_full_path_or_raise("checkpoints", ckpt_name)
-
-    model_options = {
-        "dtype": qwen_dtype,
-    }
-    te_model_options = {
-        "dtype": torch_module.float16,
-        "load_device": torch_module.device("cpu"),
-        "offload_device": torch_module.device("cpu"),
-        "initial_device": torch_module.device("cpu"),
-    }
+    sys.stderr.write(f"[worker] qwen: checkpoint resolved to Comfy name {ckpt_name}\n")
+    sys.stderr.flush()
 
     try:
-        loaded = comfy_sd.load_checkpoint_guess_config(
-            ckpt_path,
-            output_vae=True,
-            output_clip=True,
-            output_clipvision=False,
-            embedding_directory=folder_paths.get_folder_paths("embeddings"),
-            output_model=True,
-            model_options=model_options,
-            te_model_options=te_model_options,
-        )
+        sys.stderr.write("[worker] qwen: invoking CheckpointLoaderSimple\n")
+        sys.stderr.flush()
+        loaded = _node_result(nodes.CheckpointLoaderSimple().load_checkpoint(ckpt_name))
     except OSError as exc:
         message = str(exc).lower()
         if os.name == "nt" and ("os error 1455" in message or "paging file is too small" in message):
@@ -86,6 +73,9 @@ def load_pipeline(
 
     if not isinstance(loaded, tuple) or len(loaded) < 3:
         raise RuntimeError("Checkpoint loader did not return model, clip, vae.")
+
+    sys.stderr.write("[worker] qwen: checkpoint loaded successfully\n")
+    sys.stderr.flush()
 
     model, clip, vae = loaded[:3]
     return {

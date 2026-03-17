@@ -56,6 +56,10 @@ def _init_comfy_runtime():
         "COMFY_DISABLE_MMAP",
         "1" if os.name == "nt" else "0",
     ) == "1"
+    disable_async_offload = os.environ.get(
+        "COMFY_DISABLE_ASYNC_OFFLOAD",
+        "1" if os.name == "nt" else "0",
+    ) == "1"
 
     original_argv = list(sys.argv)
     argv = [original_argv[0]]
@@ -63,6 +67,8 @@ def _init_comfy_runtime():
         argv.append("--disable-xformers")
     if disable_mmap:
         argv.append("--disable-mmap")
+    if disable_async_offload:
+        argv.append("--disable-async-offload")
     if len(argv) > 1:
         sys.argv = argv
 
@@ -125,7 +131,6 @@ def _init_comfy_runtime():
     _COMFY = {
         "folder_paths": folder_paths,
         "nodes": nodes,
-        "comfy_sd": __import__("comfy.sd", fromlist=["sd"]),
         "CLIPTextEncodeFlux": CLIPTextEncodeFlux,
         "EmptySD3LatentImage": EmptySD3LatentImage,
     }
