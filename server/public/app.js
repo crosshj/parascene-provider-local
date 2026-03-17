@@ -195,6 +195,48 @@ function renderMeta(data) {
 		.join('');
 }
 
+function normalizeErrorText(text) {
+	if (!text) return '';
+	return String(text).replace(/\s+/g, ' ').trim();
+}
+
+async function readResponseBodyForError(res) {
+	const contentType = (res.headers.get('Content-Type') || '').toLowerCase();
+
+	if (contentType.includes('application/json')) {
+		const data = await res.json().catch(() => null);
+		if (data && typeof data === 'object') {
+			const error =
+				typeof data.error === 'string'
+					? data.error
+					: typeof data.message === 'string'
+						? data.message
+						: '';
+			return normalizeErrorText(error);
+		}
+		return '';
+	}
+
+	const text = await res.text().catch(() => '');
+	return normalizeErrorText(text);
+}
+
+function formatGenerateHttpError(status, bodyText) {
+	if (status === 524 || /\b524\b/.test(bodyText) || /cloudflare/i.test(bodyText)) {
+		return 'Request timed out (HTTP 524). Generation may still be running. Wait a bit, then check Service status or retry.';
+	}
+
+	if (status === 504) {
+		return 'Gateway timeout (HTTP 504). The server took too long to respond. Please retry.';
+	}
+
+	if (bodyText) {
+		return bodyText.length > 300 ? bodyText.slice(0, 300) + '…' : bodyText;
+	}
+
+	return `Generation failed with HTTP ${status}.`;
+}
+
 // ── Model loading ─────────────────────────────────────
 
 async function loadModels() {
@@ -354,6 +396,13 @@ form.addEventListener('submit', async (e) => {
 	setStatusMessage('Generating…');
 	setPreviewLoading();
 	metaRowEl.innerHTML = '';
+	const longRunHintTimer = setTimeout(() => {
+		if (statusEl.textContent === 'Generating…') {
+			setStatusMessage(
+				'Still generating… some models take extra time to decode and save the image.',
+			);
+		}
+	}, 12000);
 
 	const body = {
 		prompt: form.prompt.value.trim(),
@@ -386,9 +435,16 @@ form.addEventListener('submit', async (e) => {
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify(body),
 		});
-		const data = await r.json();
-		if (!r.ok || !data.ok)
-			throw new Error(data.error || 'Generation failed.');
+
+		if (!r.ok) {
+			const bodyText = await readResponseBodyForError(r);
+			throw new Error(formatGenerateHttpError(r.status, bodyText));
+		}
+
+		const data = await r.json().catch(() => null);
+		if (!data || !data.ok) {
+			throw new Error(data?.error || 'Generation failed.');
+		}
 
 		setPreviewImage(data.image_url + '?t=' + Date.now());
 		renderMeta(data);
@@ -396,6 +452,8 @@ form.addEventListener('submit', async (e) => {
 	} catch (err) {
 		setPreviewIdle();
 		setStatusMessage('Error: ' + (err.message || 'Unknown'), true);
+	} finally {
+		clearTimeout(longRunHintTimer);
 	}
 });
 

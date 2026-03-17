@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from contextlib import nullcontext
 import os
 import random
 import sys
+import time
 from pathlib import Path
 
 from lib.flux_comfy_vendored import _init_comfy_runtime, _find_comfy_model_name, _tensor_to_pil
@@ -15,6 +17,11 @@ def _node_result(value):
         result = value.result
         return () if result is None else result
     return value
+
+
+def _log(msg: str) -> None:
+    sys.stderr.write(f"[worker] qwen: {msg}\n")
+    sys.stderr.flush()
 
 
 def resolve_qwen_model_path(model_path: str, family: str) -> str:
@@ -117,35 +124,63 @@ def generate(pipe, payload: dict, torch_module) -> tuple:
         seed = random.randint(1, 2_147_483_647)
     seed = int(seed)
 
-    positive = _node_result(nodes.CLIPTextEncode().encode(pipe["clip"], prompt))
-    negative = _node_result(nodes.CLIPTextEncode().encode(pipe["clip"], negative_prompt))
-    latent = _node_result(nodes.EmptyLatentImage().generate(width, height, 1))
-
-    if isinstance(positive, tuple):
-        positive = positive[0]
-    if isinstance(negative, tuple):
-        negative = negative[0]
-    if isinstance(latent, tuple):
-        latent = latent[0]
-
-    sampled = _node_result(
-        nodes.KSampler().sample(
-            pipe["model"],
-            seed,
-            steps,
-            cfg,
-            sampler_name,
-            scheduler,
-            positive,
-            negative,
-            latent,
-            denoise,
-        )
+    _log(
+        "generate:start "
+        f"seed={seed} size={width}x{height} steps={steps} cfg={cfg} "
+        f"sampler={sampler_name} scheduler={scheduler}"
     )
-    if isinstance(sampled, tuple):
-        sampled = sampled[0]
 
-    images = _node_result(nodes.VAEDecode().decode(pipe["vae"], sampled))
-    if isinstance(images, tuple):
-        images = images[0]
-    return _tensor_to_pil(images[0]), seed
+    started = time.time()
+    infer_ctx = (
+        torch_module.inference_mode()
+        if hasattr(torch_module, "inference_mode")
+        else nullcontext()
+    )
+
+    with infer_ctx:
+        t0 = time.time()
+        positive = _node_result(nodes.CLIPTextEncode().encode(pipe["clip"], prompt))
+        negative = _node_result(nodes.CLIPTextEncode().encode(pipe["clip"], negative_prompt))
+        _log(f"stage:text-encode {int((time.time() - t0) * 1000)}ms")
+
+        t0 = time.time()
+        latent = _node_result(nodes.EmptyLatentImage().generate(width, height, 1))
+        _log(f"stage:latent {int((time.time() - t0) * 1000)}ms")
+
+        if isinstance(positive, tuple):
+            positive = positive[0]
+        if isinstance(negative, tuple):
+            negative = negative[0]
+        if isinstance(latent, tuple):
+            latent = latent[0]
+
+        t0 = time.time()
+        sampled = _node_result(
+            nodes.KSampler().sample(
+                pipe["model"],
+                seed,
+                steps,
+                cfg,
+                sampler_name,
+                scheduler,
+                positive,
+                negative,
+                latent,
+                denoise,
+            )
+        )
+        _log(f"stage:sampler {int((time.time() - t0) * 1000)}ms")
+        if isinstance(sampled, tuple):
+            sampled = sampled[0]
+
+        t0 = time.time()
+        images = _node_result(nodes.VAEDecode().decode(pipe["vae"], sampled))
+        _log(f"stage:vae-decode {int((time.time() - t0) * 1000)}ms")
+        if isinstance(images, tuple):
+            images = images[0]
+
+    t0 = time.time()
+    image = _tensor_to_pil(images[0])
+    _log(f"stage:tensor-to-pil {int((time.time() - t0) * 1000)}ms")
+    _log(f"generate:done total={int((time.time() - started) * 1000)}ms")
+    return image, seed
