@@ -255,6 +255,7 @@ async function handleApiPost(req, res, ctx = {}) {
       return fs.readFile(filePath, (err, data) => {
         if (err) {
           return sendJson(res, 500, {
+            async: true,
             error: "Image file missing",
             job_id: job.id,
           });
@@ -297,11 +298,19 @@ async function handleApiPost(req, res, ctx = {}) {
     if (job.error) {
       return sendJson(res, 400, { error: job.error });
     }
-    return sendJson(res, 202, { status: job.status, job_id: job.id });
+    return sendJson(res, 202, {
+      async: true,
+      status: job.status,
+      job_id: job.id,
+    });
   }
 
   const job = createStubJob({ method, args });
-  return sendJson(res, 202, { status: job.status, job_id: job.id });
+  return sendJson(res, 202, {
+    async: true,
+    status: job.status,
+    job_id: job.id,
+  });
 }
 
 module.exports = {
