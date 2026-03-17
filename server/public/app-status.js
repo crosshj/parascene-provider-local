@@ -1,5 +1,64 @@
 "use strict";
 
+const CREDENTIALS_STORAGE_KEY = "credentials";
+
+function getStoredCredentials() {
+  try {
+    const raw = localStorage.getItem(CREDENTIALS_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function setStoredCredentials(value) {
+  try {
+    if (!value) {
+      localStorage.removeItem(CREDENTIALS_STORAGE_KEY);
+    } else {
+      localStorage.setItem(CREDENTIALS_STORAGE_KEY, JSON.stringify(value));
+    }
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+async function apiFetch(path, options = {}) {
+  const creds = getStoredCredentials();
+  const init = { ...options };
+  const headers = new Headers(init.headers || {});
+
+  if (creds && typeof creds === "object") {
+    if (typeof creds.token === "string" && creds.token.trim()) {
+      headers.set("Authorization", `Bearer ${creds.token.trim()}`);
+    }
+    if (
+      typeof creds.cfAccessClientId === "string" &&
+      creds.cfAccessClientId.trim()
+    ) {
+      headers.set("CF-Access-Client-Id", creds.cfAccessClientId.trim());
+    }
+    if (
+      typeof creds.cfAccessClientSecret === "string" &&
+      creds.cfAccessClientSecret.trim()
+    ) {
+      headers.set("CF-Access-Client-Secret", creds.cfAccessClientSecret.trim());
+    }
+  }
+
+  init.headers = headers;
+
+  const res = await fetch(path, init);
+  if (res.status === 401) {
+    throw new Error(
+      "Unauthorized: token or access credentials invalid or missing.",
+    );
+  }
+  return res;
+}
+
 const $ = (id) => document.getElementById(id);
 const set = (id, v) =>
   ($(id).textContent = v == null || v === "" ? "—" : String(v));
@@ -106,7 +165,7 @@ function inferSource(st, up) {
 }
 
 async function getJson(url) {
-  const res = await fetch(url, { cache: "no-store" });
+  const res = await apiFetch(url, { cache: "no-store" });
   const text = await res.text();
   let data;
   try {
@@ -203,8 +262,88 @@ function syncAuto() {
   }
 }
 
-$("refreshBtn").addEventListener("click", refresh);
-$("autoChk").addEventListener("change", syncAuto);
+function initTokenGate() {
+  const gate = document.getElementById("token-gate");
+  const appRoot = document.getElementById("app-root");
+  const form = document.getElementById("token-form");
+  const textarea = document.getElementById("credentials-json");
+  if (!gate || !appRoot || !form || !textarea) return;
 
-refresh();
-syncAuto();
+  const stored = getStoredCredentials();
+  if (stored) {
+    textarea.value = JSON.stringify(stored, null, 2);
+  }
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const raw = textarea.value.trim();
+    if (!raw) {
+      alert("Please paste credentials JSON.");
+      return;
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      alert("Invalid JSON. Please check your syntax.");
+      return;
+    }
+
+    if (!parsed || typeof parsed !== "object") {
+      alert("Credentials JSON must be an object.");
+      return;
+    }
+
+    const token =
+      typeof parsed.token === "string" ? parsed.token.trim() : "";
+    const cfId =
+      typeof parsed.cfAccessClientId === "string"
+        ? parsed.cfAccessClientId.trim()
+        : "";
+    const cfSecret =
+      typeof parsed.cfAccessClientSecret === "string"
+        ? parsed.cfAccessClientSecret.trim()
+        : "";
+
+    if (!token || !cfId || !cfSecret) {
+      alert(
+        'Credentials JSON must include non-empty "token", "cfAccessClientId", and "cfAccessClientSecret" string fields.',
+      );
+      return;
+    }
+
+    const normalized = {
+      token,
+      cfAccessClientId: cfId,
+      cfAccessClientSecret: cfSecret,
+    };
+
+    setStoredCredentials(normalized);
+    gate.hidden = true;
+    appRoot.hidden = false;
+
+    refresh();
+    syncAuto();
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const gate = document.getElementById("token-gate");
+  const appRoot = document.getElementById("app-root");
+
+  initTokenGate();
+
+  const creds = getStoredCredentials();
+  if (!creds) {
+    if (gate) gate.hidden = false;
+    if (appRoot) appRoot.hidden = true;
+  } else {
+    if (gate) gate.hidden = true;
+    if (appRoot) appRoot.hidden = false;
+    $("refreshBtn").addEventListener("click", refresh);
+    $("autoChk").addEventListener("change", syncAuto);
+    refresh();
+    syncAuto();
+  }
+});

@@ -1,5 +1,62 @@
 'use strict';
 
+const CREDENTIALS_STORAGE_KEY = 'credentials';
+
+function getStoredCredentials() {
+	try {
+		const raw = localStorage.getItem(CREDENTIALS_STORAGE_KEY);
+		if (!raw) return null;
+		const parsed = JSON.parse(raw);
+		return parsed && typeof parsed === 'object' ? parsed : null;
+	} catch {
+		return null;
+	}
+}
+
+function setStoredCredentials(value) {
+	try {
+		if (!value) {
+			localStorage.removeItem(CREDENTIALS_STORAGE_KEY);
+		} else {
+			localStorage.setItem(CREDENTIALS_STORAGE_KEY, JSON.stringify(value));
+		}
+	} catch {
+		// Ignore storage failures.
+	}
+}
+
+async function apiFetch(path, options = {}) {
+	const creds = getStoredCredentials();
+	const init = { ...options };
+	const headers = new Headers(init.headers || {});
+
+	if (creds && typeof creds === 'object') {
+		if (typeof creds.token === 'string' && creds.token.trim()) {
+			headers.set('Authorization', `Bearer ${creds.token.trim()}`);
+		}
+		if (
+			typeof creds.cfAccessClientId === 'string' &&
+			creds.cfAccessClientId.trim()
+		) {
+			headers.set('CF-Access-Client-Id', creds.cfAccessClientId.trim());
+		}
+		if (
+			typeof creds.cfAccessClientSecret === 'string' &&
+			creds.cfAccessClientSecret.trim()
+		) {
+			headers.set('CF-Access-Client-Secret', creds.cfAccessClientSecret.trim());
+		}
+	}
+
+	init.headers = headers;
+
+	const res = await fetch(path, init);
+	if (res.status === 401) {
+		throw new Error('Unauthorized: token or access credentials invalid or missing.');
+	}
+	return res;
+}
+
 const form = document.getElementById('gen-form');
 const modelSel = document.getElementById('model');
 const badge = document.getElementById('family-badge');
@@ -127,7 +184,7 @@ function renderMeta(data) {
 
 async function loadModels() {
 	try {
-		const res = await fetch('/api/models');
+		const res = await apiFetch('/api/models', { method: 'GET' });
 		const data = await res.json();
 		if (!data.ok) throw new Error('Bad response');
 
@@ -242,7 +299,7 @@ form.addEventListener('submit', async (e) => {
 	}
 
 	try {
-		const r = await fetch('/api/generate', {
+		const r = await apiFetch('/api/generate', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify(body),

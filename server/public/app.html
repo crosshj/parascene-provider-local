@@ -10,7 +10,47 @@
   <body>
     <div class="page-shell">
       <div class="page-shell-main">
-        <div class="app">
+        <div id="token-gate" class="app" hidden>
+      <header class="app-header">
+        <h1>Parascene local provider</h1>
+        <p>Paste JSON credentials to unlock the UI.</p>
+      </header>
+      <main class="app-body">
+        <section class="controls token-gate-controls">
+          <form id="token-form" class="token-form">
+            <div class="field">
+              <label for="credentials-json">Credentials JSON</label>
+              <textarea
+                id="credentials-json"
+                name="credentials-json"
+                rows="6"
+                spellcheck="false"
+                autocomplete="off"
+                placeholder='{
+  "token": "parascene-local-dev-token",
+  "cfAccessClientId": "your-client-id",
+  "cfAccessClientSecret": "your-client-secret"
+}'
+                required
+              ></textarea>
+              <small class="field-hint">
+                Expects a JSON object with
+                <code>token</code>,
+                <code>cfAccessClientId</code>, and
+                <code>cfAccessClientSecret</code> string fields. Saved as
+                <code>localStorage["credentials"]</code>.
+              </small>
+            </div>
+
+            <div class="actions">
+              <button type="submit" class="btn-primary">Save &amp; continue</button>
+            </div>
+          </form>
+        </section>
+      </main>
+    </div>
+
+        <div id="app-root" class="app" hidden>
       <header class="app-header">
         <h1>Image Generator</h1>
         <p>Pick a model — family and defaults are applied automatically.</p>
