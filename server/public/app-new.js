@@ -1,63 +1,24 @@
 'use strict';
 
-const TOKEN_STORAGE_KEY = 'parascene_api_token';
-const CF_ACCESS_CLIENT_ID_KEY = 'parascene_cf_access_client_id';
-const CF_ACCESS_CLIENT_SECRET_KEY = 'parascene_cf_access_client_secret';
+const CREDENTIALS_STORAGE_KEY = 'credentials';
 
-function getStoredToken() {
+function getStoredCredentials() {
 	try {
-		return localStorage.getItem(TOKEN_STORAGE_KEY);
+		const raw = localStorage.getItem(CREDENTIALS_STORAGE_KEY);
+		if (!raw) return null;
+		const parsed = JSON.parse(raw);
+		return parsed && typeof parsed === 'object' ? parsed : null;
 	} catch {
 		return null;
 	}
 }
 
-function setStoredToken(value) {
+function setStoredCredentials(value) {
 	try {
-		if (value == null || value === '') {
-			localStorage.removeItem(TOKEN_STORAGE_KEY);
+		if (!value) {
+			localStorage.removeItem(CREDENTIALS_STORAGE_KEY);
 		} else {
-			localStorage.setItem(TOKEN_STORAGE_KEY, value);
-		}
-	} catch {
-		// Ignore storage failures.
-	}
-}
-
-function getStoredCfAccessClientId() {
-	try {
-		return localStorage.getItem(CF_ACCESS_CLIENT_ID_KEY);
-	} catch {
-		return null;
-	}
-}
-
-function setStoredCfAccessClientId(value) {
-	try {
-		if (value == null || value === '') {
-			localStorage.removeItem(CF_ACCESS_CLIENT_ID_KEY);
-		} else {
-			localStorage.setItem(CF_ACCESS_CLIENT_ID_KEY, value);
-		}
-	} catch {
-		// Ignore storage failures.
-	}
-}
-
-function getStoredCfAccessClientSecret() {
-	try {
-		return localStorage.getItem(CF_ACCESS_CLIENT_SECRET_KEY);
-	} catch {
-		return null;
-	}
-}
-
-function setStoredCfAccessClientSecret(value) {
-	try {
-		if (value == null || value === '') {
-			localStorage.removeItem(CF_ACCESS_CLIENT_SECRET_KEY);
-		} else {
-			localStorage.setItem(CF_ACCESS_CLIENT_SECRET_KEY, value);
+			localStorage.setItem(CREDENTIALS_STORAGE_KEY, JSON.stringify(value));
 		}
 	} catch {
 		// Ignore storage failures.
@@ -79,21 +40,22 @@ function showAppRoot() {
 }
 
 async function apiFetch(path, options = {}) {
-	const token = getStoredToken();
-	const cfAccessClientId = getStoredCfAccessClientId();
-	const cfAccessClientSecret = getStoredCfAccessClientSecret();
-
+	const creds = getStoredCredentials();
 	const init = { ...options };
 	const headers = new Headers(init.headers || {});
-	if (token) {
-		headers.set('Authorization', `Bearer ${token}`);
+
+	if (creds && typeof creds === 'object') {
+		if (typeof creds.token === 'string' && creds.token.trim()) {
+			headers.set('Authorization', `Bearer ${creds.token.trim()}`);
+		}
+		if (typeof creds.cfAccessClientId === 'string' && creds.cfAccessClientId.trim()) {
+			headers.set('CF-Access-Client-Id', creds.cfAccessClientId.trim());
+		}
+		if (typeof creds.cfAccessClientSecret === 'string' && creds.cfAccessClientSecret.trim()) {
+			headers.set('CF-Access-Client-Secret', creds.cfAccessClientSecret.trim());
+		}
 	}
-	if (cfAccessClientId) {
-		headers.set('CF-Access-Client-Id', cfAccessClientId);
-	}
-	if (cfAccessClientSecret) {
-		headers.set('CF-Access-Client-Secret', cfAccessClientSecret);
-	}
+
 	init.headers = headers;
 
 	const res = await fetch(path, init);
@@ -107,34 +69,63 @@ async function apiFetch(path, options = {}) {
 function initTokenForm() {
 	const form = document.getElementById('token-form');
 	if (!form) return;
-	const tokenInput = document.getElementById('provider-token');
-	const cfIdInput = document.getElementById('cf-access-client-id');
-	const cfSecretInput = document.getElementById('cf-access-client-secret');
+	const textarea = document.getElementById('credentials-json');
 
 	// Prefill from storage if available.
-	if (tokenInput) {
-		const storedToken = getStoredToken();
-		if (storedToken) tokenInput.value = storedToken;
-	}
-	if (cfIdInput) {
-		const storedId = getStoredCfAccessClientId();
-		if (storedId) cfIdInput.value = storedId;
-	}
-	if (cfSecretInput) {
-		const storedSecret = getStoredCfAccessClientSecret();
-		if (storedSecret) cfSecretInput.value = storedSecret;
+	if (textarea) {
+		const stored = getStoredCredentials();
+		if (stored) {
+			textarea.value = JSON.stringify(stored, null, 2);
+		}
 	}
 
 	form.addEventListener('submit', (e) => {
 		e.preventDefault();
-		const token = tokenInput?.value.trim() || '';
-		const cfId = cfIdInput?.value.trim() || '';
-		const cfSecret = cfSecretInput?.value.trim() || '';
-		if (!token) return;
+		if (!textarea) return;
 
-		setStoredToken(token);
-		setStoredCfAccessClientId(cfId);
-		setStoredCfAccessClientSecret(cfSecret);
+		const raw = textarea.value.trim();
+		if (!raw) {
+			alert('Please paste credentials JSON.');
+			return;
+		}
+
+		let parsed;
+		try {
+			parsed = JSON.parse(raw);
+		} catch (err) {
+			alert('Invalid JSON. Please check your syntax.');
+			return;
+		}
+
+		if (!parsed || typeof parsed !== 'object') {
+			alert('Credentials JSON must be an object.');
+			return;
+		}
+
+		const token = typeof parsed.token === 'string' ? parsed.token.trim() : '';
+		const cfId =
+			typeof parsed.cfAccessClientId === 'string'
+				? parsed.cfAccessClientId.trim()
+				: '';
+		const cfSecret =
+			typeof parsed.cfAccessClientSecret === 'string'
+				? parsed.cfAccessClientSecret.trim()
+				: '';
+
+		if (!token || !cfId || !cfSecret) {
+			alert(
+				'Credentials JSON must include non-empty "token", "cfAccessClientId", and "cfAccessClientSecret" string fields.',
+			);
+			return;
+		}
+
+		const normalized = {
+			token,
+			cfAccessClientId: cfId,
+			cfAccessClientSecret: cfSecret,
+		};
+
+		setStoredCredentials(normalized);
 		showAppRoot();
 		initApp();
 	});
@@ -414,8 +405,8 @@ function initApp() {
 // Boot sequence
 document.addEventListener('DOMContentLoaded', () => {
 	initTokenForm();
-	const token = getStoredToken();
-	if (!token) {
+	const creds = getStoredCredentials();
+	if (!creds) {
 		showTokenGate();
 	} else {
 		showAppRoot();

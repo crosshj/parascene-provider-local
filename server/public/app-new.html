@@ -13,47 +13,37 @@
     <div id="token-gate" class="app" hidden>
       <header class="app-header">
         <h1>Parascene local provider</h1>
-        <p>Enter your provider API token to unlock the UI.</p>
+        <p>Paste JSON credentials to unlock the UI.</p>
       </header>
       <main class="app-body">
         <section class="controls token-gate-controls">
           <form id="token-form" class="token-form">
             <div class="field">
-              <label for="provider-token">Provider API token</label>
-              <input
-                id="provider-token"
-                name="provider-token"
-                type="password"
+              <label for="credentials-json">Credentials JSON</label>
+              <textarea
+                id="credentials-json"
+                name="credentials-json"
+                rows="6"
+                spellcheck="false"
                 autocomplete="off"
-                placeholder="Paste your token"
+                placeholder='{
+  "token": "parascene-local-dev-token",
+  "cfAccessClientId": "your-client-id",
+  "cfAccessClientSecret": "your-client-secret"
+}'
                 required
-              />
-            </div>
-
-            <div class="field">
-              <label for="cf-access-client-id">CF-Access-Client-Id</label>
-              <input
-                id="cf-access-client-id"
-                name="cf-access-client-id"
-                type="text"
-                autocomplete="off"
-                placeholder="Optional Cloudflare Access Client ID"
-              />
-            </div>
-
-            <div class="field">
-              <label for="cf-access-client-secret">CF-Access-Client-Secret</label>
-              <input
-                id="cf-access-client-secret"
-                name="cf-access-client-secret"
-                type="password"
-                autocomplete="off"
-                placeholder="Optional Cloudflare Access Client Secret"
-              />
+              ></textarea>
+              <small class="field-hint">
+                Expects a JSON object with
+                <code>token</code>,
+                <code>cfAccessClientId</code>, and
+                <code>cfAccessClientSecret</code> string fields. Saved as
+                <code>localStorage["credentials"]</code>.
+              </small>
             </div>
 
             <div class="actions">
-              <button type="submit" class="btn-primary">Save</button>
+              <button type="submit" class="btn-primary">Save &amp; continue</button>
             </div>
           </form>
         </section>
