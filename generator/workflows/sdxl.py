@@ -62,7 +62,13 @@ def _ensure_sdxl_configs(configs_dir: Path) -> None:
         return
 
     try:
-        setup_sdxl_fn()
+        import contextlib
+
+        # Worker protocol uses stdout for JSON IPC. setup_configs emits
+        # human-readable progress lines via print(), so redirect that output to
+        # stderr to avoid corrupting JSON responses.
+        with contextlib.redirect_stdout(sys.stderr):
+            setup_sdxl_fn()
     except Exception:
         # Keep this non-fatal; the higher-level checks will surface a detailed
         # error string (including any nested exception messages) back to the UI.
