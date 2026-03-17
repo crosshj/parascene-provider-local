@@ -9,18 +9,64 @@ from pathlib import Path
 from typing import Tuple
 
 
+def _ensure_sdxl_configs(configs_dir: Path) -> None:
+    """
+    Best-effort auto-setup for SDXL configs.
+
+    When running inside the generator service, configs are expected to have been
+    created once via setup_configs.py. On new or freshly provisioned machines
+    that step may have been skipped, which would previously result in a hard
+    failure. To make this smoother for remote deployments, we attempt to run
+    setup_sdxl() inline the first time we see missing configs.
+
+    Any failure here is intentionally swallowed; callers will re-check the
+    filesystem and raise a descriptive RuntimeError if configs are still absent.
+    """
+    try:
+        # setup_configs.py lives alongside the generator package root.
+        # Import lazily to avoid any import-time side effects unless needed.
+        from .. import setup_configs  # type: ignore[import-error]
+    except Exception:
+        # If we can't import the helper module, fall back to the previous
+        # behaviour where the caller surfaces a clear "run setup_configs.py"
+        # message to the UI.
+        return
+
+    try:
+        setup_configs.setup_sdxl()
+    except Exception:
+        # Keep this non-fatal; the higher-level checks will surface a detailed
+        # error string (including any nested exception messages) back to the UI.
+        return
+
+
 def build_sdxl_load_kwargs(configs_dir: Path, torch_dtype) -> Tuple[Path, dict]:
     local_config = configs_dir / "sdxl"
+
+    # If required configs are missing, attempt a one-time auto-setup to make
+    # remote deployments recover gracefully when setup_configs.py has not been
+    # run yet.
+    if not (local_config / "model_index.json").exists() or not (
+        (local_config / "text_encoder" / "config.json").exists()
+        and (local_config / "text_encoder_2" / "config.json").exists()
+    ):
+        _ensure_sdxl_configs(configs_dir)
+
+    # Re-check after the best-effort auto-setup. If things are still missing,
+    # raise a descriptive error that will be surfaced back through the worker
+    # to the caller UI.
     if not (local_config / "model_index.json").exists():
         raise RuntimeError(
-            "SDXL local config not found. Run once to set it up:\n"
+            "SDXL local config not found, even after attempting auto-setup.\n"
+            "Run once on the server to set it up:\n"
             "  .venv/Scripts/python setup_configs.py"
         )
     if not (local_config / "text_encoder" / "config.json").exists() or not (
-        local_config / "text_encoder_2" / "config.json"
-    ).exists():
+        (local_config / "text_encoder_2" / "config.json").exists()
+    ):
         raise RuntimeError(
-            "SDXL CLIP configs not found. Re-run setup to regenerate:\n"
+            "SDXL CLIP configs not found, even after attempting auto-setup.\n"
+            "Re-run on the server to regenerate them:\n"
             "  .venv/Scripts/python setup_configs.py"
         )
 
