@@ -231,6 +231,7 @@ async function handleApiPost(req, res, ctx = {}) {
     }
     if (job.status === "failed") {
       return sendJson(res, 200, {
+        async: true,
         status: job.status,
         job_id: job.id,
         result: job.result,
@@ -271,6 +272,7 @@ async function handleApiPost(req, res, ctx = {}) {
     }
     // Fallback: succeeded but not image (e.g. stub method) — return JSON.
     return sendJson(res, 200, {
+      async: true,
       status: job.status,
       job_id: job.id,
       result: job.result,
