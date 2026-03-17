@@ -251,6 +251,9 @@ async function handleApiPost(req, res, ctx = {}) {
         }
         const headers = {
           "Content-Type": "image/png",
+          "Content-Length": String(data.length),
+          "Cache-Control": "no-cache",
+          "X-Image-Color": "#000000",
           "X-Image-Width": String(job.imageWidth ?? job.result.width ?? ""),
           "X-Image-Height": String(job.imageHeight ?? job.result.height ?? ""),
           "X-Credits": String(job.credits ?? TEXT2IMG_CREDITS),
