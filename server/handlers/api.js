@@ -224,10 +224,18 @@ async function handleApiPost(req, res, ctx = {}) {
   if (jobId) {
     const job = jobs.get(jobId);
     if (!job) {
-      return sendJson(res, 404, { error: "Job not found", job_id: jobId });
+      return sendJson(res, 404, {
+        async: true,
+        error: "Job not found",
+        job_id: jobId
+      });
     }
     if (job.status === "pending") {
-      return sendJson(res, 202, { status: job.status, job_id: job.id });
+      return sendJson(res, 202, { 
+        async: true,
+        status: job.status,
+        job_id: job.id
+      });
     }
     if (job.status === "failed") {
       return sendJson(res, 200, {
