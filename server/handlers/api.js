@@ -38,12 +38,34 @@ function ensureAuthorized(req, res) {
   return true;
 }
 
+const ALLOWED_SD15 = new Set([
+  "cyberrealistic_v20",
+  "deliberate_v11",
+  "realisticVisionV60B1_v60B1VAE",
+  "dreamShaper_8_pruned",
+  "revAnimated_v122",
+  "rpg_v5",
+  "toonAme_version20",
+  "lofi_V2pre",
+  "qgo10b_qgo10b",
+  "liberty_main",
+]);
+
 function handleApiGet(req, res) {
   if (!ensureAuthorized(req, res)) return;
 
   const now = new Date().toISOString();
   const models = getModels();
-  const modelOptions = models.map((m) => ({
+  // TODO: re-enable wan/sdxl/qwen families once they are wired up
+  // correctly for this provider (sampling params, pipelines, licensing, etc.).
+  const filteredModels = models.filter(
+    (m) =>
+      m.family !== "wan" &&
+      m.family !== "sdxl" &&
+      m.family !== "qwen" &&
+      (m.family !== "sd15" || ALLOWED_SD15.has(m.name)),
+  );
+  const modelOptions = filteredModels.map((m) => ({
     label: `${m.family}: ${m.name}`,
     value: m.name,
   }));
