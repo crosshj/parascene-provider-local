@@ -7,7 +7,7 @@ const { sendJson, readJson } = require("../lib.js");
 const { runGenerator, sanitizePromptText } = require("./generate.js");
 const { getModels, resolveModel } = require("./models.js");
 
-const TEXT2IMG_CREDITS = 1;
+const TEXT2IMG_CREDITS = 0.2;
 
 // Shared API key for simple bearer auth.
 // For now we allow a hardcoded default; in production this should be set via env.
@@ -81,7 +81,7 @@ function handleApiGet(req, res) {
         name: "Text To Image",
         description: "Generate an image from text.",
         intent: "image_generate",
-        credits: 1,
+        credits: TEXT2IMG_CREDITS,
         fields: {
           model: {
             label: "Model",
