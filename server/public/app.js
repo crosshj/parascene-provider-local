@@ -25,6 +25,20 @@ function setStoredCredentials(value) {
 	}
 }
 
+function showTokenGate() {
+	const gate = document.getElementById('token-gate');
+	const appRoot = document.getElementById('app-root');
+	if (gate) gate.hidden = false;
+	if (appRoot) appRoot.hidden = true;
+}
+
+function showAppRoot() {
+	const gate = document.getElementById('token-gate');
+	const appRoot = document.getElementById('app-root');
+	if (gate) gate.hidden = true;
+	if (appRoot) appRoot.hidden = false;
+}
+
 async function apiFetch(path, options = {}) {
 	const creds = getStoredCredentials();
 	const init = { ...options };
@@ -72,6 +86,7 @@ const STORAGE_KEY = 'local-image-generator.form.v1';
 let modelRegistry = {};
 let savedValues = null;
 let lastErrorText = '';
+let appInitialized = false;
 
 function setStatusMessage(text, isError = false) {
 	statusEl.textContent = text || '';
@@ -253,6 +268,73 @@ function applyModelDefaults() {
 	saveFormValues();
 }
 
+function initTokenForm() {
+	const tokenForm = document.getElementById('token-form');
+	if (!tokenForm) return;
+
+	const textarea = document.getElementById('credentials-json');
+	if (textarea) {
+		const stored = getStoredCredentials();
+		if (stored) {
+			textarea.value = JSON.stringify(stored, null, 2);
+		}
+	}
+
+	tokenForm.addEventListener('submit', (e) => {
+		e.preventDefault();
+		if (!textarea) return;
+
+		const raw = textarea.value.trim();
+		if (!raw) {
+			alert('Please paste credentials JSON.');
+			return;
+		}
+
+		let parsed;
+		try {
+			parsed = JSON.parse(raw);
+		} catch {
+			alert('Invalid JSON. Please check your syntax.');
+			return;
+		}
+
+		if (!parsed || typeof parsed !== 'object') {
+			alert('Credentials JSON must be an object.');
+			return;
+		}
+
+		const token = typeof parsed.token === 'string' ? parsed.token.trim() : '';
+		const cfId =
+			typeof parsed.cfAccessClientId === 'string'
+				? parsed.cfAccessClientId.trim()
+				: '';
+		const cfSecret =
+			typeof parsed.cfAccessClientSecret === 'string'
+				? parsed.cfAccessClientSecret.trim()
+				: '';
+
+		if (!token || !cfId || !cfSecret) {
+			alert(
+				'Credentials JSON must include non-empty "token", "cfAccessClientId", and "cfAccessClientSecret" string fields.',
+			);
+			return;
+		}
+
+		setStoredCredentials({
+			token,
+			cfAccessClientId: cfId,
+			cfAccessClientSecret: cfSecret,
+		});
+
+		showAppRoot();
+		if (!appInitialized) {
+			appInitialized = true;
+			savedValues = restoreSavedValues();
+			loadModels();
+		}
+	});
+}
+
 // ── Events ────────────────────────────────────────────
 
 modelSel.addEventListener('change', applyModelDefaults);
@@ -322,5 +404,13 @@ randomizeSeedBtn?.addEventListener('click', randomizeSeed);
 
 // ── Init ──────────────────────────────────────────────
 
-savedValues = restoreSavedValues();
-loadModels();
+initTokenForm();
+const creds = getStoredCredentials();
+if (creds) {
+	showAppRoot();
+	appInitialized = true;
+	savedValues = restoreSavedValues();
+	loadModels();
+} else {
+	showTokenGate();
+}
