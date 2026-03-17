@@ -8,7 +8,9 @@ if (!PORT || !HOST) {
   process.exit(1);
 }
 
+const fs = require("fs");
 const path = require("path");
+const { execSync } = require("child_process");
 
 const { createApp } = require("./lib.js");
 const { handleHealth } = require("./handlers/health.js");
@@ -20,9 +22,34 @@ const { handlePublic } = require("./handlers/public.js");
 
 
 
+function getCacheVersion() {
+  const cwd = process.cwd();
+  const metaPath = path.join(cwd, "release-metadata.json");
+  try {
+    if (fs.existsSync(metaPath)) {
+      const meta = JSON.parse(fs.readFileSync(metaPath, "utf8"));
+      if (meta.releaseId) return meta.releaseId;
+      if (meta.resolvedSha) return meta.resolvedSha.slice(0, 12);
+    }
+  } catch (_) {
+    /* ignore */
+  }
+  try {
+    return execSync("git rev-parse --short HEAD", {
+      encoding: "utf8",
+      cwd: path.join(__dirname, ".."),
+    }).trim();
+  } catch (_) {
+    /* ignore */
+  }
+  const pkg = require(path.join(__dirname, "..", "package.json"));
+  return pkg.version || String(Date.now());
+}
+
 const ctx = {
   outputDir: process.env.OUTPUT_DIR || null,
   publicDir: path.join(__dirname, "public"),
+  cacheVersion: getCacheVersion(),
 };
 
 const app = createApp(ctx);

@@ -33,8 +33,27 @@ function handlePublic(_req, res, ctx) {
     }
     const ext = path.extname(file).toLowerCase();
     const mime = MIME[ext] || "application/octet-stream";
-    res.writeHead(200, { "Content-Type": mime });
-    res.end(data);
+    let body = data;
+
+    if (ext === ".html" && ctx.cacheVersion) {
+      const v = ctx.cacheVersion;
+      body = Buffer.from(
+        data
+          .toString("utf8")
+          .replace(
+            /(href|src)=(")(\/[^"]*\.(css|js|html))(?!\?[^"]*)(")/g,
+            `$1=$2$3?v=${v}$5`,
+          ),
+        "utf8",
+      );
+      res.writeHead(200, {
+        "Content-Type": mime,
+        "Cache-Control": "no-cache",
+      });
+    } else {
+      res.writeHead(200, { "Content-Type": mime });
+    }
+    res.end(body);
   });
 }
 
