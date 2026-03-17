@@ -49,7 +49,7 @@ const FAMILY_DEFAULTS = {
   sdxl: { steps: 30, cfg: 7.0, width: 1024, height: 1024 },
   sd15: { steps: 20, cfg: 2.0, width: 512, height: 512 },
   wan: { steps: 25, cfg: 7.0, width: 768, height: 768 },
-  qwen: { steps: 25, cfg: 7.0, width: 512, height: 512 },
+  qwen: { steps: 4, cfg: 1.0, width: 1024, height: 1024 },
 };
 
 function getModelDefaults(family, fileName) {

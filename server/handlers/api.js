@@ -72,11 +72,10 @@ function handleApiGet(req, res) {
 
   const now = new Date().toISOString();
   const models = getModels();
-  // WAN/QWEN remain disabled for this provider for now.
+  // WAN remains disabled for this provider for now.
   const filteredModels = models.filter(
     (m) =>
       m.family !== "wan" &&
-      m.family !== "qwen" &&
       (m.family !== "sdxl" || ALLOWED_SDXL.has(m.name)) &&
       (m.family !== "sd15" || ALLOWED_SD15.has(m.name)),
   );
@@ -141,7 +140,9 @@ function startText2ImgJob(jobId, args, outputDir) {
   }
   const entry = resolveModel(modelName);
   if (!entry) {
-    return { error: `Unknown model: "${modelName}". Check GET /api or GET /api/models.` };
+    return {
+      error: `Unknown model: "${modelName}". Check GET /api or GET /api/models.`,
+    };
   }
 
   // Only prompt and model come from the client; everything else is determined by the API.
@@ -264,14 +265,14 @@ async function handleApiPost(req, res, ctx = {}) {
       return sendJson(res, 404, {
         async: true,
         error: "Job not found",
-        job_id: jobId
+        job_id: jobId,
       });
     }
     if (job.status === "pending") {
       return sendJson(res, 202, {
         async: true,
         status: job.status,
-        job_id: job.id
+        job_id: job.id,
       });
     }
     if (job.status === "failed") {
@@ -283,11 +284,7 @@ async function handleApiPost(req, res, ctx = {}) {
       });
     }
     // Succeeded + text2img: return image binary (Content-Type: image/png) and metadata headers.
-    if (
-      job.method === "text2img" &&
-      job.result?.file_name &&
-      ctx.outputDir
-    ) {
+    if (job.method === "text2img" && job.result?.file_name && ctx.outputDir) {
       const filePath = path.join(ctx.outputDir, job.result.file_name);
       return fs.readFile(filePath, (err, data) => {
         if (err) {
@@ -306,10 +303,12 @@ async function handleApiPost(req, res, ctx = {}) {
           "X-Image-Height": String(job.imageHeight ?? job.result.height ?? ""),
           "X-Credits": String(job.credits ?? TEXT2IMG_CREDITS),
         };
-        if (job.result.seed != null) headers["X-Seed"] = String(job.result.seed);
+        if (job.result.seed != null)
+          headers["X-Seed"] = String(job.result.seed);
         if (job.result.elapsed_ms != null)
           headers["X-Elapsed-Ms"] = String(job.result.elapsed_ms);
-        if (job.result.family != null) headers["X-Family"] = String(job.result.family);
+        if (job.result.family != null)
+          headers["X-Family"] = String(job.result.family);
         if (job.result.model != null)
           headers["X-Model"] = String(path.basename(job.result.model));
         res.writeHead(200, headers);
@@ -354,4 +353,3 @@ module.exports = {
   handleApiGet,
   handleApiPost,
 };
-

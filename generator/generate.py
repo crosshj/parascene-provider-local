@@ -30,6 +30,7 @@ from lib.utils import (
 import workflows.flux as workflow_flux
 import workflows.flux_ccr as workflow_flux_ccr
 import workflows.flux_test as workflow_flux_test
+import workflows.qwen as workflow_qwen
 import workflows.sdxl as workflow_sdxl
 import workflows.sd15 as workflow_sd15
 
@@ -305,8 +306,16 @@ def load_pipeline(family: str, model: str):
                 model_path, torch, use_cuda, ENABLE_ATTN_SLICING,
             )
             _log(f"load_pipeline:loaded sd15 in {int((time.time() - load_started) * 1000)}ms")
+        elif family == "qwen":
+            _log("load_pipeline:loading qwen")
+            load_started = time.time()
+            dtype = torch.float16 if use_cuda else torch.float32
+            pipe = workflow_qwen.load_pipeline(
+                model_path, configs_dir, torch, use_cuda, dtype, False, False,
+            )
+            _log(f"load_pipeline:loaded qwen in {int((time.time() - load_started) * 1000)}ms")
         else:
-            raise ValueError(f"Unknown family '{family}'. Supported: flux, sdxl, sd15")
+            raise ValueError(f"Unknown family '{family}'. Supported: flux, sdxl, sd15, qwen")
     except Exception as exc:
         raise RuntimeError(
             f"Could not load model '{model_path}': {describe_exception(exc)}"
@@ -325,6 +334,8 @@ def run_generation(pipe, family: str, payload: Dict[str, Any], torch_module):
         return workflow_sdxl.generate(pipe, payload, torch_module)
     elif family == "sd15":
         return workflow_sd15.generate(pipe, payload, torch_module)
+    elif family == "qwen":
+        return workflow_qwen.generate(pipe, payload, torch_module)
     else:
         raise ValueError(f"Unknown family '{family}'")
 
