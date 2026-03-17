@@ -72,7 +72,6 @@ def _init_comfy_runtime():
         argv.append("--disable-async-offload")
     if gpu_only:
         argv.append("--gpu-only")
-        argv.append("--highvram")
     if len(argv) > 1:
         sys.argv = argv
 
