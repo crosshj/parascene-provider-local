@@ -68,8 +68,8 @@ def _init_comfy_runtime():
         argv.append("--disable-mmap")
     if disable_async_offload:
         argv.append("--disable-async-offload")
-    if gpu_only:
-        argv.append("--gpu-only")
+    # if gpu_only:
+    #     argv.append("--gpu-only")
     if len(argv) > 1:
         sys.argv = argv
 
