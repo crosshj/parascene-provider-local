@@ -2,6 +2,9 @@
 
 const http = require("http");
 
+const CORS_ALLOWED_ORIGIN =
+  process.env.CORS_ALLOWED_ORIGIN || "https://www.parascene.com";
+
 const CSP = [
   "default-src 'self'",
   "base-uri 'self'",
@@ -13,7 +16,21 @@ const CSP = [
   "style-src 'self'",
 ].join("; ");
 
-function setSecurityHeaders(res) {
+function setCorsHeaders(res, req) {
+  const origin = req.headers.origin;
+  if (origin === CORS_ALLOWED_ORIGIN) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  }
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization",
+  );
+  res.setHeader("Access-Control-Max-Age", "86400");
+}
+
+function setSecurityHeaders(res, req) {
+  setCorsHeaders(res, req);
   res.setHeader("Content-Security-Policy", CSP);
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   res.setHeader(
@@ -106,11 +123,18 @@ function createApp(ctx) {
     },
     listen(port, host, cb) {
       const server = http.createServer((req, res) => {
-        setSecurityHeaders(res);
+        setSecurityHeaders(res, req);
         logRequest(req);
 
         const pathname = (req.url || "").split("?")[0];
         const method = req.method;
+
+        if (method === "OPTIONS") {
+          res.writeHead(204);
+          res.end();
+          return;
+        }
+
         const hit = match(method, pathname);
 
         if (hit) {
