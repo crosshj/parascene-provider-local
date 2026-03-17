@@ -1,13 +1,13 @@
 # Full image generation flow (provider API)
 
-End-to-end path from the browser to a generated image when using the token-gated provider API (`app_new.html`).
+End-to-end path from the browser to a generated image when using the token-gated provider API (`app-new.html`).
 
 ---
 
 ## 1. Load app and token
 
-- User opens **`/app_new.html`**.
-- **app_new.js** reads `localStorage['parascene_api_token']`.
+- User opens **`/app-new.html`**.
+- **app-new.js** reads `localStorage['parascene_api_token']`.
 - If **no token**: only the token-gate UI is shown (input + “Save token”). User enters the same value as `PARASCENE_API_KEY` (server env or default `parascene-local-dev-token`), submits → token is stored and the page shows the generator form.
 - If **token present**: the generator form is shown immediately.
 
@@ -15,27 +15,27 @@ End-to-end path from the browser to a generated image when using the token-gated
 
 ## 2. Get capabilities and build the form
 
-- **app_new.js** calls **GET `/api`** with header  
+- **app-new.js** calls **GET `/api`** with header  
   `Authorization: Bearer <token>`.
 - **api.js** `handleApiGet`:
   - Verifies the bearer token against `PARASCENE_API_KEY`; if invalid → **401** (frontend clears token and shows token gate).
   - Builds **model options** from **getModels()** (same registry as `resolveModel`), so every option is a valid model name.
   - Returns **200** with JSON:
     - `status: "ok"`, `last_check_at`, `methods: [{ id: "text2img", default: true, name, description, intent, credits, fields: { model: { options: [{ label, value }] }, prompt } }]`.
-- **app_new.js** picks the default method (`text2img`), reads `fields.model.options`, and fills the **model `<select>`** with those options. So the dropdown always matches what the server can resolve.
+- **app-new.js** picks the default method (`text2img`), reads `fields.model.options`, and fills the **model `<select>`** with those options. So the dropdown always matches what the server can resolve.
 
 ---
 
 ## 3. User submits “Generate”
 
 - User fills prompt (and optionally negative prompt, dimensions, steps, cfg, seed) and clicks **Generate**.
-- **app_new.js** collects form values into `body` (prompt, model, negative_prompt, width, height, steps, cfg, seed).
+- **app-new.js** collects form values into `body` (prompt, model, negative_prompt, width, height, steps, cfg, seed).
 
 ---
 
 ## 4. Start job (POST /api, no job_id)
 
-- **app_new.js** sends **POST `/api`** with:
+- **app-new.js** sends **POST `/api`** with:
   - `Authorization: Bearer <token>`
   - Body: `{ method: "text2img", args: body }` (no `args.job_id`).
 - **api.js** `handleApiPost`:
@@ -65,13 +65,13 @@ End-to-end path from the browser to a generated image when using the token-gated
 
 ## 6. Frontend polls until done
 
-- **app_new.js** has received **202** and **job_id**. It enters a loop:
+- **app-new.js** has received **202** and **job_id**. It enters a loop:
   - **POST `/api`** with body `{ method: "text2img", args: { job_id } }`.
   - **api.js** sees `args.job_id` → **Poll** path:
     - Looks up **jobs.get(job_id)**. If missing → **404**.
     - If job `status === "pending"` → **202** `{ status: "pending", job_id }`.
     - If job `status === "succeeded"` or `"failed"` → **200** `{ status, job_id, result }`.
-- **app_new.js**:
+- **app-new.js**:
   - On **202**: waits 1.5s, then polls again.
   - On **200**: if `status === "succeeded"` and `result.image_url`, it sets the preview image to `result.image_url`, calls **renderMeta(result)**, and shows “Done.” If `status === "failed"`, it shows **result.error**.
 
@@ -87,9 +87,9 @@ End-to-end path from the browser to a generated image when using the token-gated
 
 | Step              | Who              | Uses / produces |
 |-------------------|------------------|-----------------|
-| Token             | app_new.js       | `localStorage`, `Authorization` header |
+| Token             | app-new.js       | `localStorage`, `Authorization` header |
 | Capabilities      | GET /api         | getModels() → same names as resolveModel() |
-| Model select      | app_new.js       | GET /api `methods[].fields.model.options` |
+| Model select      | app-new.js       | GET /api `methods[].fields.model.options` |
 | Start job         | POST /api        | runGenerator(payload, ctx.outputDir), job_id |
 | Job storage       | api.js           | jobs map, updated when runGenerator resolves |
 | Poll              | POST /api        | jobs.get(job_id) → 202 or 200 + result |
