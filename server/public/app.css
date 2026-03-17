@@ -438,4 +438,48 @@ hr {
   .params .c2 {
     grid-column: span 1;
   }
+
+  /* Higher contrast for readability on small screens */
+  .btn-primary {
+    background: var(--text);
+    color: var(--bg);
+    border-color: var(--text);
+  }
+  .btn-primary:hover {
+    filter: brightness(0.92);
+  }
+  .btn-primary:active {
+    filter: brightness(0.8);
+  }
+
+  .badge {
+    color: var(--text);
+    opacity: 0.85;
+    font-weight: 500;
+  }
+
+  .chip {
+    color: var(--text);
+    background: color-mix(in oklab, var(--surface), var(--text) 12%);
+    border-color: color-mix(in oklab, var(--sep), var(--text) 35%);
+  }
+  .chip-k {
+    opacity: 0.75;
+  }
+
+  .icon-btn {
+    color: var(--text);
+    background: color-mix(in oklab, var(--surface), var(--text) 15%);
+    border-color: color-mix(in oklab, var(--sep), var(--text) 40%);
+  }
+
+  .status-bar {
+    color: var(--text);
+    opacity: 0.8;
+  }
+
+  .micro-footer a {
+    color: var(--text);
+    opacity: 0.85;
+  }
 }
