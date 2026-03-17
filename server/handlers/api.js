@@ -55,6 +55,7 @@ function handleApiGet(req, res) {
       {
         id: "text2img",
         default: true,
+        async: true,
         name: "Text To Image",
         description: "Generate an image from text.",
         intent: "image_generate",
