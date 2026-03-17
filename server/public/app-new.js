@@ -256,19 +256,26 @@ function initApp() {
 		try {
 			const res = await apiFetch('/api', { method: 'GET' });
 			const data = await res.json();
-			if (!data || !Array.isArray(data.methods) || data.methods.length === 0) {
+			const methods = data && data.methods;
+
+			if (
+				!methods ||
+				typeof methods !== 'object' ||
+				Array.isArray(methods) ||
+				Object.keys(methods).length === 0
+			) {
 				throw new Error('Provider did not return any methods.');
 			}
 
-			const methods = data.methods;
-			const method =
-				methods.find((m) => m.default) ||
-				methods.find((m) => m.id === 'text2img') ||
-				methods[0];
+			const methodIds = Object.keys(methods);
+			const defaultMethodId =
+				methodIds.find((id) => methods[id] && methods[id].default) ||
+				(methods.text2img ? 'text2img' : methodIds[0]);
 
-			methodState.activeMethodId = method.id || 'text2img';
+			methodState.activeMethodId = defaultMethodId;
 
-			const fields = method.fields || {};
+			const activeMethod = methods[defaultMethodId] || {};
+			const fields = activeMethod.fields || {};
 			const modelField = fields.model;
 			if (!modelField || !Array.isArray(modelField.options)) {
 				throw new Error('Provider method is missing model options.');

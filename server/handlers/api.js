@@ -49,10 +49,10 @@ function handleApiGet(req, res) {
   }));
 
   const payload = {
-    status: "ok",
+    status: "operational",
     last_check_at: now,
-    methods: [
-      {
+    methods: {
+      text2img: {
         id: "text2img",
         default: true,
         async: true,
@@ -74,7 +74,7 @@ function handleApiGet(req, res) {
           },
         },
       },
-    ],
+    },
   };
   sendJson(res, 200, payload);
 }
@@ -231,7 +231,7 @@ async function handleApiPost(req, res, ctx = {}) {
       });
     }
     if (job.status === "pending") {
-      return sendJson(res, 202, { 
+      return sendJson(res, 202, {
         async: true,
         status: job.status,
         job_id: job.id

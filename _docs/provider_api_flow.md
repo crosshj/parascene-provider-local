@@ -21,7 +21,7 @@ End-to-end path from the browser to a generated image when using the token-gated
   - Verifies the bearer token against `PARASCENE_API_KEY`; if invalid → **401** (frontend clears token and shows token gate).
   - Builds **model options** from **getModels()** (same registry as `resolveModel`), so every option is a valid model name.
   - Returns **200** with JSON:
-    - `status: "ok"`, `last_check_at`, `methods: [{ id: "text2img", default: true, name, description, intent, credits, fields: { model: { options: [{ label, value }] }, prompt } }]`.
+    - `status: "ok"`, `last_check_at`, `methods: { text2img: { id: "text2img", default: true, name, description, intent, credits, fields: { model: { options: [{ label, value }] }, prompt } } }`.
 - **app-new.js** picks the default method (`text2img`), reads `fields.model.options`, and fills the **model `<select>`** with those options. So the dropdown always matches what the server can resolve.
 
 ---
