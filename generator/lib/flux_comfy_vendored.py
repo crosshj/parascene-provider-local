@@ -52,10 +52,8 @@ def _init_comfy_runtime():
 
     os.environ.setdefault("XFORMERS_FORCE_DISABLE_TRITON", "1")
     disable_xformers = os.environ.get("FLUX_CCR_DISABLE_XFORMERS", "1") == "1"
-    disable_mmap = os.environ.get(
-        "COMFY_DISABLE_MMAP",
-        "1" if os.name == "nt" else "0",
-    ) == "1"
+    # Force mmap enabled on Windows unless you want to test paging file errors
+    disable_mmap = False
     disable_async_offload = os.environ.get(
         "COMFY_DISABLE_ASYNC_OFFLOAD",
         "1" if os.name == "nt" else "0",
