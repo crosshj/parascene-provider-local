@@ -22,18 +22,47 @@ def _ensure_sdxl_configs(configs_dir: Path) -> None:
     Any failure here is intentionally swallowed; callers will re-check the
     filesystem and raise a descriptive RuntimeError if configs are still absent.
     """
+    setup_sdxl_fn = None
+
+    # 1) Package import path (works when imported as generator.workflows.sdxl).
     try:
-        # setup_configs.py lives alongside the generator package root.
-        # Import lazily to avoid any import-time side effects unless needed.
-        from .. import setup_configs  # type: ignore[import-error]
+        from .. import setup_configs as _setup_configs  # type: ignore[import-error]
+
+        setup_sdxl_fn = getattr(_setup_configs, "setup_sdxl", None)
     except Exception:
+        pass
+
+    # 2) Top-level import path (works when imported as workflows.sdxl).
+    if setup_sdxl_fn is None:
+        try:
+            import setup_configs as _setup_configs  # type: ignore[import-not-found]
+
+            setup_sdxl_fn = getattr(_setup_configs, "setup_sdxl", None)
+        except Exception:
+            pass
+
+    # 3) File-path import fallback from generator/setup_configs.py.
+    if setup_sdxl_fn is None:
+        try:
+            import importlib.util
+
+            setup_path = configs_dir.parent / "setup_configs.py"
+            spec = importlib.util.spec_from_file_location("generator_setup_configs", setup_path)
+            if spec and spec.loader:
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+                setup_sdxl_fn = getattr(module, "setup_sdxl", None)
+        except Exception:
+            pass
+
+    if setup_sdxl_fn is None:
         # If we can't import the helper module, fall back to the previous
         # behaviour where the caller surfaces a clear "run setup_configs.py"
         # message to the UI.
         return
 
     try:
-        setup_configs.setup_sdxl()
+        setup_sdxl_fn()
     except Exception:
         # Keep this non-fatal; the higher-level checks will surface a detailed
         # error string (including any nested exception messages) back to the UI.
