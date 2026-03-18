@@ -11,6 +11,62 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, Tuple
 
+def _ensure_zimage_configs(configs_dir: Path) -> None:
+    """
+    Best-effort auto-setup for Z-Image configs.
+
+    Some deployments use a source-only repo and generate the `generator/configs/*`
+    tree during provisioning (via `generator/setup_configs.py`).
+    """
+
+    setup_zimage_fn = None
+
+    # 1) Package import path (works when imported as generator.workflows.zimage).
+    try:
+        from .. import setup_configs as _setup_configs  # type: ignore[import-error]
+
+        setup_zimage_fn = getattr(_setup_configs, "setup_zimage", None)
+    except Exception:
+        pass
+
+    # 2) Top-level import path (works when imported as workflows.zimage).
+    if setup_zimage_fn is None:
+        try:
+            import setup_configs as _setup_configs  # type: ignore[import-not-found]
+
+            setup_zimage_fn = getattr(_setup_configs, "setup_zimage", None)
+        except Exception:
+            pass
+
+    # 3) File-path import fallback from generator/setup_configs.py.
+    if setup_zimage_fn is None:
+        try:
+            import importlib.util
+
+            setup_path = configs_dir.parent / "setup_configs.py"
+            spec = importlib.util.spec_from_file_location(
+                "generator_setup_configs", setup_path
+            )
+            if spec and spec.loader:
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+                setup_zimage_fn = getattr(module, "setup_zimage", None)
+        except Exception:
+            pass
+
+    if setup_zimage_fn is None:
+        return
+
+    try:
+        import contextlib
+
+        # Worker protocol uses stdout for JSON IPC; setup_configs emits progress
+        # via print(), so redirect that output to stderr.
+        with contextlib.redirect_stdout(sys.stderr):
+            setup_zimage_fn()
+    except Exception:
+        return
+
 def resolve_zimage_model_path(model_path: str) -> str:
     original = Path(model_path)
     if original.exists():
@@ -33,23 +89,30 @@ def is_transformer_only_zimage_checkpoint(path_value: str) -> bool:
 def build_zimage_load_kwargs(configs_dir: Path, torch_dtype) -> Tuple[Path, dict]:
     # Standard: configs_dir/z-image
     local_config = configs_dir / "z-image"
+
+    env_config = os.environ.get("ZIMAGE_CONFIG_DIR")
+    env_path = Path(env_config).expanduser() if env_config else None
+
+    # Best-effort: source-only repos may not ship generated configs.
     if not (local_config / "model_index.json").exists():
-        # Try environment override
-        env_config = os.environ.get("ZIMAGE_CONFIG_DIR")
-        if env_config:
-            env_path = Path(env_config).expanduser()
-            if (env_path / "model_index.json").exists():
-                local_config = env_path
-            else:
-                raise RuntimeError(
-                    f"Z-Image config not found at env override {env_path}. "
-                    "Run setup_configs.py or check your configs directory."
-                )
-        else:
+        _ensure_zimage_configs(configs_dir)
+
+    # Prefer the env override if it has a valid model_index.json.
+    if env_path and (env_path / "model_index.json").exists():
+        local_config = env_path
+
+    if not (local_config / "model_index.json").exists():
+        if env_path:
             raise RuntimeError(
-                f"Z-Image config not found at {local_config}. "
+                "Z-Image config not found in either location.\n"
+                f"  local: {local_config}\n"
+                f"  env:   {env_path}\n"
                 "Run setup_configs.py or check your configs directory."
             )
+        raise RuntimeError(
+            f"Z-Image config not found at {local_config}. "
+            "Run setup_configs.py or check your configs directory."
+        )
     return local_config, {
         "config": str(local_config),
         "torch_dtype": torch_dtype,

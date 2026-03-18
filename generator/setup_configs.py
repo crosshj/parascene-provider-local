@@ -35,7 +35,9 @@ def setup_zimage() -> None:
         {
             "_class_name": "ZImageDiffusionPipeline",
             "_diffusers_version": "0.30.0",
-            "model_path": "D:/comfy_models/diffusion_models/z-image",
+            "model_path": str(
+                Path("D:/comfy_models/diffusion_models/z-image")
+            ),
             "scheduler": ["diffusers", "EulerDiscreteScheduler"],
             "text_encoder": ["transformers", "CLIPTextModel"],
             "tokenizer": ["transformers", "CLIPTokenizer"],
