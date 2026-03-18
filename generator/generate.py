@@ -291,6 +291,15 @@ def load_pipeline(family: str, model: str):
                 FLUX_USE_CPU_OFFLOAD, FLUX_ENABLE_XFORMERS,
             )
             _log(f"load_pipeline:loaded flux in {int((time.time() - load_started) * 1000)}ms")
+        elif family == "z-image":
+            import workflows.zimage as workflow_zimage
+            _log("load_pipeline:loading z-image")
+            load_started = time.time()
+            dtype = torch.float16 if use_cuda else torch.float32
+            pipe = workflow_zimage.load_pipeline(
+                model_path, configs_dir, torch, use_cuda, dtype, False, True,
+            )
+            _log(f"load_pipeline:loaded z-image in {int((time.time() - load_started) * 1000)}ms")
         elif family == "sdxl":
             _log("load_pipeline:loading sdxl")
             load_started = time.time()
