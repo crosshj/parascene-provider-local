@@ -4,13 +4,26 @@ const fs = require("fs");
 const path = require("path");
 const { UpdatePipeline } = require("./updatePipeline");
 
-function relativeToService(p, serviceRoot) {
-  if (!p) return null;
-  const rel = path.relative(serviceRoot, p);
-  // If the path is outside serviceRoot, keep it absolute to avoid ".." segments.
-  if (!rel || rel === "") return ".";
-  if (rel.startsWith("..")) return p;
-  return rel;
+function relativeToService(p, _serviceRoot) {
+  // Convert absolute paths into "path relative to the directory named /service".
+  // This is robust even when the path isn't inside the specific serviceRoot absolute prefix.
+  if (!p) return ".";
+  const norm = String(p).replace(/\\/g, "/");
+  const lower = norm.toLowerCase();
+  const marker = "/service/";
+  const idx = lower.lastIndexOf(marker);
+  if (idx !== -1) {
+    const rel = norm.slice(idx + marker.length);
+    return rel || ".";
+  }
+  // Handle ".../service" (no trailing slash).
+  const marker2 = "/service";
+  const idx2 = lower.lastIndexOf(marker2);
+  if (idx2 !== -1) {
+    const rel = norm.slice(idx2 + marker2.length).replace(/^\/+/, "");
+    return rel || ".";
+  }
+  return ".";
 }
 
 class UpdateQueue {

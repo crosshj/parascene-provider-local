@@ -134,21 +134,6 @@ function normalizePath(p) {
     .toLowerCase();
 }
 
-function prettyPath(p, base) {
-  if (!p) return "—";
-  const raw = String(p);
-  const normP = raw.replace(/\\/g, "/");
-  const normBase = String(base || "").replace(/\\/g, "/");
-  if (normBase && normP.startsWith(normBase)) {
-    const suffix = normP.slice(normBase.length).replace(/^\/+/, "");
-    return suffix ? `./${suffix}` : ".";
-  }
-  // Fallback: only show the tail segments so we avoid huge absolute prefixes.
-  const parts = normP.split("/").filter(Boolean);
-  if (parts.length <= 3) return normP;
-  return `…/${parts.slice(-3).join("/")}`;
-}
-
 function inferSource(st, up) {
   const cwd = st.workingDirectory || "";
   const cur = up.currentRelease || null;
@@ -252,13 +237,12 @@ async function refresh() {
   set("curReleaseId", up.currentRelease?.releaseId);
   set("curMode", up.currentRelease?.mode);
   set("curUpdated", fmtTime(up.currentRelease?.updatedAt));
-  const curReleaseDir = up.currentRelease?.releaseDirAbs || up.currentRelease?.releaseDir;
-  set("curDir", prettyPath(curReleaseDir, st.workingDirectory));
+  set("curDir", up.currentRelease?.releaseDir || "—");
   const curLinkTargetPath =
-    (up.currentLinkTarget && up.currentLinkTarget.pathAbs) ||
+    (up.currentLinkTarget && up.currentLinkTarget.path) ||
     up.currentLinkTarget ||
     "";
-  set("curLinkTarget", prettyPath(curLinkTargetPath, st.workingDirectory));
+  set("curLinkTarget", curLinkTargetPath || "—");
   set("curSource", inferSource(st, up));
   set("curCommitMsg", commit.message || "—");
   const authorName =
@@ -280,8 +264,8 @@ async function refresh() {
 
   const apiHealth = ah.data || {};
   set("apiHealth", `${ah.status} ${apiHealth.ok ? "OK" : "FAIL"}`);
-  set("apiOutputDir", prettyPath(apiHealth.output_dir, st.workingDirectory));
-  set("apiPublicDir", prettyPath(apiHealth.public_dir, st.workingDirectory));
+  set("apiOutputDir", apiHealth.output_dir || "—");
+  set("apiPublicDir", apiHealth.public_dir || "—");
   set(
     "apiModelsCount",
     Array.isArray(am.data?.models) ? am.data.models.length : "—",

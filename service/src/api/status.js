@@ -1,14 +1,23 @@
 "use strict";
 
-const path = require("path");
-
 function relativeToService(p, serviceRoot) {
   if (!p) return ".";
-  const rel = path.relative(serviceRoot, p);
-  if (!rel || rel === "") return ".";
-  // If outside serviceRoot, keep absolute to avoid ".." segments.
-  if (rel.startsWith("..")) return p;
-  return rel;
+  // Convert absolute paths into "path relative to the directory named /service".
+  const norm = String(p).replace(/\\/g, "/");
+  const lower = norm.toLowerCase();
+  const marker = "/service/";
+  const idx = lower.lastIndexOf(marker);
+  if (idx !== -1) {
+    const rel = norm.slice(idx + marker.length);
+    return rel || ".";
+  }
+  const marker2 = "/service";
+  const idx2 = lower.lastIndexOf(marker2);
+  if (idx2 !== -1) {
+    const rel = norm.slice(idx2 + marker2.length).replace(/^\/+/, "");
+    return rel || ".";
+  }
+  return ".";
 }
 
 /**

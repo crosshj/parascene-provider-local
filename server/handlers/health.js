@@ -1,7 +1,5 @@
 "use strict";
 
-const path = require("path");
-
 const { sendJson } = require("../lib.js");
 const { getModels } = require("./models.js");
 const { getWorkerStatus } = require("./generate.js");
@@ -9,16 +7,21 @@ const { getSummary: getJobSummary } = require("../jobs/scheduler.js");
 
 function makeRelativeToService(p) {
   if (!p) return null;
-  const serviceDir = path.join(process.cwd(), "service");
-  try {
-    const rel = path.relative(serviceDir, p);
-    if (!rel || rel === "") return ".";
-    // If outside /service, keep absolute to avoid "..".
-    if (rel.startsWith("..")) return p;
-    return rel;
-  } catch {
-    return p;
+  const norm = String(p).replace(/\\/g, "/");
+  const lower = norm.toLowerCase();
+  const marker = "/service/";
+  const idx = lower.lastIndexOf(marker);
+  if (idx !== -1) {
+    const rel = norm.slice(idx + marker.length);
+    return rel || ".";
   }
+  const marker2 = "/service";
+  const idx2 = lower.lastIndexOf(marker2);
+  if (idx2 !== -1) {
+    const rel = norm.slice(idx2 + marker2.length).replace(/^\/+/, "");
+    return rel || ".";
+  }
+  return null;
 }
 
 function handleHealth(_req, res, ctx) {
