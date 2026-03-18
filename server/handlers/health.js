@@ -2,10 +2,6 @@
 
 const path = require("path");
 
-"use strict";
-
-const path = require("path");
-
 const { sendJson } = require("../lib.js");
 const { getModels } = require("./models.js");
 const { getWorkerStatus } = require("./generate.js");

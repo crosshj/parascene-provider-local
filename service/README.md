@@ -2,6 +2,10 @@
 
 Node supervisor service for local provider operations:
 
+## Recent Maintenance
+
+On March 18, 2026, a duplicate declaration in `server/handlers/health.js` was fixed. If the service fails to start, check logs for JavaScript errors and restart using WinSW (`parascene-service.exe`).
+
 - `GET /healthz`
 - `GET /status`
 - `POST /webhooks/github`
