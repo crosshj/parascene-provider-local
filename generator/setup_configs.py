@@ -43,6 +43,106 @@ def setup_zimage() -> None:
         },
     )
 
+    # scheduler config
+    write_json(
+        out / "scheduler" / "scheduler_config.json",
+        {
+            "_class_name": "EulerDiscreteScheduler",
+            "_diffusers_version": "0.21.0",
+            "beta_end": 0.012,
+            "beta_schedule": "scaled_linear",
+            "beta_start": 0.00085,
+            "interpolation_type": "linear",
+            "num_train_timesteps": 1000,
+            "prediction_type": "epsilon",
+            "sigma_max": None,
+            "sigma_min": None,
+            "steps_offset": 1,
+            "timestep_spacing": "leading",
+            "timestep_type": "discrete",
+            "trained_betas": None,
+            "use_karras_sigmas": False,
+        },
+    )
+
+    # text_encoder config
+    write_json(
+        out / "text_encoder" / "config.json",
+        {
+            "architectures": ["CLIPTextModel"],
+            "attention_dropout": 0.0,
+            "bos_token_id": 49406,
+            "dropout": 0.0,
+            "eos_token_id": 49407,
+            "hidden_act": "quick_gelu",
+            "hidden_size": 768,
+            "initializer_factor": 1.0,
+            "initializer_range": 0.02,
+            "intermediate_size": 3072,
+            "layer_norm_eps": 1e-05,
+            "max_position_embeddings": 77,
+            "model_type": "clip_text_model",
+            "num_attention_heads": 12,
+            "num_hidden_layers": 12,
+            "pad_token_id": 1,
+            "projection_dim": 768,
+            "torch_dtype": "float32",
+            "transformers_version": "4.40.0",
+            "vocab_size": 49408,
+        },
+    )
+
+    # unet config (minimal stub, as SDXL does not write one, but comfy may require it)
+    # If you have a reference config for UNet2DConditionModel, add it here.
+
+    # vae config
+    write_json(
+        out / "vae" / "config.json",
+        {
+            "_class_name": "AutoencoderKL",
+            "_diffusers_version": "0.30.0",
+            "act_fn": "silu",
+            "block_out_channels": [128, 256, 512, 512],
+            "down_block_types": [
+                "DownEncoderBlock2D",
+                "DownEncoderBlock2D",
+                "DownEncoderBlock2D",
+                "DownEncoderBlock2D"
+            ],
+            "up_block_types": [
+                "UpDecoderBlock2D",
+                "UpDecoderBlock2D",
+                "UpDecoderBlock2D",
+                "UpDecoderBlock2D"
+            ],
+            "in_channels": 3,
+            "out_channels": 3,
+            "latent_channels": 16,
+            "layers_per_block": 2,
+            "sample_size": 1024,
+            "scaling_factor": 0.3611,
+            "shift_factor": 0.1159,
+        },
+    )
+
+    # Copy tokenizer files from HF cache if available
+    tok_dst = out / "tokenizer"
+    if (tok_dst / "vocab.json").exists():
+        print("  tokenizer (CLIP) already in place, skipping")
+    else:
+        slug = "models--openai--clip-vit-large-patch14"
+        snap = find_hf_snapshot(slug, "vocab.json")
+        if snap is None:
+            print("  CLIP tokenizer not found in HF cache. Run once with internet to cache it:")
+            print("    python -c \"from transformers import CLIPTokenizer; CLIPTokenizer.from_pretrained('openai/clip-vit-large-patch14')\"")
+        else:
+            tok_dst.mkdir(parents=True, exist_ok=True)
+            for fname in ("vocab.json", "merges.txt", "tokenizer_config.json", "special_tokens_map.json"):
+                src = snap / fname
+                if src.exists():
+                    shutil.copy2(src, tok_dst / fname)
+                    print(f"  copied tokenizer/{fname} from HF cache")
+
     print("[z-image] done.")
 # Helpers
 # ---------------------------------------------------------------------------
