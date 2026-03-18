@@ -87,28 +87,10 @@ def is_transformer_only_zimage_checkpoint(path_value: str) -> bool:
         return False
 
 def build_zimage_load_kwargs(configs_dir: Path, torch_dtype) -> Tuple[Path, dict]:
-    # Standard: configs_dir/z-image
-    local_config = configs_dir / "z-image"
-
-    env_config = os.environ.get("ZIMAGE_CONFIG_DIR")
-    env_path = Path(env_config).expanduser() if env_config else None
-
-    # Best-effort: source-only repos may not ship generated configs.
+    # Always use main generator/configs/z-image directory for configs
+    root = Path(__file__).resolve().parents[1]
+    local_config = root / "configs" / "z-image"
     if not (local_config / "model_index.json").exists():
-        _ensure_zimage_configs(configs_dir)
-
-    # Prefer the env override if it has a valid model_index.json.
-    if env_path and (env_path / "model_index.json").exists():
-        local_config = env_path
-
-    if not (local_config / "model_index.json").exists():
-        if env_path:
-            raise RuntimeError(
-                "Z-Image config not found in either location.\n"
-                f"  local: {local_config}\n"
-                f"  env:   {env_path}\n"
-                "Run setup_configs.py or check your configs directory."
-            )
         raise RuntimeError(
             f"Z-Image config not found at {local_config}. "
             "Run setup_configs.py or check your configs directory."
