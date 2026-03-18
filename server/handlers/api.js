@@ -173,7 +173,7 @@ async function handleApiPost(req, res, ctx = {}) {
         job_id: jobId,
       });
     }
-    if (job.status === "pending") {
+    if (job.status === "pending" || job.status === "running") {
       return sendJson(res, 202, {
         async: true,
         status: job.status,
