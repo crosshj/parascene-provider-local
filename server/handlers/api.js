@@ -11,6 +11,8 @@ const {
   getSummary: getJobSummary,
 } = require("../jobs/scheduler.js");
 
+const { TEXT2IMG_CREDITS, sendJson, readJson } = require("../lib.js");
+
 // Shared API key for simple bearer auth.
 // For now we allow a hardcoded default; in production this should be set via env.
 const PARASCENE_API_KEY =

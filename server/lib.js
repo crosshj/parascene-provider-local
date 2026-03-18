@@ -2,6 +2,9 @@
 
 const http = require("http");
 
+// Default credits for text2img operation (shared)
+const TEXT2IMG_CREDITS = 0.2;
+
 const CORS_ALLOWED_ORIGIN =
   process.env.CORS_ALLOWED_ORIGIN || "https://www.parascene.com";
 
@@ -22,10 +25,7 @@ function setCorsHeaders(res, req) {
     res.setHeader("Access-Control-Allow-Origin", origin);
   }
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Authorization",
-  );
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   res.setHeader("Access-Control-Max-Age", "86400");
 }
 

@@ -6,7 +6,7 @@ const path = require("path");
 const { runGenerator, sanitizePromptText } = require("../handlers/generate.js");
 const { resolveModel } = require("../handlers/models.js");
 
-const TEXT2IMG_CREDITS = 0.2;
+const { TEXT2IMG_CREDITS } = require("../lib.js");
 
 // Job state is persisted under DATA_ROOT/runtime so it survives rollouts.
 const dataRoot = process.env.DATA_ROOT || process.cwd();
@@ -62,10 +62,15 @@ function _loadState() {
     }
     jobs = map;
     const order = Array.isArray(parsed.pendingOrder)
-      ? parsed.pendingOrder.filter((id) => jobs.has(id) && jobs.get(id).status === "pending")
+      ? parsed.pendingOrder.filter(
+          (id) => jobs.has(id) && jobs.get(id).status === "pending",
+        )
       : [];
     pendingOrder = order;
-    currentModelKey = typeof parsed.currentModelKey === "string" ? parsed.currentModelKey : null;
+    currentModelKey =
+      typeof parsed.currentModelKey === "string"
+        ? parsed.currentModelKey
+        : null;
   } catch {
     // ignore corrupted state; start fresh
     jobs = new Map();
@@ -265,4 +270,3 @@ module.exports = {
   getJob,
   getSummary,
 };
-
