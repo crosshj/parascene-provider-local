@@ -31,17 +31,23 @@ def is_transformer_only_zimage_checkpoint(path_value: str) -> bool:
         return False
 
 def build_zimage_load_kwargs(configs_dir: Path, torch_dtype) -> Tuple[Path, dict]:
-    # Default to configs_dir/z-image unless env var is set
-    local_config = Path(os.environ.get("ZIMAGE_CONFIG_DIR", str(configs_dir / "z-image"))).expanduser()
+    # Standard: configs_dir/z-image
+    local_config = configs_dir / "z-image"
     if not (local_config / "model_index.json").exists():
-        # Try default path like other families
-        default_config = configs_dir / "z-image"
-        if (default_config / "model_index.json").exists():
-            local_config = default_config
+        # Try environment override
+        env_config = os.environ.get("ZIMAGE_CONFIG_DIR")
+        if env_config:
+            env_path = Path(env_config).expanduser()
+            if (env_path / "model_index.json").exists():
+                local_config = env_path
+            else:
+                raise RuntimeError(
+                    f"Z-Image config not found at env override {env_path}. "
+                    "Run setup_configs.py or check your configs directory."
+                )
         else:
             raise RuntimeError(
-                f"Z-Image local config not found at {local_config}. "
-                f"Expected model_index.json at {default_config}. "
+                f"Z-Image config not found at {local_config}. "
                 "Run setup_configs.py or check your configs directory."
             )
     return local_config, {
