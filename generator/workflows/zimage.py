@@ -86,6 +86,119 @@ def is_transformer_only_zimage_checkpoint(path_value: str) -> bool:
     except Exception:
         return False
 
+def _pick_local_path(label: str, env_name: str, candidates: list[Path]) -> Path:
+    """Pick a local checkpoint path for a required component."""
+    env_value = (os.environ.get(env_name, "") or "").strip()
+    if env_value:
+        path = Path(env_value).expanduser()
+        if not path.exists():
+            raise RuntimeError(f"{env_name} points to missing {label}: {path}")
+        return path
+
+    for path in candidates:
+        if path.exists():
+            return path
+
+    tried = "\n".join(f"  - {p}" for p in candidates)
+    raise RuntimeError(
+        f"Missing local {label}. Set {env_name} or place one at:\n{tried}"
+    )
+
+def load_zimage_with_local_components(
+    model_path: str,
+    local_config_path: Path,
+    torch_dtype,
+    FluxPipeline,
+    AutoencoderKL,
+):
+    """
+    Load a Z-Image FLUX pipeline when the .safetensors checkpoint does not
+    include CLIP (and/or VAE) weights.
+    """
+    from safetensors.torch import load_file
+    from transformers import CLIPTextConfig, CLIPTextModel, CLIPTokenizer
+
+    clip_path = _pick_local_path(
+        "CLIP encoder",
+        "ZIMAGE_CLIP_PATH",
+        [Path("D:/comfy_models/text_encoders/clip_l.safetensors")],
+    )
+    vae_path = _pick_local_path(
+        "VAE",
+        "ZIMAGE_VAE_PATH",
+        [Path("D:/comfy_models/vae/ae.safetensors")],
+    )
+
+    clip_tok_dir = local_config_path / "tokenizer"
+    clip_cfg_dir = local_config_path / "text_encoder"
+    vae_cfg_dir = local_config_path / "vae"
+
+    for required_dir in (clip_tok_dir, clip_cfg_dir, vae_cfg_dir):
+        if not required_dir.exists():
+            raise RuntimeError(f"Missing local config directory: {required_dir}")
+
+    sys.stderr.write(
+        "[worker] Z-Image local components:\n"
+        f"  model: {model_path}\n"
+        f"  clip:  {clip_path}\n"
+        f"  vae:   {vae_path}\n"
+        f"  cfg:   {local_config_path}\n"
+    )
+    sys.stderr.flush()
+
+    # CLIP weights live in a separate file for some Z-Image checkpoints.
+    clip_sd = load_file(str(clip_path))
+    clip_cfg = CLIPTextConfig.from_pretrained(str(clip_cfg_dir), local_files_only=True)
+    clip_tokenizer = CLIPTokenizer.from_pretrained(
+        str(clip_tok_dir),
+        local_files_only=True,
+    )
+    clip_model = CLIPTextModel.from_pretrained(
+        pretrained_model_name_or_path=None,
+        config=clip_cfg,
+        state_dict=clip_sd,
+        low_cpu_mem_usage=True,
+        torch_dtype=torch_dtype,
+    ).eval()
+
+    try:
+        vae_model = AutoencoderKL.from_single_file(
+            str(vae_path),
+            config=str(vae_cfg_dir),
+            torch_dtype=torch_dtype,
+            local_files_only=True,
+        )
+    except Exception as vae_exc:
+        if "meta tensor" not in str(vae_exc).lower():
+            raise
+        vae_model = AutoencoderKL.from_single_file(
+            str(vae_path),
+            config=str(vae_cfg_dir),
+            torch_dtype=torch_dtype,
+            local_files_only=True,
+            low_cpu_mem_usage=False,
+        )
+
+    base_kwargs = {
+        "config": str(local_config_path),
+        "torch_dtype": torch_dtype,
+        "local_files_only": True,
+        "tokenizer": clip_tokenizer,
+        "text_encoder": clip_model,
+        "vae": vae_model,
+    }
+
+    try:
+        return FluxPipeline.from_single_file(model_path, **base_kwargs)
+    except Exception as flux_exc:
+        if "meta tensor" not in str(flux_exc).lower():
+            raise
+        return FluxPipeline.from_single_file(
+            model_path,
+            low_cpu_mem_usage=False,
+            **base_kwargs,
+        )
+
 def build_zimage_load_kwargs(configs_dir: Path, torch_dtype) -> Tuple[Path, dict]:
     # Always use main generator/configs/z-image directory for configs
     root = Path(__file__).resolve().parents[1]
@@ -121,10 +234,32 @@ def load_pipeline(model_path: str, configs_dir: Path, torch_module, use_cuda: bo
             if "meta tensor" not in str(first_exc).lower():
                 raise
             return FluxPipeline.from_single_file(path_value, low_cpu_mem_usage=False, **kwargs_value)
+
     if is_transformer_only_zimage_checkpoint(model_path):
-        pipe = _from_single_file_with_meta_retry(model_path, load_kwargs)
+        pipe = load_zimage_with_local_components(
+            model_path,
+            local_config,
+            zimage_dtype,
+            FluxPipeline,
+            AutoencoderKL,
+        )
     else:
-        pipe = _from_single_file_with_meta_retry(model_path, load_kwargs)
+        try:
+            pipe = _from_single_file_with_meta_retry(model_path, load_kwargs)
+        except Exception as first_exc:
+            msg = str(first_exc).lower()
+            # Some checkpoints omit CLIP weights even if they include other parts.
+            # In that case, retry by wiring a standalone text_encoder/vae.
+            if "cliptextmodel" in msg or "text_encoder" in msg or "weights for this component appear to be missing" in msg:
+                pipe = load_zimage_with_local_components(
+                    model_path,
+                    local_config,
+                    zimage_dtype,
+                    FluxPipeline,
+                    AutoencoderKL,
+                )
+            else:
+                raise
     pipe = pipe.to("cuda" if use_cuda else "cpu")
     if enable_xformers and use_cuda:
         try:

@@ -31,6 +31,7 @@ import workflows.flux as workflow_flux
 import workflows.flux_ccr as workflow_flux_ccr
 import workflows.flux_test as workflow_flux_test
 import workflows.qwen as workflow_qwen
+import workflows.zimage_comfy as workflow_zimage_comfy
 import workflows.sdxl as workflow_sdxl
 import workflows.sd15 as workflow_sd15
 
@@ -292,11 +293,10 @@ def load_pipeline(family: str, model: str):
             )
             _log(f"load_pipeline:loaded flux in {int((time.time() - load_started) * 1000)}ms")
         elif family == "z-image":
-            import workflows.zimage as workflow_zimage
             _log("load_pipeline:loading z-image")
             load_started = time.time()
             dtype = torch.float16 if use_cuda else torch.float32
-            pipe = workflow_zimage.load_pipeline(
+            pipe = workflow_zimage_comfy.load_pipeline(
                 model_path, configs_dir, torch, use_cuda, dtype, False, True,
             )
             _log(f"load_pipeline:loaded z-image in {int((time.time() - load_started) * 1000)}ms")
@@ -345,6 +345,8 @@ def run_generation(pipe, family: str, payload: Dict[str, Any], torch_module):
         return workflow_sd15.generate(pipe, payload, torch_module)
     elif family == "qwen":
         return workflow_qwen.generate(pipe, payload, torch_module)
+    elif family == "z-image":
+        return workflow_zimage_comfy.generate(pipe, payload, torch_module)
     else:
         raise ValueError(f"Unknown family '{family}'")
 

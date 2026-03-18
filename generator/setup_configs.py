@@ -133,15 +133,36 @@ def setup_zimage() -> None:
         slug = "models--openai--clip-vit-large-patch14"
         snap = find_hf_snapshot(slug, "vocab.json")
         if snap is None:
-            print("  CLIP tokenizer not found in HF cache. Run once with internet to cache it:")
-            print("    python -c \"from transformers import CLIPTokenizer; CLIPTokenizer.from_pretrained('openai/clip-vit-large-patch14')\"")
+            raise RuntimeError(
+                "CLIP tokenizer not found in HF cache for z-image setup.\n"
+                "Run once with internet to cache it, or pre-populate the cache:\n"
+                "  python -c \"from transformers import CLIPTokenizer; "
+                "CLIPTokenizer.from_pretrained('openai/clip-vit-large-patch14')\"\n\n"
+                "Alternatively, manually create `generator/configs/z-image/tokenizer/` "
+                "with: vocab.json, merges.txt, tokenizer_config.json, special_tokens_map.json."
+            )
         else:
             tok_dst.mkdir(parents=True, exist_ok=True)
-            for fname in ("vocab.json", "merges.txt", "tokenizer_config.json", "special_tokens_map.json"):
+            expected = (
+                "vocab.json",
+                "merges.txt",
+                "tokenizer_config.json",
+                "special_tokens_map.json",
+            )
+            missing = [fname for fname in expected if not (snap / fname).exists()]
+            if missing:
+                raise RuntimeError(
+                    "HF cache snapshot for CLIP tokenizer is missing files for z-image setup: "
+                    + ", ".join(missing)
+                )
+            for fname in expected:
                 src = snap / fname
-                if src.exists():
-                    shutil.copy2(src, tok_dst / fname)
-                    print(f"  copied tokenizer/{fname} from HF cache")
+                shutil.copy2(src, tok_dst / fname)
+                print(f"  copied tokenizer/{fname} from HF cache")
+
+            for fname in expected:
+                if not (tok_dst / fname).exists():
+                    raise RuntimeError(f"Failed to write z-image tokenizer file: {fname}")
 
     print("[z-image] done.")
 # Helpers
@@ -343,7 +364,7 @@ def setup_flux() -> None:
         print("  tokenizer_2 (T5) already in place, skipping")
     else:
         print("  downloading T5 tokenizer from google-t5/t5-base (public, ~800 KB)...")
-        from transformers import T5TokenizerFast
+        from transformers import T5TokenizerFast  # type: ignore[import-not-found]
         tokenizer = T5TokenizerFast.from_pretrained("google-t5/t5-base")
         tokenizer.save_pretrained(str(tok2_dst))
         print(f"  T5 tokenizer saved to configs/flux/tokenizer_2/")
@@ -499,5 +520,13 @@ if __name__ == "__main__":
     setup_flux()
     setup_sdxl()
     setup_sd15()
-    setup_zimage()
+    # Z-Image currently has two possible generation backends:
+    # - Diffusers-based (`workflows/zimage.py`) which needs these configs.
+    # - Comfy-based (`workflows/zimage_comfy.py`) which does NOT need Diffusers configs.
+    # Make z-image setup optional to avoid hard failures when the CLIP tokenizer
+    # is not cached locally.
+    if (os.environ.get("SKIP_ZIMAGE_SETUP", "0") or "0").strip().lower() in ("1", "true", "yes", "on"):
+        print("[z-image] setup skipped (SKIP_ZIMAGE_SETUP=1).")
+    else:
+        setup_zimage()
     print("\nAll configs ready. Restart the server — no HF network access needed during generation.")
