@@ -402,6 +402,7 @@ class UpdateQueue {
         releaseDir: parsed.releaseDir || null,
         updatedAt: parsed.updatedAt || null,
         mode: parsed.mode || null,
+        headCommit: parsed.headCommit || null,
       };
     } catch (err) {
       this.log.warn("updater.current.read.error", { error: err.message });

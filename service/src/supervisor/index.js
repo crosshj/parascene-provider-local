@@ -66,6 +66,7 @@ function getStatusState() {
     // use empty gpu if file missing or invalid
   }
   return {
+    serviceRoot,
     version: config.version,
     uptimeMs: Date.now() - startTime,
     gpu,

@@ -152,7 +152,10 @@ function prettyPath(p, base) {
 function inferSource(st, up) {
   const cwd = st.workingDirectory || "";
   const cur = up.currentRelease || null;
-  const currentTarget = up.currentLinkTarget || "";
+  const currentTarget =
+    (up.currentLinkTarget && up.currentLinkTarget.pathAbs) ||
+    up.currentLinkTarget ||
+    "";
   const releaseDir = cur?.releaseDir || "";
   const sameAsRelease =
     normalizePath(currentTarget) &&
@@ -249,8 +252,13 @@ async function refresh() {
   set("curReleaseId", up.currentRelease?.releaseId);
   set("curMode", up.currentRelease?.mode);
   set("curUpdated", fmtTime(up.currentRelease?.updatedAt));
-  set("curDir", prettyPath(up.currentRelease?.releaseDir, st.workingDirectory));
-  set("curLinkTarget", prettyPath(up.currentLinkTarget, st.workingDirectory));
+  const curReleaseDir = up.currentRelease?.releaseDirAbs || up.currentRelease?.releaseDir;
+  set("curDir", prettyPath(curReleaseDir, st.workingDirectory));
+  const curLinkTargetPath =
+    (up.currentLinkTarget && up.currentLinkTarget.pathAbs) ||
+    up.currentLinkTarget ||
+    "";
+  set("curLinkTarget", prettyPath(curLinkTargetPath, st.workingDirectory));
   set("curSource", inferSource(st, up));
   set("curCommitMsg", commit.message || "—");
   const authorName =
