@@ -77,6 +77,7 @@ def _ensure_sdxl_configs(configs_dir: Path) -> None:
 
 def build_sdxl_load_kwargs(configs_dir: Path, torch_dtype) -> Tuple[Path, dict]:
     local_config = configs_dir / "sdxl"
+    print(f"[SDXL] Using config path: {local_config}", file=sys.stderr)
 
     # If required configs are missing, attempt a one-time auto-setup to make
     # remote deployments recover gracefully when setup_configs.py has not been
