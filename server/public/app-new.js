@@ -364,8 +364,13 @@ function initApp() {
 				});
 
 				if (pollRes.status === 202) {
-					await new Promise((r) => setTimeout(r, 1500));
-					continue;
+					// Check for status in response body
+					const pollData = await pollRes.json().catch(() => ({}));
+					const status = pollData.status || '';
+					if (status === 'pending' || status === 'running') {
+						await new Promise((r) => setTimeout(r, 1500));
+						continue;
+					}
 				}
 
 				if (pollRes.status === 200) {
