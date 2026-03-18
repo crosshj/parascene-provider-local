@@ -74,7 +74,8 @@ function handleApiGet(req, res) {
     (m) =>
       m.family !== "wan" &&
       (m.family !== "sdxl" || ALLOWED_SDXL.has(m.name)) &&
-      (m.family !== "sd15" || ALLOWED_SD15.has(m.name)),
+      (m.family !== "sd15" || ALLOWED_SD15.has(m.name)) &&
+      (m.family !== "z-image" || true), // Always allow z-image
   );
   const modelOptions = filteredModels.map((m) => ({
     label: `${m.family}: ${m.name}`,

@@ -48,7 +48,7 @@ const FILENAME_OVERRIDES = [
 // Default step counts per family (used by frontend defaults).
 const FAMILY_DEFAULTS = {
   flux: { steps: 20, cfg: 1.0, width: 1024, height: 1024 },
-  z-image: { steps: 30, cfg: 7.0, width: 1024, height: 1024 },
+  "z-image": { steps: 30, cfg: 7.0, width: 1024, height: 1024 },
   sdxl: { steps: 30, cfg: 7.0, width: 1024, height: 1024 },
   sd15: { steps: 20, cfg: 2.0, width: 512, height: 512 },
   wan: { steps: 25, cfg: 7.0, width: 768, height: 768 },
