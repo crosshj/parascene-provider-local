@@ -3,15 +3,9 @@
 const fs = require("fs");
 const path = require("path");
 
-const { sendJson, readJson } = require("../lib.js");
+const { sendJson, readJson, TEXT2IMG_CREDITS } = require("../lib.js");
 const { getModels } = require("./models.js");
-const {
-  enqueueText2ImgJob,
-  getJob,
-  getSummary: getJobSummary,
-} = require("../jobs/scheduler.js");
-
-const { TEXT2IMG_CREDITS, sendJson, readJson } = require("../lib.js");
+const { enqueueText2ImgJob, getJob } = require("../jobs/scheduler.js");
 
 // Shared API key for simple bearer auth.
 // For now we allow a hardcoded default; in production this should be set via env.
