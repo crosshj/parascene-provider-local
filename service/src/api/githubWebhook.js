@@ -95,6 +95,9 @@ function createGitHubWebhookHandler({ config, log, updateQueue }) {
       ref,
       sha,
       receivedAt: new Date().toISOString(),
+      // Store the full webhook payload so we can inspect commit details later.
+      payload: body,
+      headCommit: body?.head_commit || null,
     };
 
     updateQueue.recordWebhookEvent(event);

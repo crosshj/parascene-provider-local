@@ -57,8 +57,23 @@ class UpdateQueue {
   }
 
   getStatus() {
-    const currentRelease = this._readCurrentRelease();
-    const currentLinkTarget = this._readCurrentLinkTarget();
+    const currentReleaseRaw = this._readCurrentRelease();
+    const currentLinkTargetRaw = this._readCurrentLinkTarget();
+    const currentRelease =
+      currentReleaseRaw && currentReleaseRaw.releaseDir
+        ? {
+            ...currentReleaseRaw,
+            // Present releaseDir relative to serviceRoot for nicer API consumers.
+            releaseDir: path.relative(this.serviceRoot, currentReleaseRaw.releaseDir),
+            releaseDirAbs: currentReleaseRaw.releaseDir,
+          }
+        : currentReleaseRaw;
+    const currentLinkTarget = currentLinkTargetRaw
+      ? {
+          path: path.relative(this.serviceRoot, currentLinkTargetRaw),
+          pathAbs: currentLinkTargetRaw,
+        }
+      : null;
     const releaseRetentionMax = Number.parseInt(
       process.env.UPDATE_MAX_RELEASES || "6",
       10,
@@ -104,6 +119,7 @@ class UpdateQueue {
       ref: event.ref,
       sha: event.sha,
       state: "queued",
+      headCommit: event.headCommit || null,
     };
 
     this.queue.push(job);

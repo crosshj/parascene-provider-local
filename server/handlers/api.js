@@ -4,18 +4,20 @@ const fs = require("fs");
 const path = require("path");
 
 const { sendJson, readJson } = require("../lib.js");
-const { runGenerator, sanitizePromptText } = require("./generate.js");
-const { getModels, resolveModel } = require("./models.js");
-
-const TEXT2IMG_CREDITS = 0.2;
+const { getModels } = require("./models.js");
+const {
+  enqueueText2ImgJob,
+  getJob,
+  getSummary: getJobSummary,
+} = require("../jobs/scheduler.js");
 
 // Shared API key for simple bearer auth.
 // For now we allow a hardcoded default; in production this should be set via env.
 const PARASCENE_API_KEY =
   process.env.PARASCENE_API_KEY || "parascene-local-dev-token";
 
-// In-memory job store: job_id -> { id, method, args, status, result?, error?, created_at, completed_at? }
-const jobs = new Map();
+// In-memory job store for stub (non-text2img) jobs only.
+const stubJobs = new Map();
 
 function getBearerToken(req) {
   const header = req.headers["authorization"] || req.headers["Authorization"];
@@ -57,7 +59,6 @@ const ALLOWED_SDXL = new Set([
   "illustriousXL20_v20",
   "juggernautXL_v7Rundiffusion",
   "juggernautXL_v9Rdphoto2Lightning",
-  "ponyDiffusionV6XL_v615",
   "ponyRealism_V23",
   "protovisionXLHighFidelity3D_releaseV660Bakedvae",
   "realcartoonXL_v6",
@@ -116,105 +117,12 @@ function handleApiGet(req, res) {
 }
 
 /**
- * Generate an opaque job_id for the async job pattern.
- * Format: job_<timestamp36>_<random6> e.g. job_m5k2x7_abc12d
- */
-function generateJobId() {
-  return `job_${Date.now().toString(36)}_${Math.random()
-    .toString(36)
-    .slice(2, 8)}`;
-}
-
-/**
- * Start a text2img job: validate args, enqueue with runGenerator, store job by job_id.
- * Returns the job record (status "pending"); the promise updates it when done.
- */
-function startText2ImgJob(jobId, args, outputDir) {
-  const prompt = sanitizePromptText(args.prompt);
-  if (!prompt) {
-    return { error: "Missing or invalid prompt" };
-  }
-  const modelName = String(args.model || "").trim();
-  if (!modelName) {
-    return { error: "Missing required field: model" };
-  }
-  const entry = resolveModel(modelName);
-  if (!entry) {
-    return {
-      error: `Unknown model: "${modelName}". Check GET /api or GET /api/models.`,
-    };
-  }
-
-  // Only prompt and model come from the client; everything else is determined by the API.
-  const defaults = entry.defaults || {};
-  const payload = {
-    prompt,
-    prompt_2: "",
-    negative_prompt: "",
-    model: entry.fullPath,
-    family: entry.family,
-    width: defaults.width ?? 1024,
-    height: defaults.height ?? 1024,
-    steps: defaults.steps ?? 20,
-    cfg: defaults.cfg ?? 7,
-    // seed omitted: generator uses random when not provided
-  };
-
-  const job = {
-    id: jobId,
-    method: "text2img",
-    args,
-    status: "pending",
-    created_at: new Date().toISOString(),
-    result: null,
-    error: null,
-    imageWidth: defaults.width ?? 1024,
-    imageHeight: defaults.height ?? 1024,
-    credits: TEXT2IMG_CREDITS,
-  };
-  jobs.set(jobId, job);
-
-  runGenerator(payload, outputDir)
-    .then((result) => {
-      const current = jobs.get(jobId);
-      if (!current) return;
-      if (result?.ok && result.file_name) {
-        current.status = "succeeded";
-        current.result = {
-          ok: true,
-          file_name: result.file_name,
-          image_url: `/outputs/${result.file_name}`,
-          seed: result.seed,
-          family: result.family,
-          model: result.model,
-          elapsed_ms: result.elapsed_ms,
-        };
-      } else {
-        current.status = "failed";
-        current.error = result?.error ?? "Generator did not return an image.";
-        current.result = { ok: false, error: current.error };
-      }
-      current.completed_at = new Date().toISOString();
-      jobs.set(jobId, current);
-    })
-    .catch((err) => {
-      const current = jobs.get(jobId);
-      if (!current) return;
-      current.status = "failed";
-      current.error = err.message ?? "Generation failed.";
-      current.result = { ok: false, error: current.error };
-      current.completed_at = new Date().toISOString();
-      jobs.set(jobId, current);
-    });
-
-  return job;
-}
-
-/**
  * Create a stub job (e.g. echo) for non–text2img methods. Used for testing the poll flow.
  */
 function createStubJob({ method, args }) {
-  const jobId = generateJobId();
+  const jobId = `job_${Date.now().toString(36)}_${Math.random()
+    .toString(36)
+    .slice(2, 8)}`;
   const job = {
     id: jobId,
     method,
@@ -224,9 +132,9 @@ function createStubJob({ method, args }) {
     result: null,
     error: null,
   };
-  jobs.set(jobId, job);
+  stubJobs.set(jobId, job);
   setTimeout(() => {
-    const current = jobs.get(jobId);
+    const current = stubJobs.get(jobId);
     if (!current || current.status !== "pending") return;
     if (current.method === "echo") {
       current.result = { echoed: current.args || {} };
@@ -235,7 +143,7 @@ function createStubJob({ method, args }) {
     }
     current.status = "succeeded";
     current.completed_at = new Date().toISOString();
-    jobs.set(jobId, current);
+    stubJobs.set(jobId, current);
   }, 150);
   return job;
 }
@@ -260,7 +168,7 @@ async function handleApiPost(req, res, ctx = {}) {
   // Poll: args.job_id present — return current status or final result.
   const jobId = typeof args.job_id === "string" ? args.job_id.trim() : "";
   if (jobId) {
-    const job = jobs.get(jobId);
+    const job = getJob(jobId) || stubJobs.get(jobId);
     if (!job) {
       return sendJson(res, 404, {
         async: true,
@@ -329,8 +237,7 @@ async function handleApiPost(req, res, ctx = {}) {
     if (!ctx.outputDir) {
       return sendJson(res, 503, { error: "OUTPUT_DIR not configured" });
     }
-    const id = generateJobId();
-    const job = startText2ImgJob(id, args, ctx.outputDir);
+    const job = enqueueText2ImgJob(args, ctx.outputDir);
     if (job.error) {
       return sendJson(res, 400, { error: job.error });
     }

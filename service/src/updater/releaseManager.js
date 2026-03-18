@@ -110,6 +110,7 @@ class ReleaseManager {
       source: syncResult.repoUrl,
       stagedAt: new Date().toISOString(),
       mode: "phase-9-staged-release",
+      headCommit: job.headCommit || null,
     };
     fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
     return metadataPath;
@@ -186,6 +187,7 @@ class ReleaseManager {
       currentPath: this.currentLinkPath,
       updatedAt: new Date().toISOString(),
       mode: "phase-9-current-pointer",
+      headCommit: job.headCommit || null,
       ...extra,
     };
     fs.writeFileSync(this.currentPointerPath, JSON.stringify(pointer, null, 2));

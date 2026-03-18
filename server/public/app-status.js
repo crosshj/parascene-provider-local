@@ -134,6 +134,21 @@ function normalizePath(p) {
     .toLowerCase();
 }
 
+function prettyPath(p, base) {
+  if (!p) return "—";
+  const raw = String(p);
+  const normP = raw.replace(/\\/g, "/");
+  const normBase = String(base || "").replace(/\\/g, "/");
+  if (normBase && normP.startsWith(normBase)) {
+    const suffix = normP.slice(normBase.length).replace(/^\/+/, "");
+    return suffix ? `./${suffix}` : ".";
+  }
+  // Fallback: only show the tail segments so we avoid huge absolute prefixes.
+  const parts = normP.split("/").filter(Boolean);
+  if (parts.length <= 3) return normP;
+  return `…/${parts.slice(-3).join("/")}`;
+}
+
 function inferSource(st, up) {
   const cwd = st.workingDirectory || "";
   const cur = up.currentRelease || null;
@@ -196,7 +211,7 @@ async function refresh() {
     st.uptime != null ? `${Math.round(st.uptime / 1000)}s` : "—",
   );
   set("corePid", st.parentPid);
-  set("coreCwd", st.workingDirectory);
+  set("coreCwd", st.workingDirectory || "—");
 
   const wk = ah.data && ah.data.worker ? ah.data.worker : {};
   set("wkState", wk.running === true ? "running" : "stopped (or not started)");
@@ -226,30 +241,70 @@ async function refresh() {
   );
   set("upRetention", up.releaseRetentionMax);
 
-  set("curSha", up.currentRelease?.resolvedSha || "unknown (no pointer)");
+  const commit = up.currentRelease?.headCommit || {};
+  const curSha =
+    (commit.id && String(commit.id).slice(0, 12)) ||
+    (up.currentRelease?.resolvedSha || "unknown (no pointer)");
+  set("curSha", curSha);
   set("curReleaseId", up.currentRelease?.releaseId);
   set("curMode", up.currentRelease?.mode);
   set("curUpdated", fmtTime(up.currentRelease?.updatedAt));
-  set("curDir", up.currentRelease?.releaseDir);
-  set("curLinkTarget", up.currentLinkTarget);
+  set("curDir", prettyPath(up.currentRelease?.releaseDir, st.workingDirectory));
+  set("curLinkTarget", prettyPath(up.currentLinkTarget, st.workingDirectory));
   set("curSource", inferSource(st, up));
+  set("curCommitMsg", commit.message || "—");
+  const authorName =
+    (commit.author && commit.author.name) || commit.author_name || null;
+  const authorEmail =
+    (commit.author && commit.author.email) || commit.author_email || null;
+  const authorLabel = authorName
+    ? authorEmail
+      ? `${authorName} <${authorEmail}>`
+      : authorName
+    : authorEmail || "—";
+  set("curCommitAuthor", authorLabel);
+  const commitTime =
+    commit.timestamp ||
+    (commit.author && commit.author.date) ||
+    commit.committer?.date ||
+    null;
+  set("curCommitTime", fmtTime(commitTime));
 
   const apiHealth = ah.data || {};
   set("apiHealth", `${ah.status} ${apiHealth.ok ? "OK" : "FAIL"}`);
-  set("apiOutputDir", apiHealth.output_dir);
-  set("apiPublicDir", apiHealth.public_dir);
+  set("apiOutputDir", prettyPath(apiHealth.output_dir, st.workingDirectory));
+  set("apiPublicDir", prettyPath(apiHealth.public_dir, st.workingDirectory));
   set(
     "apiModelsCount",
     Array.isArray(am.data?.models) ? am.data.models.length : "—",
   );
+
+  const jobs = apiHealth.jobs || {};
+  set("jobQueueLen", jobs.queueLength ?? "0");
+  set("jobRunning", jobs.runningCount ?? "0");
+  set("jobActiveModel", jobs.activeModel || "none");
+  if (jobs.byModel && typeof jobs.byModel === "object") {
+    const parts = [];
+    for (const [key, val] of Object.entries(jobs.byModel)) {
+      const pending = val && typeof val.pending === "number" ? val.pending : 0;
+      parts.push(`${key}:${pending}`);
+    }
+    set("jobByModel", parts.length ? parts.join(" | ") : "none");
+  } else {
+    set("jobByModel", "none");
+  }
 
   const coreGood = h.ok && s.ok;
   const workerGood = wk.running === true;
   const gpuGood = classifyState(gpu.status) === "ok";
   const apiGood = ah.ok && ah.data?.ok !== false;
   const updaterBad = classifyState(up.state) === "bad" || !!up.lastFailedJob;
+  const jobsBad =
+    typeof jobs.queueLength === "number" &&
+    jobs.queueLength > 0 &&
+    classifyState(wk.running === true ? "running" : "stopped") === "bad";
 
-  if (!coreGood || updaterBad || !apiGood) setPill("NOT HEALTHY", "bad");
+  if (!coreGood || updaterBad || !apiGood || jobsBad) setPill("NOT HEALTHY", "bad");
   else if (!workerGood || !gpuGood) setPill("DEGRADED", "warn");
   else setPill("HEALTHY", "ok");
 }
