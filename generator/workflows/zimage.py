@@ -90,6 +90,15 @@ def build_zimage_load_kwargs(configs_dir: Path, torch_dtype) -> Tuple[Path, dict
     # Always use main generator/configs/z-image directory for configs
     root = Path(__file__).resolve().parents[1]
     local_config = root / "configs" / "z-image"
+    # Auto-generate configs if missing (like SDXL)
+    if not (local_config / "model_index.json").exists():
+        try:
+            import contextlib
+            from setup_configs import setup_zimage
+            with contextlib.redirect_stdout(sys.stderr):
+                setup_zimage()
+        except Exception:
+            pass
     if not (local_config / "model_index.json").exists():
         raise RuntimeError(
             f"Z-Image config not found at {local_config}. "
