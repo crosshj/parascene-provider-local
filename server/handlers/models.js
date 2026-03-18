@@ -23,6 +23,7 @@ const MODEL_DIRS = [
   // FLUX: diffusion_models is the known-good Comfy path.
   // checkpoint-style FLUX1 is optional (off by default).
   { rel: "diffusion_models\\flux", family: "flux" },
+  { rel: "diffusion_models\\z-image", family: "z-image" },
   ...(INCLUDE_FLUX_CHECKPOINTS
     ? [{ rel: "checkpoints\\FLUX1", family: "flux" }]
     : []),
@@ -37,6 +38,7 @@ const MODEL_DIRS = [
 // is ambiguous or a model lives in an unexpected folder).
 const FILENAME_OVERRIDES = [
   { test: /flux/i, family: "flux" },
+  { test: /z-image/i, family: "z-image" },
   { test: /pony/i, family: "sdxl" },
   { test: /xl/i, family: "sdxl" },
   { test: /sdxl/i, family: "sdxl" },
@@ -46,6 +48,7 @@ const FILENAME_OVERRIDES = [
 // Default step counts per family (used by frontend defaults).
 const FAMILY_DEFAULTS = {
   flux: { steps: 20, cfg: 1.0, width: 1024, height: 1024 },
+  z-image: { steps: 30, cfg: 7.0, width: 1024, height: 1024 },
   sdxl: { steps: 30, cfg: 7.0, width: 1024, height: 1024 },
   sd15: { steps: 20, cfg: 2.0, width: 512, height: 512 },
   wan: { steps: 25, cfg: 7.0, width: 768, height: 768 },
