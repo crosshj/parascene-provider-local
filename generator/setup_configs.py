@@ -23,6 +23,28 @@ CONFIGS = SCRIPT_DIR / "configs"
 
 
 # ---------------------------------------------------------------------------
+# Z-Image config
+# ---------------------------------------------------------------------------
+def setup_zimage() -> None:
+    out = CONFIGS / "z-image"
+    out.mkdir(parents=True, exist_ok=True)
+    print("\n[z-image] writing pipeline configs...")
+
+    write_json(
+        out / "model_index.json",
+        {
+            "_class_name": "ZImageDiffusionPipeline",
+            "_diffusers_version": "0.30.0",
+            "model_path": "D:/comfy_models/diffusion_models/z-image",
+            "scheduler": ["diffusers", "EulerDiscreteScheduler"],
+            "text_encoder": ["transformers", "CLIPTextModel"],
+            "tokenizer": ["transformers", "CLIPTokenizer"],
+            "unet": ["diffusers", "UNet2DConditionModel"],
+            "vae": ["diffusers", "AutoencoderKL"]
+        },
+    )
+
+    print("[z-image] done.")
 # Helpers
 # ---------------------------------------------------------------------------
 
@@ -378,4 +400,5 @@ if __name__ == "__main__":
     setup_flux()
     setup_sdxl()
     setup_sd15()
+    setup_zimage()
     print("\nAll configs ready. Restart the server — no HF network access needed during generation.")
