@@ -4,6 +4,15 @@ const fs = require("fs");
 const path = require("path");
 const { UpdatePipeline } = require("./updatePipeline");
 
+function relativeToService(p, serviceRoot) {
+  if (!p) return null;
+  const rel = path.relative(serviceRoot, p);
+  // If the path is outside serviceRoot, keep it absolute to avoid ".." segments.
+  if (!rel || rel === "") return ".";
+  if (rel.startsWith("..")) return p;
+  return rel;
+}
+
 class UpdateQueue {
   constructor({
     serviceRoot,
@@ -63,14 +72,17 @@ class UpdateQueue {
       currentReleaseRaw && currentReleaseRaw.releaseDir
         ? {
             ...currentReleaseRaw,
-            // Present releaseDir relative to serviceRoot for nicer API consumers.
-            releaseDir: path.relative(this.serviceRoot, currentReleaseRaw.releaseDir),
+            // Present releaseDir relative to serviceRoot; avoid ".." segments.
+            releaseDir: relativeToService(
+              currentReleaseRaw.releaseDir,
+              this.serviceRoot,
+            ),
             releaseDirAbs: currentReleaseRaw.releaseDir,
           }
         : currentReleaseRaw;
     const currentLinkTarget = currentLinkTargetRaw
       ? {
-          path: path.relative(this.serviceRoot, currentLinkTargetRaw),
+          path: relativeToService(currentLinkTargetRaw, this.serviceRoot),
           pathAbs: currentLinkTargetRaw,
         }
       : null;

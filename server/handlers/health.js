@@ -2,17 +2,24 @@
 
 const path = require("path");
 
+"use strict";
+
+const path = require("path");
+
 const { sendJson } = require("../lib.js");
 const { getModels } = require("./models.js");
 const { getWorkerStatus } = require("./generate.js");
 const { getSummary: getJobSummary } = require("../jobs/scheduler.js");
 
-function makeRelative(p, base) {
+function makeRelativeToService(p) {
   if (!p) return null;
-  const from = base || process.cwd();
+  const serviceDir = path.join(process.cwd(), "service");
   try {
-    const rel = path.relative(from, p);
-    return rel === "" ? "." : rel;
+    const rel = path.relative(serviceDir, p);
+    if (!rel || rel === "") return ".";
+    // If outside /service, keep absolute to avoid "..".
+    if (rel.startsWith("..")) return p;
+    return rel;
   } catch {
     return p;
   }
@@ -20,14 +27,13 @@ function makeRelative(p, base) {
 
 function handleHealth(_req, res, ctx) {
   const worker = getWorkerStatus();
-  const baseDir = process.cwd();
   const outputDirAbs = ctx.outputDir ?? null;
   const publicDirAbs = ctx.publicDir ?? null;
   const payloadBase = {
     models: getModels().length,
-    output_dir: outputDirAbs ? makeRelative(outputDirAbs, baseDir) : null,
+    output_dir: outputDirAbs ? makeRelativeToService(outputDirAbs) : null,
     output_dir_abs: outputDirAbs,
-    public_dir: publicDirAbs ? makeRelative(publicDirAbs, baseDir) : null,
+    public_dir: publicDirAbs ? makeRelativeToService(publicDirAbs) : null,
     public_dir_abs: publicDirAbs,
     worker,
     jobs: getJobSummary(),

@@ -2,16 +2,24 @@
 
 const path = require("path");
 
+function relativeToService(p, serviceRoot) {
+  if (!p) return ".";
+  const rel = path.relative(serviceRoot, p);
+  if (!rel || rel === "") return ".";
+  // If outside serviceRoot, keep absolute to avoid ".." segments.
+  if (rel.startsWith("..")) return p;
+  return rel;
+}
+
 /**
  * GET /status — runtime information.
- * Phase 1: version, uptime, parentPid; worker/gpu/updater are empty stubs.
  */
 function createStatusHandler(getState) {
   return function statusHandler(_req, res) {
     const state = typeof getState === "function" ? getState() : {};
     const cwdAbs = process.cwd();
     const serviceRoot = state.serviceRoot || cwdAbs;
-    const workingDirectory = path.relative(serviceRoot, cwdAbs) || ".";
+    const workingDirectory = relativeToService(cwdAbs, serviceRoot);
     const payload = {
       version: state.version || "0.0.0",
       uptime: state.uptimeMs != null ? state.uptimeMs : 0,
