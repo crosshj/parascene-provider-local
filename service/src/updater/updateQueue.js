@@ -70,7 +70,12 @@ class UpdateQueue {
   start() {
     this.stopping = false;
     this._ensureRuntimeDir();
+    this._loadStateFromDisk();
     this._writeState();
+    // If there are persisted jobs, resume processing on startup.
+    if (this.queue.length > 0 && !this.processing) {
+      this._kickProcessing();
+    }
   }
 
   async stop() {
@@ -123,6 +128,40 @@ class UpdateQueue {
       currentLinkTarget,
       releaseRetentionMax,
     };
+  }
+
+  _loadStateFromDisk() {
+    try {
+      if (!fs.existsSync(this.statePath)) {
+        return;
+      }
+      const raw = fs.readFileSync(this.statePath, "utf8");
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object") return;
+
+      const persistedQueue = Array.isArray(parsed.queue) ? parsed.queue : [];
+      // On restart we treat any previously in-progress pipeline state as "queued"
+      // since the updater isn't resumable mid-transition.
+      this.queue = persistedQueue
+        .filter((j) => j && typeof j.id === "string")
+        .map((j) => ({
+          ...j,
+          state: "queued",
+        }));
+
+      this.lastQueuedAt = parsed.lastQueuedAt ?? null;
+      this.lastEvent = parsed.lastEvent ?? null;
+      this.lastCompletedJob = parsed.lastCompletedJob ?? null;
+      this.lastFailedJob = parsed.lastFailedJob ?? null;
+
+      // Clear runtime-only pointers on restart.
+      this.currentJob = null;
+      this.processing = false;
+      this.state = this.queue.length > 0 ? "queued" : "idle";
+    } catch (err) {
+      this.log.warn("updater.state.load_failed", { error: err.message });
+    }
   }
 
   recordWebhookEvent(event) {

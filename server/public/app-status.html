@@ -63,6 +63,58 @@
         </div>
 
         <div class="status-grid">
+          <section class="status-card span-12">
+            <h3>Updater / Webhook</h3>
+            <div class="status-row">
+              <div class="status-k">queue state</div>
+              <div id="upState" class="status-v">—</div>
+            </div>
+            <div class="status-row">
+              <div class="status-k">processing</div>
+              <div id="upProcessing" class="status-v">—</div>
+            </div>
+            <div class="status-row">
+              <div class="status-k">queue length</div>
+              <div id="upQueue" class="status-v">—</div>
+            </div>
+            <div class="status-row">
+              <div class="status-k">active candidate</div>
+              <div id="upCurrent" class="status-v sha">—</div>
+            </div>
+            <div class="status-row">
+              <div class="status-k">active stage</div>
+              <div id="upCurrentStage" class="status-v">—</div>
+            </div>
+            <div class="status-row">
+              <div class="status-k">stage transition</div>
+              <div id="upCurrentTransition" class="status-v">—</div>
+            </div>
+            <div class="status-row">
+              <div class="status-k">queued candidates</div>
+              <div id="upQueuedShas" class="status-v sha">—</div>
+            </div>
+            <div class="status-row">
+              <div class="status-k">last event</div>
+              <div id="upLastEvent" class="status-v">—</div>
+            </div>
+            <div class="status-row">
+              <div class="status-k">last completed</div>
+              <div id="upCompleted" class="status-v">—</div>
+            </div>
+            <div class="status-row">
+              <div class="status-k">last failed</div>
+              <div id="upFailed" class="status-v">—</div>
+            </div>
+            <div class="status-row">
+              <div class="status-k">pipeline mode</div>
+              <div id="upMode" class="status-v">—</div>
+            </div>
+            <div class="status-row">
+              <div class="status-k">retention max</div>
+              <div id="upRetention" class="status-v">—</div>
+            </div>
+          </section>
+
           <section class="status-card span-8">
             <h3>Current Running Release</h3>
             <div class="status-row">
@@ -76,6 +128,10 @@
             <div class="status-row">
               <div class="status-k">current link target</div>
               <div id="curLinkTarget" class="status-v">—</div>
+            </div>
+            <div class="status-row">
+              <div class="status-k">release dir</div>
+              <div id="curDir" class="status-v">—</div>
             </div>
             <div class="status-row">
               <div class="status-k">Git commit SHA</div>
@@ -104,10 +160,6 @@
             <div class="status-row">
               <div class="status-k">release updated</div>
               <div id="curUpdated" class="status-v">—</div>
-            </div>
-            <div class="status-row">
-              <div class="status-k">release dir</div>
-              <div id="curDir" class="status-v">—</div>
             </div>
           </section>
 
@@ -208,58 +260,6 @@
             <div class="status-row">
               <div class="status-k">public dir</div>
               <div id="apiPublicDir" class="status-v">—</div>
-            </div>
-          </section>
-
-          <section class="status-card span-12">
-            <h3>Updater / Webhook</h3>
-            <div class="status-row">
-              <div class="status-k">queue state</div>
-              <div id="upState" class="status-v">—</div>
-            </div>
-            <div class="status-row">
-              <div class="status-k">processing</div>
-              <div id="upProcessing" class="status-v">—</div>
-            </div>
-            <div class="status-row">
-              <div class="status-k">queue length</div>
-              <div id="upQueue" class="status-v">—</div>
-            </div>
-            <div class="status-row">
-              <div class="status-k">active candidate</div>
-              <div id="upCurrent" class="status-v sha">—</div>
-            </div>
-            <div class="status-row">
-              <div class="status-k">active stage</div>
-              <div id="upCurrentStage" class="status-v">—</div>
-            </div>
-            <div class="status-row">
-              <div class="status-k">stage transition</div>
-              <div id="upCurrentTransition" class="status-v">—</div>
-            </div>
-            <div class="status-row">
-              <div class="status-k">queued candidates</div>
-              <div id="upQueuedShas" class="status-v sha">—</div>
-            </div>
-            <div class="status-row">
-              <div class="status-k">last event</div>
-              <div id="upLastEvent" class="status-v">—</div>
-            </div>
-            <div class="status-row">
-              <div class="status-k">last completed</div>
-              <div id="upCompleted" class="status-v">—</div>
-            </div>
-            <div class="status-row">
-              <div class="status-k">last failed</div>
-              <div id="upFailed" class="status-v">—</div>
-            </div>
-            <div class="status-row">
-              <div class="status-k">pipeline mode</div>
-              <div id="upMode" class="status-v">—</div>
-            </div>
-            <div class="status-row">
-              <div class="status-k">retention max</div>
-              <div id="upRetention" class="status-v">—</div>
             </div>
           </section>
         </div>
