@@ -84,6 +84,11 @@ function logRequest(req) {
     y: "\x1b[33m",
     d: "\x1b[2m",
   };
+  // Suppress logging for frontend polling endpoints
+  const url = req.url ? req.url.split("?")[0] : "";
+  if (["/api/health", "/api/models", "/api/gpu"].includes(url)) {
+    return;
+  }
   const mt = req.method === "GET" || req.method === "POST" ? C.g : C.y;
   console.log(
     `${C.c}[${new Date().toISOString()}]${C.r} ${mt}${req.method}${C.r}` +
