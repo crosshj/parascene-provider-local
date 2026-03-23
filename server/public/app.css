@@ -204,6 +204,18 @@ button {
   display: flex;
 }
 
+.toggle-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.73rem;
+  color: var(--muted);
+}
+
+.toggle-field input[type="checkbox"] {
+  width: auto;
+}
+
 .input-with-icon {
   display: flex;
   align-items: center;

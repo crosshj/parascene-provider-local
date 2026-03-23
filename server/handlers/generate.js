@@ -7,9 +7,15 @@
 const fs = require("fs");
 const path = require("path");
 const { spawn } = require("child_process");
+const { randomInt } = require("crypto");
 
 const { readJson, sendJson } = require("../lib.js");
 const { resolveModel } = require("./models.js");
+const {
+  runComfyGeneration,
+  isComfySupportedFamily,
+  shouldUseManagedComfy,
+} = require("../generator/comfy/index.js");
 
 function sanitizePromptText(value) {
   if (value == null) return "";
@@ -336,7 +342,31 @@ function handleGenerate(req, res, ctx) {
         family: entry.family,
       };
 
-      return runGenerator(payload, ctx.outputDir).then((result) => {
+      const useManagedComfy =
+        shouldUseManagedComfy(body) && isComfySupportedFamily(entry.family);
+
+      const runPromise = useManagedComfy
+        ? runComfyGeneration(
+            {
+              family: entry.family,
+              modelFile: entry.file,
+              modelPath: entry.fullPath,
+              prompt: payload.prompt,
+              negativePrompt: payload.negative_prompt,
+              seed:
+                Number.isInteger(body.seed) && body.seed >= 0
+                  ? body.seed
+                  : randomInt(1, 2_147_483_647),
+              width: body.width,
+              height: body.height,
+              steps: body.steps,
+              cfg: body.cfg,
+            },
+            ctx.outputDir,
+          )
+        : runGenerator(payload, ctx.outputDir);
+
+      return runPromise.then((result) => {
         if (!result?.ok || !result.file_name) {
           return sendJson(res, 500, {
             error: result?.error ?? "Generator did not return an image.",
@@ -350,6 +380,7 @@ function handleGenerate(req, res, ctx) {
           family: result.family,
           model: result.model,
           elapsed_ms: result.elapsed_ms,
+          backend: useManagedComfy ? "managed-comfy" : "python-worker",
         });
       });
     })
