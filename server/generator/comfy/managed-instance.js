@@ -2,9 +2,9 @@
 
 const fs = require("fs");
 const path = require("path");
-const { spawn } = require("child_process");
+const { spawn, execSync } = require("child_process");
 
-const COMFY_ROOT = "D:/comfy_portable";
+const COMFY_ROOT = "D:/comfy";
 const COMFY_HOST = "127.0.0.1";
 const COMFY_PORT = 8188;
 const COMFY_HEALTHCHECK_TIMEOUT_MS = 4_000;
@@ -18,7 +18,10 @@ function _url(pathname) {
 
 async function _healthcheck() {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), COMFY_HEALTHCHECK_TIMEOUT_MS);
+  const timer = setTimeout(
+    () => controller.abort(),
+    COMFY_HEALTHCHECK_TIMEOUT_MS,
+  );
   try {
     const res = await fetch(_url("/system_stats"), {
       method: "GET",
@@ -39,6 +42,37 @@ function _resolvePython() {
 }
 
 function _spawnComfy() {
+  // Kill any process listening on COMFY_PORT (Windows only)
+  if (process.platform === "win32") {
+    try {
+      // Find PIDs listening on the port
+      const netstatOut = execSync(
+        `netstat -aon | findstr :${COMFY_PORT}.*LISTENING`,
+        { encoding: "utf8" },
+      );
+      const lines = netstatOut.split("\n");
+      const pids = new Set();
+      for (const line of lines) {
+        const parts = line.trim().split(/\s+/);
+        if (parts.length >= 5) {
+          const pid = parts[4];
+          if (pid && !isNaN(Number(pid))) {
+            pids.add(pid);
+          }
+        }
+      }
+      for (const pid of pids) {
+        try {
+          console.log(`Killing PID ${pid} on port ${COMFY_PORT}...`);
+          execSync(`taskkill /F /PID ${pid}`);
+        } catch (e) {
+          // Ignore errors if process already exited
+        }
+      }
+    } catch (e) {
+      // No process found or netstat failed, ignore
+    }
+  }
   if (!fs.existsSync(COMFY_ROOT)) {
     throw new Error(`Comfy root not found at ${COMFY_ROOT}`);
   }
@@ -50,7 +84,15 @@ function _spawnComfy() {
   const pythonCmd = _resolvePython();
   const child = spawn(
     pythonCmd,
-    ["main.py", "--listen", COMFY_HOST, "--port", String(COMFY_PORT)],
+    [
+      "ComfyUI/main.py",
+      "--listen",
+      COMFY_HOST,
+      "--port",
+      String(COMFY_PORT),
+      "--windows-standalone-build",
+      "--disable-auto-launch",
+    ],
     {
       cwd: COMFY_ROOT,
       env: process.env,
