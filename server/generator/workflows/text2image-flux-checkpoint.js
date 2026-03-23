@@ -12,7 +12,7 @@ const WORKFLOW_TEMPLATE = {
   30: {
     class_type: "CheckpointLoaderSimple",
     inputs: {
-      ckpt_name: "flux/flux1-dev-fp8.safetensors",
+      ckpt_name: "FLUX1/flux1-dev-fp8.safetensors",
     },
   },
   40: {
@@ -98,7 +98,7 @@ function cloneBaseWorkflow() {
 function FluxWorkflow(overrides = {}) {
   const workflow = cloneBaseWorkflow();
   if (overrides.modelFile) {
-    workflow["30"].inputs.ckpt_name = "flux/" + overrides.modelFile;
+    workflow["30"].inputs.ckpt_name = "FLUX1/" + overrides.modelFile;
   }
   workflow["6"].inputs.text = overrides.prompt || "";
   workflow["33"].inputs.text = overrides.negativePrompt || "";
