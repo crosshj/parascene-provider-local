@@ -1,85 +1,13 @@
 "use strict";
 
-// Copy/paste base from Comfy "Save (API format)" JSON.
-const WORKFLOW_TEMPLATE = {
-  6: {
-    class_type: "CLIPTextEncode",
-    inputs: {
-      clip: ["40", 0],
-      text: "",
-    },
-  },
-  30: {
-    class_type: "CheckpointLoaderSimple",
-    inputs: {
-      ckpt_name: "FLUX1\\flux1-dev-fp8.safetensors",
-    },
-  },
-  40: {
-    class_type: "CLIPLoader",
-    inputs: {
-      clip_name: "t5xxl_fp16.safetensors",
-      type: "sd3",
-    },
-  },
-  41: {
-    class_type: "VAELoader",
-    inputs: {
-      vae_name: "ae.safetensors",
-    },
-  },
-  31: {
-    class_type: "KSampler",
-    inputs: {
-      seed: 1119851866655636,
-      steps: 40,
-      cfg: 1,
-      sampler_name: "euler",
-      scheduler: "beta",
-      denoise: 1,
-      model: ["30", 0],
-      positive: ["35", 0],
-      negative: ["33", 0],
-      latent_image: ["27", 0],
-    },
-  },
-  35: {
-    class_type: "FluxGuidance",
-    inputs: {
-      guidance: 3.5,
-      conditioning: ["6", 0],
-    },
-  },
-  27: {
-    class_type: "EmptySD3LatentImage",
-    inputs: {
-      width: 1024,
-      height: 1024,
-      batch_size: 1,
-    },
-  },
-  8: {
-    class_type: "VAEDecode",
-    inputs: {
-      samples: ["31", 0],
-      vae: ["41", 0],
-    },
-  },
-  9: {
-    class_type: "SaveImage",
-    inputs: {
-      filename_prefix: "ComfyUI",
-      images: ["8", 0],
-    },
-  },
-  33: {
-    class_type: "CLIPTextEncode",
-    inputs: {
-      text: "",
-      clip: ["40", 0],
-    },
-  },
-};
+const path = require("path");
+const fs = require("fs");
+const WORKFLOW_TEMPLATE = JSON.parse(
+  fs.readFileSync(
+    path.join(__dirname, "text2image-flux-checkpoint.json"),
+    "utf8",
+  ),
+);
 
 function toPositiveInt(value, fallback) {
   const n = Number(value);
