@@ -2,20 +2,20 @@
 
 // Copy/paste base from Comfy "Save (API format)" JSON.
 const WORKFLOW_TEMPLATE = {
-  "6": {
+  6: {
     class_type: "CLIPTextEncode",
     inputs: {
       clip: ["30", 1],
       text: "",
     },
   },
-  "30": {
+  30: {
     class_type: "CheckpointLoaderSimple",
     inputs: {
-      ckpt_name: "dreamshaper_8.safetensors",
+      ckpt_name: "1.5\\dreamshaper_8.safetensors",
     },
   },
-  "31": {
+  31: {
     class_type: "KSampler",
     inputs: {
       seed: 1119851866655636,
@@ -30,7 +30,7 @@ const WORKFLOW_TEMPLATE = {
       latent_image: ["27", 0],
     },
   },
-  "27": {
+  27: {
     class_type: "EmptyLatentImage",
     inputs: {
       width: 768,
@@ -38,21 +38,21 @@ const WORKFLOW_TEMPLATE = {
       batch_size: 1,
     },
   },
-  "8": {
+  8: {
     class_type: "VAEDecode",
     inputs: {
       samples: ["31", 0],
       vae: ["30", 2],
     },
   },
-  "9": {
+  9: {
     class_type: "SaveImage",
     inputs: {
       filename_prefix: "ComfyUI",
       images: ["8", 0],
     },
   },
-  "33": {
+  33: {
     class_type: "CLIPTextEncode",
     inputs: {
       text: "",
@@ -77,10 +77,15 @@ function cloneBaseWorkflow() {
 
 function Sd15Workflow(overrides = {}) {
   const workflow = cloneBaseWorkflow();
-  workflow["30"].inputs.ckpt_name = overrides.modelFile || workflow["30"].inputs.ckpt_name;
+  if (overrides.modelFile) {
+    workflow["30"].inputs.ckpt_name = "1.5\\" + overrides.modelFile;
+  }
   workflow["6"].inputs.text = overrides.prompt || "";
   workflow["33"].inputs.text = overrides.negativePrompt || "";
-  workflow["31"].inputs.seed = toPositiveInt(overrides.seed, workflow["31"].inputs.seed);
+  workflow["31"].inputs.seed = toPositiveInt(
+    overrides.seed,
+    workflow["31"].inputs.seed,
+  );
   workflow["31"].inputs.steps = toPositiveInt(overrides.steps, 30);
   workflow["31"].inputs.cfg = toNumber(overrides.cfg, 7.0);
   workflow["27"].inputs.width = toPositiveInt(overrides.width, 768);
