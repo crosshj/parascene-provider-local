@@ -79,7 +79,7 @@ function handleApiGet(req, res) {
   );
   const modelOptions = filteredModels.map((m) => ({
     label: `${m.family}: ${m.name}`,
-    value: m.name,
+    value: m.modelId,
   }));
 
   const payload = {

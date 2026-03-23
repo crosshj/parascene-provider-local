@@ -168,13 +168,16 @@
             </div>
 
             <div class="actions">
-              <label class="toggle-field" for="flag-managed-comfy">
+              <label class="toggle-field" for="flag-force-python-worker">
                 <input
-                  id="flag-managed-comfy"
-                  name="flag-managed-comfy"
+                  id="flag-force-python-worker"
+                  name="flag-force-python-worker"
                   type="checkbox"
                 />
-                <span>Use managed Comfy backend (feature flag)</span>
+                <span>
+                  Force Python worker (bypass Comfy). Unchecked = server default:
+                  flux and sd1.5 use managed Comfy when the model supports it.
+                </span>
               </label>
             </div>
 

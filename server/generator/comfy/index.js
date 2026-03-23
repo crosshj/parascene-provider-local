@@ -1,21 +1,48 @@
 "use strict";
 
 const { runComfyGeneration } = require("./client.js");
-const { isManagedComfyWorkflowSupported } = require("../workflows/_index.js");
+const {
+  isManagedComfyWorkflowSupported,
+} = require("../workflows/_index.js");
 const {
   getManagedComfyStatus,
   ensureManagedComfyReady,
 } = require("./managed-instance.js");
 
-function shouldUseManagedComfy(body) {
+function getDefaultManagedComfyFamilies() {
+  const raw = process.env.DEFAULT_MANAGED_COMFY_FAMILIES || "flux,sd15";
+  return raw
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function modelSupportsManagedComfy(entry) {
+  return isManagedComfyWorkflowSupported(entry);
+}
+
+/**
+ * User / policy intent: prefer the managed Comfy path when possible.
+ * Does not check whether this specific model has a registered workflow.
+ */
+function wantsManagedComfyBackend(body, entry) {
   const flags = body && typeof body.featureFlags === "object" ? body.featureFlags : null;
-  return Boolean(flags && flags.useManagedComfy === true);
+  if (flags && flags.forcePythonWorker === true) return false;
+
+  const fam = String(entry.family || "").toLowerCase();
+
+  if (flags && flags.useManagedComfy === true) return true;
+  if (flags && flags.useManagedComfy === false) return false;
+
+  return getDefaultManagedComfyFamilies().includes(fam);
 }
 
 module.exports = {
   runComfyGeneration,
-  isComfySupportedFamily: isManagedComfyWorkflowSupported,
-  shouldUseManagedComfy,
-  getManagedComfyStatus,
+  isManagedComfyWorkflowSupported,
+  getDefaultManagedComfyFamilies,
+  modelSupportsManagedComfy,
+  wantsManagedComfyBackend,
   ensureManagedComfyReady,
+  getManagedComfyStatus,
 };

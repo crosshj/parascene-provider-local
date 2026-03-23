@@ -26,7 +26,8 @@ function cloneBaseWorkflow() {
 function FluxWorkflow(overrides = {}) {
   const workflow = cloneBaseWorkflow();
   if (overrides.modelFile) {
-    workflow["30"].inputs.ckpt_name = "FLUX1\\" + overrides.modelFile;
+    const group = overrides.comfyCheckpointGroup || "FLUX1";
+    workflow["30"].inputs.ckpt_name = group + "\\" + overrides.modelFile;
   }
   workflow["6"].inputs.text = overrides.prompt || "";
   workflow["33"].inputs.text = overrides.negativePrompt || "";

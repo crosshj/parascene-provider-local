@@ -26,7 +26,8 @@ function cloneBaseWorkflow() {
 function Sd15Workflow(overrides = {}) {
   const workflow = cloneBaseWorkflow();
   if (overrides.modelFile) {
-    workflow["30"].inputs.ckpt_name = "1.5\\" + overrides.modelFile;
+    const group = overrides.comfyCheckpointGroup || "1.5";
+    workflow["30"].inputs.ckpt_name = group + "\\" + overrides.modelFile;
   }
   workflow["6"].inputs.text = overrides.prompt || "";
   workflow["33"].inputs.text = overrides.negativePrompt || "";

@@ -83,8 +83,10 @@ function _loadState() {
 _loadState();
 
 function _jobModelKey(job) {
-  if (!job || !job.family || !job.modelName) return null;
-  return `${job.family}:${job.modelName}`;
+  if (!job || !job.family) return null;
+  if (job.modelId) return `${job.family}:${job.modelId}`;
+  if (job.modelName) return `${job.family}:${job.modelName}`;
+  return null;
 }
 
 function _selectNextJobId() {
@@ -214,6 +216,7 @@ function enqueueText2ImgJob(args, outputDir) {
     method: "text2img",
     args,
     family: entry.family,
+    modelId: entry.modelId,
     modelName,
     status: "pending",
     created_at: new Date().toISOString(),

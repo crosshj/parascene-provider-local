@@ -13,8 +13,8 @@ const { readJson, sendJson } = require("../lib.js");
 const { resolveModel } = require("./models.js");
 const {
   runComfyGeneration,
-  isComfySupportedFamily,
-  shouldUseManagedComfy,
+  isManagedComfyWorkflowSupported,
+  wantsManagedComfyBackend,
 } = require("../generator/comfy/index.js");
 
 function sanitizePromptText(value) {
@@ -342,15 +342,27 @@ function handleGenerate(req, res, ctx) {
         family: entry.family,
       };
 
-      const useManagedComfy =
-        shouldUseManagedComfy(body) && isComfySupportedFamily(entry.family);
+      const wantsManaged = wantsManagedComfyBackend(body, entry);
+      const canManaged = isManagedComfyWorkflowSupported(entry);
+      const flags = body && typeof body.featureFlags === "object" ? body.featureFlags : null;
+      if (wantsManaged && !canManaged && flags && flags.useManagedComfy === true) {
+        return sendJson(res, 400, {
+          error:
+            "Managed Comfy is not available for this model (needs a registered workflow and checkpoint-style entry).",
+        });
+      }
+      const useManagedComfy = wantsManaged && canManaged;
 
       const runPromise = useManagedComfy
         ? runComfyGeneration(
             {
               family: entry.family,
+              managedWorkflowId: entry.managedWorkflowId,
               modelFile: entry.file,
               modelPath: entry.fullPath,
+              comfyCheckpointGroup: entry.comfyCheckpointGroup,
+              diffusionModelComfyName: entry.diffusionModelComfyName,
+              loadKind: entry.loadKind,
               prompt: payload.prompt,
               negativePrompt: payload.negative_prompt,
               seed:

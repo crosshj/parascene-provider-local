@@ -1,7 +1,6 @@
 // handlers/models.js
 // Scans local model directories and builds a model registry.
-// Directory path is used as the primary family signal; filename patterns
-// are used as a fallback for ambiguous cases.
+// Each entry carries load kind, managed Comfy workflow id, and Comfy naming hints.
 
 "use strict";
 
@@ -15,27 +14,71 @@ const { sendJson } = require("../lib.js");
 // ---------------------------------------------------------------------------
 
 const MODELS_BASE = process.env.MODELS_BASE || "D:\\comfy_models";
-const INCLUDE_FLUX_CHECKPOINTS = process.env.INCLUDE_FLUX_CHECKPOINTS === "1";
 
-// Directories to scan, each mapped to a default family.
+const DIFFUSION_MODELS_SEGMENT = "diffusion_models";
+
 // Order matters — first match wins if a file appears in multiple dirs.
+// loadKind: how the Python worker / Comfy graph expects weights to be loaded.
+// managedWorkflowId: which server/generator/workflows builder to use (null = Comfy path N/A).
 const MODEL_DIRS = [
-  // FLUX: diffusion_models is the known-good Comfy path.
-  // checkpoint-style FLUX1 is optional (off by default).
-  { rel: "diffusion_models\\flux", family: "flux" },
-  { rel: "diffusion_models\\z-image", family: "z-image" },
-  ...(INCLUDE_FLUX_CHECKPOINTS
-    ? [{ rel: "checkpoints\\FLUX1", family: "flux" }]
-    : []),
-  { rel: "checkpoints\\xl", family: "sdxl" },
-  { rel: "checkpoints\\pony", family: "sdxl" },
-  { rel: "checkpoints\\1.5", family: "sd15" },
-  { rel: "checkpoints\\WAN", family: "wan" },
-  { rel: "checkpoints\\qwen", family: "qwen" },
+  {
+    rel: "diffusion_models\\flux",
+    family: "flux",
+    loadKind: "diffusion_model",
+    managedWorkflowId: null,
+    comfyCheckpointGroup: null,
+  },
+  {
+    rel: "diffusion_models\\z-image",
+    family: "z-image",
+    loadKind: "diffusion_model",
+    managedWorkflowId: null,
+    comfyCheckpointGroup: null,
+  },
+  {
+    rel: "checkpoints\\FLUX1",
+    family: "flux",
+    loadKind: "checkpoint",
+    managedWorkflowId: "text2image-flux-checkpoint",
+    comfyCheckpointGroup: "FLUX1",
+  },
+  {
+    rel: "checkpoints\\xl",
+    family: "sdxl",
+    loadKind: "checkpoint",
+    managedWorkflowId: null,
+    comfyCheckpointGroup: "xl",
+  },
+  {
+    rel: "checkpoints\\pony",
+    family: "sdxl",
+    loadKind: "checkpoint",
+    managedWorkflowId: null,
+    comfyCheckpointGroup: "pony",
+  },
+  {
+    rel: "checkpoints\\1.5",
+    family: "sd15",
+    loadKind: "checkpoint",
+    managedWorkflowId: "text2image-sd15-checkpoint",
+    comfyCheckpointGroup: "1.5",
+  },
+  {
+    rel: "checkpoints\\WAN",
+    family: "wan",
+    loadKind: "checkpoint",
+    managedWorkflowId: null,
+    comfyCheckpointGroup: "WAN",
+  },
+  {
+    rel: "checkpoints\\qwen",
+    family: "qwen",
+    loadKind: "checkpoint",
+    managedWorkflowId: null,
+    comfyCheckpointGroup: "qwen",
+  },
 ];
 
-// Filename substring → family override (applied if directory-based detection
-// is ambiguous or a model lives in an unexpected folder).
 const FILENAME_OVERRIDES = [
   { test: /flux/i, family: "flux" },
   { test: /z-image/i, family: "z-image" },
@@ -45,7 +88,6 @@ const FILENAME_OVERRIDES = [
   { test: /sd_xl/i, family: "sdxl" },
 ];
 
-// Default step counts per family (used by frontend defaults).
 const FAMILY_DEFAULTS = {
   flux: { steps: 20, cfg: 1.0, width: 1024, height: 1024 },
   "z-image": { steps: 9, cfg: 1.0, width: 1024, height: 1024 },
@@ -61,7 +103,6 @@ function getModelDefaults(family, fileName) {
 
   const lower = String(fileName || "").toLowerCase();
 
-  // Match Comfy defaults more closely for FLUX variants.
   if (lower.includes("schnell")) {
     return { ...base, steps: 4, cfg: 1.0 };
   }
@@ -78,13 +119,25 @@ function getModelDefaults(family, fileName) {
 // ---------------------------------------------------------------------------
 
 function inferFamily(dirFamily, filename) {
-  // Directory mapping is authoritative unless it is absent.
   if (dirFamily) return dirFamily;
   const stem = path.basename(filename, ".safetensors").toLowerCase();
   for (const { test, family } of FILENAME_OVERRIDES) {
     if (test.test(stem)) return family;
   }
   return "sd15";
+}
+
+function toPosixModelId(modelsBase, fullPath) {
+  const rel = path.relative(modelsBase, fullPath);
+  return rel.split(path.sep).join("/");
+}
+
+/** Comfy UNET / diffusion_models picker string (backslashes), or null if outside diffusion_models. */
+function diffusionModelComfyName(modelsBase, fullPath) {
+  const dmRoot = path.join(modelsBase, DIFFUSION_MODELS_SEGMENT);
+  const rel = path.relative(dmRoot, fullPath);
+  if (rel.startsWith("..")) return null;
+  return rel.split(path.sep).join("\\");
 }
 
 function collectSafetensorsRecursively(rootDir) {
@@ -115,38 +168,71 @@ function collectSafetensorsRecursively(rootDir) {
   return out;
 }
 
+function disambiguateStemNames(models) {
+  const stemCounts = new Map();
+  for (const m of models) {
+    const stem = path.basename(m.file, ".safetensors");
+    const key = `${m.family}\0${stem.toLowerCase()}`;
+    stemCounts.set(key, (stemCounts.get(key) || 0) + 1);
+  }
+  for (const m of models) {
+    const stem = path.basename(m.file, ".safetensors");
+    const key = `${m.family}\0${stem.toLowerCase()}`;
+    if (stemCounts.get(key) > 1) {
+      m.name =
+        m.loadKind === "checkpoint"
+          ? `${stem} (checkpoint)`
+          : `${stem} (diffusion)`;
+    } else {
+      m.name = stem;
+    }
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
-/** @returns {{ name: string, family: string, fullPath: string, defaults: object }[]} */
 function scanModels() {
   const seen = new Set();
   const models = [];
 
-  for (const { rel, family: dirFamily } of MODEL_DIRS) {
-    const dir = path.join(MODELS_BASE, rel);
-
+  for (const spec of MODEL_DIRS) {
+    const dir = path.join(MODELS_BASE, spec.rel);
     const files = collectSafetensorsRecursively(dir);
     for (const fullPath of files) {
       if (seen.has(fullPath)) continue;
       seen.add(fullPath);
       const file = path.basename(fullPath);
+      const family = inferFamily(spec.family, file);
+      const modelId = toPosixModelId(MODELS_BASE, fullPath);
+      const diffusionName =
+        spec.loadKind === "diffusion_model"
+          ? diffusionModelComfyName(MODELS_BASE, fullPath)
+          : null;
 
-      const family = inferFamily(dirFamily, file);
       models.push({
+        modelId,
         name: path.basename(file, ".safetensors"),
         file,
         family,
         fullPath,
+        loadKind: spec.loadKind,
+        managedWorkflowId: spec.managedWorkflowId ?? null,
+        comfyCheckpointGroup: spec.comfyCheckpointGroup ?? null,
+        diffusionModelComfyName: diffusionName,
         defaults: getModelDefaults(family, file),
       });
     }
   }
 
-  // Sort: by family then by name.
+  disambiguateStemNames(models);
+
   models.sort(
-    (a, b) => a.family.localeCompare(b.family) || a.name.localeCompare(b.name),
+    (a, b) =>
+      a.family.localeCompare(b.family) ||
+      a.name.localeCompare(b.name) ||
+      a.modelId.localeCompare(b.modelId),
   );
 
   return models;
@@ -154,25 +240,64 @@ function scanModels() {
 
 let _cache = null;
 
-/** Cached scan — refreshed only on server restart. */
 function getModels() {
   if (!_cache) _cache = scanModels();
   return _cache;
 }
 
-/** Resolve a model name to its registry entry.  Returns null if not found. */
-function resolveModel(name) {
-  return getModels().find((m) => m.name === name || m.file === name) ?? null;
+/**
+ * @param {string} query modelId (preferred), disambiguated name, file basename, or legacy stem
+ */
+function resolveModel(query) {
+  const q = String(query || "").trim();
+  if (!q) return null;
+  const list = getModels();
+
+  const byId = list.find((m) => m.modelId === q);
+  if (byId) return byId;
+
+  const matches = list.filter(
+    (m) => m.name === q || m.file === q || path.basename(m.file, ".safetensors") === q,
+  );
+  if (matches.length === 1) return matches[0];
+  return null;
+}
+
+function modelToPublicJson(m) {
+  return {
+    modelId: m.modelId,
+    name: m.name,
+    file: m.file,
+    family: m.family,
+    loadKind: m.loadKind,
+    managedWorkflowId: m.managedWorkflowId,
+    comfyCheckpointGroup: m.comfyCheckpointGroup,
+    diffusionModelComfyName: m.diffusionModelComfyName,
+    defaults: m.defaults,
+  };
+}
+
+function getModelsPolicy() {
+  const raw = process.env.DEFAULT_MANAGED_COMFY_FAMILIES || "flux,sd15";
+  const defaultManagedComfyFamilies = raw
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  return { defaultManagedComfyFamilies };
 }
 
 function handleModels(_req, res, _ctx) {
-  const models = getModels().map(({ name, file, family, defaults }) => ({
-    name,
-    file,
-    family,
-    defaults,
-  }));
-  sendJson(res, 200, { ok: true, models });
+  sendJson(res, 200, {
+    ok: true,
+    policy: getModelsPolicy(),
+    models: getModels().map(modelToPublicJson),
+  });
 }
 
-module.exports = { getModels, resolveModel, FAMILY_DEFAULTS, handleModels };
+module.exports = {
+  getModels,
+  resolveModel,
+  FAMILY_DEFAULTS,
+  handleModels,
+  MODELS_BASE,
+};

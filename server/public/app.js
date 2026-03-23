@@ -83,10 +83,12 @@ const previewWrap = document.getElementById("preview-wrap");
 const idleEl = document.getElementById("preview-idle");
 const imageEl = document.getElementById("image");
 const metaRowEl = document.getElementById("meta-row");
-const managedComfyFlagEl = document.getElementById("flag-managed-comfy");
+const forcePythonFlagEl = document.getElementById("flag-force-python-worker");
 const STORAGE_KEY = "local-image-generator.form.v1";
 
 let modelRegistry = {};
+/** @type {{ ok?: boolean, policy?: object, models?: object[] } | null} */
+let lastModelsPayload = null;
 let savedValues = null;
 let lastErrorText = "";
 let appInitialized = false;
@@ -133,7 +135,7 @@ function collectFormValues() {
     steps: form.steps.value,
     cfg: form.cfg.value,
     seed: form.seed.value,
-    use_managed_comfy: managedComfyFlagEl?.checked === true,
+    force_python_worker: forcePythonFlagEl?.checked === true,
   };
 }
 
@@ -248,43 +250,79 @@ function formatGenerateHttpError(status, bodyText) {
 
 // ── Model loading ─────────────────────────────────────
 
+function applyModelsFromPayload(data) {
+  if (!data || !data.ok || !Array.isArray(data.models)) return;
+
+  lastModelsPayload = data;
+  modelRegistry = {};
+
+  const forcePython = forcePythonFlagEl?.checked === true;
+  const filtered = data.models.filter((m) => {
+    if (m.family !== "flux") return true;
+    return forcePython
+      ? m.loadKind === "diffusion_model"
+      : m.loadKind === "checkpoint";
+  });
+
+  const groups = {};
+  for (const m of filtered) {
+    modelRegistry[m.modelId] = m;
+    (groups[m.family] ??= []).push(m);
+  }
+
+  const prevSelection = modelSel.value;
+
+  modelSel.innerHTML = "";
+  for (const [family, models] of Object.entries(groups)) {
+    const grp = document.createElement("optgroup");
+    grp.label = family.toUpperCase();
+    for (const m of models) {
+      const opt = document.createElement("option");
+      opt.value = m.modelId;
+      opt.textContent = m.name;
+      grp.appendChild(opt);
+    }
+    modelSel.appendChild(grp);
+  }
+
+  const pick =
+    (prevSelection && modelRegistry[prevSelection] && prevSelection) ||
+    (savedValues &&
+      typeof savedValues.model === "string" &&
+      savedValues.model &&
+      modelRegistry[savedValues.model] &&
+      savedValues.model) ||
+    null;
+
+  if (pick) {
+    modelSel.value = pick;
+  } else {
+    const first = modelSel.querySelector("option");
+    if (first) modelSel.value = first.value;
+  }
+
+  if (modelRegistry[modelSel.value]) applyModelDefaults();
+  else updateFamilyBadge();
+
+  saveFormValues();
+}
+
 async function loadModels() {
   try {
     const res = await apiFetch("/api/models", { method: "GET" });
     const data = await res.json();
     if (!data.ok) throw new Error("Bad response");
 
-    const groups = {};
-    for (const m of data.models) {
-      modelRegistry[m.name] = m;
-      (groups[m.family] ??= []).push(m);
-    }
-
-    modelSel.innerHTML = "";
-    for (const [family, models] of Object.entries(groups)) {
-      const grp = document.createElement("optgroup");
-      grp.label = family.toUpperCase();
-      for (const m of models) {
-        const opt = document.createElement("option");
-        opt.value = m.name;
-        opt.textContent = m.name;
-        grp.appendChild(opt);
+    if (savedValues && forcePythonFlagEl) {
+      const f = savedValues;
+      if (f.force_python_worker != null) {
+        forcePythonFlagEl.checked = Boolean(f.force_python_worker);
+      } else if (f.use_managed_comfy != null) {
+        forcePythonFlagEl.checked = !Boolean(f.use_managed_comfy);
       }
-      modelSel.appendChild(grp);
     }
 
-    const hasSavedModel =
-      savedValues &&
-      typeof savedValues.model === "string" &&
-      savedValues.model &&
-      modelRegistry[savedValues.model];
-
-    if (hasSavedModel) {
-      modelSel.value = savedValues.model;
-    } else {
-      const first = modelSel.querySelector("option");
-      if (first) modelSel.value = first.value;
-    }
+    applyModelsFromPayload(data);
 
     if (savedValues) {
       const f = savedValues;
@@ -296,9 +334,6 @@ async function loadModels() {
       if (f.steps != null) form.steps.value = f.steps;
       if (f.cfg != null) form.cfg.value = f.cfg;
       if (f.seed != null) form.seed.value = f.seed;
-      if (managedComfyFlagEl && f.use_managed_comfy != null) {
-        managedComfyFlagEl.checked = Boolean(f.use_managed_comfy);
-      }
     }
 
     if (!savedValues) applyModelDefaults();
@@ -402,7 +437,10 @@ modelSel.addEventListener("change", applyModelDefaults);
   "cfg",
   "seed",
 ].forEach((n) => form[n].addEventListener("input", saveFormValues));
-managedComfyFlagEl?.addEventListener("change", saveFormValues);
+forcePythonFlagEl?.addEventListener("change", () => {
+  if (lastModelsPayload) applyModelsFromPayload(lastModelsPayload);
+  saveFormValues();
+});
 
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -426,7 +464,7 @@ form.addEventListener("submit", async (e) => {
     steps: Number(form.steps.value),
     cfg: Number(form.cfg.value),
     featureFlags: {
-      useManagedComfy: managedComfyFlagEl?.checked === true,
+      forcePythonWorker: forcePythonFlagEl?.checked === true,
     },
   };
 
