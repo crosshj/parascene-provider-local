@@ -76,7 +76,7 @@ function _spawnComfy() {
   if (!fs.existsSync(COMFY_ROOT)) {
     throw new Error(`Comfy root not found at ${COMFY_ROOT}`);
   }
-  const mainPy = path.join(COMFY_ROOT, "main.py");
+  const mainPy = path.join(COMFY_ROOT, "ComfyUI", "main.py");
   if (!fs.existsSync(mainPy)) {
     throw new Error(`Comfy main.py not found at ${mainPy}`);
   }
