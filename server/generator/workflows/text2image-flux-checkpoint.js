@@ -2,33 +2,33 @@
 
 // Copy/paste base from Comfy "Save (API format)" JSON.
 const WORKFLOW_TEMPLATE = {
-  "6": {
+  6: {
     class_type: "CLIPTextEncode",
     inputs: {
       clip: ["40", 0],
       text: "",
     },
   },
-  "30": {
+  30: {
     class_type: "CheckpointLoaderSimple",
     inputs: {
-      ckpt_name: "flux1-dev-fp8.safetensors",
+      ckpt_name: "flux/flux1-dev-fp8.safetensors",
     },
   },
-  "40": {
+  40: {
     class_type: "CLIPLoader",
     inputs: {
       clip_name: "t5xxl_fp16.safetensors",
       type: "sd3",
     },
   },
-  "41": {
+  41: {
     class_type: "VAELoader",
     inputs: {
       vae_name: "ae.safetensors",
     },
   },
-  "31": {
+  31: {
     class_type: "KSampler",
     inputs: {
       seed: 1119851866655636,
@@ -43,14 +43,14 @@ const WORKFLOW_TEMPLATE = {
       latent_image: ["27", 0],
     },
   },
-  "35": {
+  35: {
     class_type: "FluxGuidance",
     inputs: {
       guidance: 3.5,
       conditioning: ["6", 0],
     },
   },
-  "27": {
+  27: {
     class_type: "EmptySD3LatentImage",
     inputs: {
       width: 1024,
@@ -58,21 +58,21 @@ const WORKFLOW_TEMPLATE = {
       batch_size: 1,
     },
   },
-  "8": {
+  8: {
     class_type: "VAEDecode",
     inputs: {
       samples: ["31", 0],
       vae: ["41", 0],
     },
   },
-  "9": {
+  9: {
     class_type: "SaveImage",
     inputs: {
       filename_prefix: "ComfyUI",
       images: ["8", 0],
     },
   },
-  "33": {
+  33: {
     class_type: "CLIPTextEncode",
     inputs: {
       text: "",
@@ -97,10 +97,15 @@ function cloneBaseWorkflow() {
 
 function FluxWorkflow(overrides = {}) {
   const workflow = cloneBaseWorkflow();
-  workflow["30"].inputs.ckpt_name = overrides.modelFile || workflow["30"].inputs.ckpt_name;
+  if (overrides.modelFile) {
+    workflow["30"].inputs.ckpt_name = "flux/" + overrides.modelFile;
+  }
   workflow["6"].inputs.text = overrides.prompt || "";
   workflow["33"].inputs.text = overrides.negativePrompt || "";
-  workflow["31"].inputs.seed = toPositiveInt(overrides.seed, workflow["31"].inputs.seed);
+  workflow["31"].inputs.seed = toPositiveInt(
+    overrides.seed,
+    workflow["31"].inputs.seed,
+  );
   workflow["31"].inputs.steps = toPositiveInt(overrides.steps, 20);
   workflow["31"].inputs.cfg = toNumber(overrides.cfg, 1.0);
   workflow["27"].inputs.width = toPositiveInt(overrides.width, 1024);
