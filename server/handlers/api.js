@@ -29,20 +29,32 @@ const DEFAULT_ALLOWED_SD15 = [
 ];
 
 // Kept as reference for future provider filtering tweaks.
-// const DEFAULT_ALLOWED_SDXL = [
-//   "cyberrealisticPony_v130",
-//   "dreamshaperXL_turboDpmppSDE",
-//   "illustriousXL20_v20",
-//   "juggernautXL_v7Rundiffusion",
-//   "juggernautXL_v9Rdphoto2Lightning",
-//   "ponyRealism_V23",
-//   "protovisionXLHighFidelity3D_releaseV660Bakedvae",
-//   "realcartoonXL_v6",
-//   "realDream_sdxlLightning1",
-//   "sd_xl_base_1.0",
-//   "sd_xl_turbo_1.0_fp16",
-//   "zavychromaxl_v40",
-// ];
+const DEFAULT_ALLOWED_SDXL = [
+  "cyberrealisticPony_v130",
+  "dreamshaperXL_turboDpmppSDE",
+  "illustriousXL20_v20",
+  "juggernautXL_v7Rundiffusion",
+  "juggernautXL_v9Rdphoto2Lightning",
+  "ponyRealism_V23",
+  "protovisionXLHighFidelity3D_releaseV660Bakedvae",
+  "realcartoonXL_v6",
+  "realDream_sdxlLightning1",
+  "sd_xl_base_1.0",
+  "sd_xl_turbo_1.0_fp16",
+  "zavychromaxl_v40",
+];
+
+function getAllowedSdxlSet() {
+  const raw = process.env.API_ALLOWED_SDXL_MODELS;
+  const names =
+    typeof raw === "string" && raw.trim()
+      ? raw
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : DEFAULT_ALLOWED_SDXL;
+  return new Set(names);
+}
 
 function getAllowedSd15Set() {
   const raw = process.env.API_ALLOWED_SD15_MODELS;
@@ -83,13 +95,14 @@ function handleApiGet(req, res) {
   const now = new Date().toISOString();
   const models = getModels();
   const allowedSd15 = getAllowedSd15Set();
-  // Provider API only exposes models that can run the new managed Comfy path.
-  // Today this is flux checkpoints and sd15 checkpoints (via managedWorkflowId).
+  const allowedSdxl = getAllowedSdxlSet();
+  // Provider API exposes all models that have a managed Comfy workflow (managedWorkflowId),
+  // but only a filtered set for sd15 and sdxl.
   const filteredModels = models.filter(
     (m) =>
       Boolean(m.managedWorkflowId) &&
-      (m.family !== "flux" || m.loadKind === "checkpoint") &&
-      (m.family !== "sd15" || allowedSd15.has(m.name)),
+      (m.family !== "sd15" || allowedSd15.has(m.name)) &&
+      (m.family !== "sdxl" || allowedSdxl.has(m.name))
   );
   const modelOptions = filteredModels.map((m) => ({
     label: `${m.family}: ${m.name}`,

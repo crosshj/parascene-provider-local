@@ -147,26 +147,23 @@ async function _processLoop() {
         const canManaged = isManagedComfyWorkflowSupported(job.modelEntry || {});
         const useManagedComfy = wantsManaged && canManaged;
 
+        let comfyInput = {
+          family: job.modelEntry.family,
+          managedWorkflowId: job.modelEntry.managedWorkflowId,
+          modelFile: job.modelEntry.file,
+          modelPath: job.modelEntry.fullPath,
+          comfyCheckpointGroup: job.modelEntry.comfyCheckpointGroup,
+          diffusionModelComfyName: job.modelEntry.diffusionModelComfyName,
+          loadKind: job.modelEntry.loadKind,
+          prompt: job.payload.prompt,
+        };
+        // Only include seed if present
+        if (job.seed !== undefined) {
+          comfyInput.seed = job.seed;
+        }
+        // Do NOT include steps, cfg, width, height, etc. for managed comfy jobs from app-new.html
         const result = useManagedComfy
-          ? await runComfyGeneration(
-              {
-                family: job.modelEntry.family,
-                managedWorkflowId: job.modelEntry.managedWorkflowId,
-                modelFile: job.modelEntry.file,
-                modelPath: job.modelEntry.fullPath,
-                comfyCheckpointGroup: job.modelEntry.comfyCheckpointGroup,
-                diffusionModelComfyName: job.modelEntry.diffusionModelComfyName,
-                loadKind: job.modelEntry.loadKind,
-                prompt: job.payload.prompt,
-                negativePrompt: job.payload.negative_prompt,
-                seed: job.seed,
-                width: job.payload.width,
-                height: job.payload.height,
-                steps: job.payload.steps,
-                cfg: job.payload.cfg,
-              },
-              job.outputDir,
-            )
+          ? await runComfyGeneration(comfyInput, job.outputDir)
           : await runGenerator(job.payload, job.outputDir);
         const current = jobs.get(job.id);
         if (!current) {
