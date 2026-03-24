@@ -169,23 +169,8 @@ function collectSafetensorsRecursively(rootDir) {
 }
 
 function disambiguateStemNames(models) {
-  const stemCounts = new Map();
   for (const m of models) {
-    const stem = path.basename(m.file, ".safetensors");
-    const key = `${m.family}\0${stem.toLowerCase()}`;
-    stemCounts.set(key, (stemCounts.get(key) || 0) + 1);
-  }
-  for (const m of models) {
-    const stem = path.basename(m.file, ".safetensors");
-    const key = `${m.family}\0${stem.toLowerCase()}`;
-    if (stemCounts.get(key) > 1) {
-      m.name =
-        m.loadKind === "checkpoint"
-          ? `${stem} (checkpoint)`
-          : `${stem} (diffusion)`;
-    } else {
-      m.name = stem;
-    }
+    m.name = path.basename(m.file, ".safetensors");
   }
 }
 
