@@ -8,8 +8,8 @@ const {
 } = require("./managed-instance.js");
 
 function getDefaultManagedComfyFamilies() {
-  // Hardcoded default: include sdxl, z-image, flux, and sd15
-  return ["flux", "sd15", "z-image", "sdxl"];
+  // Hardcoded default: include sdxl, z-image, flux, sd15, and qwen
+  return ["flux", "sd15", "z-image", "sdxl", "qwen"];
 }
 
 function modelSupportsManagedComfy(entry) {
