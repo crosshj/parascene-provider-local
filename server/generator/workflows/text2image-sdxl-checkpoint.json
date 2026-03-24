@@ -9,16 +9,16 @@
   "30": {
     "class_type": "CheckpointLoaderSimple",
     "inputs": {
-      "ckpt_name": "1.5\\dreamshaper_8.safetensors"
+      "ckpt_name": "xl\\sd_xl_base_1.0.safetensors"
     }
   },
   "31": {
     "class_type": "KSampler",
     "inputs": {
-      "seed": 1119851866655636,
-      "steps": 28,
-      "cfg": 7,
-      "sampler_name": "dpmpp_2m",
+      "seed": 1073668384962906,
+      "steps": 32,
+      "cfg": 5.5,
+      "sampler_name": "dpmpp_2m_sde",
       "scheduler": "karras",
       "denoise": 1,
       "model": ["30", 0],
@@ -30,8 +30,8 @@
   "27": {
     "class_type": "EmptyLatentImage",
     "inputs": {
-      "width": 512,
-      "height": 512,
+      "width": 1024,
+      "height": 1024,
       "batch_size": 1
     }
   },

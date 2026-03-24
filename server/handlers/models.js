@@ -32,7 +32,7 @@ const MODEL_DIRS = [
     rel: "diffusion_models\\z-image",
     family: "z-image",
     loadKind: "diffusion_model",
-    managedWorkflowId: null,
+    managedWorkflowId: "text2image-zimage-diffusion",
     comfyCheckpointGroup: null,
   },
   {
@@ -41,13 +41,6 @@ const MODEL_DIRS = [
     loadKind: "checkpoint",
     managedWorkflowId: "text2image-flux-checkpoint",
     comfyCheckpointGroup: "FLUX1",
-  },
-  {
-    rel: "checkpoints\\xl",
-    family: "sdxl",
-    loadKind: "checkpoint",
-    managedWorkflowId: null,
-    comfyCheckpointGroup: "xl",
   },
   {
     rel: "checkpoints\\pony",
@@ -74,8 +67,15 @@ const MODEL_DIRS = [
     rel: "checkpoints\\qwen",
     family: "qwen",
     loadKind: "checkpoint",
-    managedWorkflowId: null,
+    managedWorkflowId: "text2image-qwen-diffusion",
     comfyCheckpointGroup: "qwen",
+  },
+  {
+    rel: "checkpoints\\xl",
+    family: "sdxl",
+    loadKind: "checkpoint",
+    managedWorkflowId: "text2image-sdxl-checkpoint",
+    comfyCheckpointGroup: "xl",
   },
 ];
 
@@ -257,7 +257,10 @@ function resolveModel(query) {
   if (byId) return byId;
 
   const matches = list.filter(
-    (m) => m.name === q || m.file === q || path.basename(m.file, ".safetensors") === q,
+    (m) =>
+      m.name === q ||
+      m.file === q ||
+      path.basename(m.file, ".safetensors") === q,
   );
   if (matches.length === 1) return matches[0];
   return null;

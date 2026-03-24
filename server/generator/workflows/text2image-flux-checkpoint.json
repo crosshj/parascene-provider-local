@@ -29,10 +29,10 @@
     "class_type": "KSampler",
     "inputs": {
       "seed": 1119851866655636,
-      "steps": 40,
+      "steps": 24,
       "cfg": 1,
       "sampler_name": "euler",
-      "scheduler": "beta",
+      "scheduler": "simple",
       "denoise": 1,
       "model": ["30", 0],
       "positive": ["35", 0],
