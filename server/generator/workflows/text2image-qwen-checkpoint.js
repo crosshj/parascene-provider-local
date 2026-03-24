@@ -34,11 +34,16 @@ function QwenCheckpointWorkflow(overrides = {}) {
     );
     workflow["31"].inputs.steps = toPositiveInt(overrides.steps, 20);
     workflow["31"].inputs.cfg = toNumber(overrides.cfg, 4.0);
-    workflow["39"].inputs.width = toPositiveInt(overrides.width, 1024);
-    workflow["39"].inputs.height = toPositiveInt(overrides.height, 1024);
+    workflow["27"].inputs.width = toPositiveInt(overrides.width, 1024);
+    workflow["27"].inputs.height = toPositiveInt(overrides.height, 1024);
     return workflow;
   } catch (err) {
-    console.error("[QWEN-CHECKPOINT WORKFLOW ERROR] Error building workflow for overrides:", overrides, "Error:", err);
+    console.error(
+      "[QWEN-CHECKPOINT WORKFLOW ERROR] Error building workflow for overrides:",
+      overrides,
+      "Error:",
+      err,
+    );
     throw err;
   }
 }
