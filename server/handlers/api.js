@@ -102,7 +102,7 @@ function handleApiGet(req, res) {
     (m) =>
       Boolean(m.managedWorkflowId) &&
       (m.family !== "sd15" || allowedSd15.has(m.name)) &&
-      (m.family !== "sdxl" || allowedSdxl.has(m.name))
+      (m.family !== "sdxl" || allowedSdxl.has(m.name)),
   );
   const modelOptions = filteredModels.map((m) => ({
     label: `${m.family}: ${m.name}`,

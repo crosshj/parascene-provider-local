@@ -144,7 +144,9 @@ async function _processLoop() {
           job.args || {},
           job.modelEntry || {},
         );
-        const canManaged = isManagedComfyWorkflowSupported(job.modelEntry || {});
+        const canManaged = isManagedComfyWorkflowSupported(
+          job.modelEntry || {},
+        );
         const useManagedComfy = wantsManaged && canManaged;
 
         let comfyInput = {

@@ -31,14 +31,36 @@ function FluxWorkflow(overrides = {}) {
   }
   workflow["6"].inputs.text = overrides.prompt || "";
   workflow["33"].inputs.text = overrides.negativePrompt || "";
-  workflow["31"].inputs.seed = toPositiveInt(
-    overrides.seed,
-    workflow["31"].inputs.seed,
-  );
-  workflow["31"].inputs.steps = toPositiveInt(overrides.steps, 20);
-  workflow["31"].inputs.cfg = toNumber(overrides.cfg, 1.0);
-  workflow["27"].inputs.width = toPositiveInt(overrides.width, 1024);
-  workflow["27"].inputs.height = toPositiveInt(overrides.height, 1024);
+  if (overrides.seed !== undefined) {
+    workflow["31"].inputs.seed = toPositiveInt(
+      overrides.seed,
+      workflow["31"].inputs.seed,
+    );
+  }
+  if (overrides.steps !== undefined) {
+    workflow["31"].inputs.steps = toPositiveInt(
+      overrides.steps,
+      workflow["31"].inputs.steps,
+    );
+  }
+  if (overrides.cfg !== undefined) {
+    workflow["31"].inputs.cfg = toNumber(
+      overrides.cfg,
+      workflow["31"].inputs.cfg,
+    );
+  }
+  if (overrides.width !== undefined) {
+    workflow["27"].inputs.width = toPositiveInt(
+      overrides.width,
+      workflow["27"].inputs.width,
+    );
+  }
+  if (overrides.height !== undefined) {
+    workflow["27"].inputs.height = toPositiveInt(
+      overrides.height,
+      workflow["27"].inputs.height,
+    );
+  }
   return workflow;
 }
 

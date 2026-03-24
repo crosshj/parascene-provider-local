@@ -26,14 +26,36 @@ function cloneBaseWorkflow() {
 function ZimageWorkflow(overrides = {}) {
   const workflow = cloneBaseWorkflow();
   workflow["6"].inputs.text = overrides.prompt || "";
-  workflow["31"].inputs.seed = toPositiveInt(
-    overrides.seed,
-    workflow["31"].inputs.seed,
-  );
-  workflow["31"].inputs.steps = toPositiveInt(overrides.steps, 15);
-  workflow["31"].inputs.cfg = toNumber(overrides.cfg, 4.0);
-  workflow["39"].inputs.width = toPositiveInt(overrides.width, 1024);
-  workflow["39"].inputs.height = toPositiveInt(overrides.height, 1024);
+  if (overrides.seed !== undefined) {
+    workflow["31"].inputs.seed = toPositiveInt(
+      overrides.seed,
+      workflow["31"].inputs.seed,
+    );
+  }
+  if (overrides.steps !== undefined) {
+    workflow["31"].inputs.steps = toPositiveInt(
+      overrides.steps,
+      workflow["31"].inputs.steps,
+    );
+  }
+  if (overrides.cfg !== undefined) {
+    workflow["31"].inputs.cfg = toNumber(
+      overrides.cfg,
+      workflow["31"].inputs.cfg,
+    );
+  }
+  if (overrides.width !== undefined) {
+    workflow["39"].inputs.width = toPositiveInt(
+      overrides.width,
+      workflow["39"].inputs.width,
+    );
+  }
+  if (overrides.height !== undefined) {
+    workflow["39"].inputs.height = toPositiveInt(
+      overrides.height,
+      workflow["39"].inputs.height,
+    );
+  }
   return workflow;
 }
 
