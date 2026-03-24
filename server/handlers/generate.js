@@ -21,9 +21,21 @@ function sanitizePromptText(value) {
   if (value == null) return "";
   let out = String(value).normalize("NFKC");
   const map = {
-    "\u2018": "'", "\u2019": "'", "\u201A": "'", "\u201B": "'", "\u2032": "'",
-    "\u201C": '"', "\u201D": '"', "\u201E": '"', "\u201F": '"', "\u2033": '"',
-    "\u2013": "-", "\u2014": "-", "\u2212": "-", "\u2026": "...", "\u00A0": " ",
+    "\u2018": "'",
+    "\u2019": "'",
+    "\u201A": "'",
+    "\u201B": "'",
+    "\u2032": "'",
+    "\u201C": '"',
+    "\u201D": '"',
+    "\u201E": '"',
+    "\u201F": '"',
+    "\u2033": '"',
+    "\u2013": "-",
+    "\u2014": "-",
+    "\u2212": "-",
+    "\u2026": "...",
+    "\u00A0": " ",
   };
   out = out.replace(
     /[\u2018\u2019\u201A\u201B\u2032\u201C\u201D\u201E\u201F\u2033\u2013\u2014\u2212\u2026\u00A0]/g,
@@ -227,7 +239,9 @@ function _killOrphan() {
   try {
     process.kill(pid, 0); // throws if process is gone
   } catch {
-    console.log(`[generator] stale worker PID file (process ${pid} gone), removed`);
+    console.log(
+      `[generator] stale worker PID file (process ${pid} gone), removed`,
+    );
     _clearPid();
     return;
   }
@@ -344,8 +358,16 @@ function handleGenerate(req, res, ctx) {
 
       const wantsManaged = wantsManagedComfyBackend(body, entry);
       const canManaged = isManagedComfyWorkflowSupported(entry);
-      const flags = body && typeof body.featureFlags === "object" ? body.featureFlags : null;
-      if (wantsManaged && !canManaged && flags && flags.useManagedComfy === true) {
+      const flags =
+        body && typeof body.featureFlags === "object"
+          ? body.featureFlags
+          : null;
+      if (
+        wantsManaged &&
+        !canManaged &&
+        flags &&
+        flags.useManagedComfy === true
+      ) {
         return sendJson(res, 400, {
           error:
             "Managed Comfy is not available for this model (needs a registered workflow and checkpoint-style entry).",

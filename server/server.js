@@ -17,12 +17,13 @@ const { handleHealth } = require("./handlers/health.js");
 const { handleModels } = require("./handlers/models.js");
 const { handleApiGet, handleApiPost } = require("./handlers/api.js");
 const { handleGpu } = require("./handlers/gpu.js");
-const { ensureWorkerStarted, handleGenerate } = require("./handlers/generate.js");
+const {
+  ensureWorkerStarted,
+  handleGenerate,
+} = require("./handlers/generate.js");
 const { ensureManagedComfyReady } = require("./generator/comfy/index.js");
 const { handleOutputImage } = require("./handlers/outputs.js");
 const { handlePublic } = require("./handlers/public.js");
-
-
 
 function getCacheVersion() {
   const cwd = process.cwd();
@@ -75,9 +76,7 @@ app.listen(Number(PORT), HOST, () => {
   }
   try {
     const worker = ensureWorkerStarted(ctx.outputDir);
-    console.log(
-      `[generator] warm start ready pid=${worker.pid ?? "unknown"}`,
-    );
+    console.log(`[generator] warm start ready pid=${worker.pid ?? "unknown"}`);
   } catch (err) {
     console.error(`[generator] warm start failed: ${err.message}`);
   }

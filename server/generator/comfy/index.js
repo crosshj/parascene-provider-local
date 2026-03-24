@@ -1,9 +1,7 @@
 "use strict";
 
 const { runComfyGeneration } = require("./client.js");
-const {
-  isManagedComfyWorkflowSupported,
-} = require("../workflows/_index.js");
+const { isManagedComfyWorkflowSupported } = require("../workflows/_index.js");
 const {
   getManagedComfyStatus,
   ensureManagedComfyReady,
@@ -23,7 +21,8 @@ function modelSupportsManagedComfy(entry) {
  * Does not check whether this specific model has a registered workflow.
  */
 function wantsManagedComfyBackend(body, entry) {
-  const flags = body && typeof body.featureFlags === "object" ? body.featureFlags : null;
+  const flags =
+    body && typeof body.featureFlags === "object" ? body.featureFlags : null;
   if (flags && flags.forcePythonWorker === true) return false;
 
   const fam = String(entry.family || "").toLowerCase();

@@ -22,6 +22,13 @@ const DIFFUSION_MODELS_SEGMENT = "diffusion_models";
 // managedWorkflowId: which server/generator/workflows builder to use (null = Comfy path N/A).
 const MODEL_DIRS = [
   {
+    rel: "diffusion_models\\qwen",
+    family: "qwen",
+    loadKind: "diffusion_model",
+    managedWorkflowId: "text2image-qwen-diffusion",
+    comfyCheckpointGroup: null,
+  },
+  {
     rel: "diffusion_models\\flux",
     family: "flux",
     loadKind: "diffusion_model",
@@ -67,7 +74,7 @@ const MODEL_DIRS = [
     rel: "checkpoints\\qwen",
     family: "qwen",
     loadKind: "checkpoint",
-    managedWorkflowId: "text2image-qwen-diffusion",
+    managedWorkflowId: "text2image-qwen-checkpoint",
     comfyCheckpointGroup: "qwen",
   },
   {
