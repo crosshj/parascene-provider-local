@@ -15,6 +15,47 @@ const PARASCENE_API_KEY =
 // In-memory job store for stub (non-text2img) jobs only.
 const stubJobs = new Map();
 
+const DEFAULT_ALLOWED_SD15 = [
+  "cyberrealistic_v20",
+  "deliberate_v11",
+  "realisticVisionV60B1_v60B1VAE",
+  "dreamShaper_8_pruned",
+  "revAnimated_v122",
+  "rpg_v5",
+  "toonAme_version20",
+  "lofi_V2pre",
+  "qgo10b_qgo10b",
+  "liberty_main",
+];
+
+// Kept as reference for future provider filtering tweaks.
+// const DEFAULT_ALLOWED_SDXL = [
+//   "cyberrealisticPony_v130",
+//   "dreamshaperXL_turboDpmppSDE",
+//   "illustriousXL20_v20",
+//   "juggernautXL_v7Rundiffusion",
+//   "juggernautXL_v9Rdphoto2Lightning",
+//   "ponyRealism_V23",
+//   "protovisionXLHighFidelity3D_releaseV660Bakedvae",
+//   "realcartoonXL_v6",
+//   "realDream_sdxlLightning1",
+//   "sd_xl_base_1.0",
+//   "sd_xl_turbo_1.0_fp16",
+//   "zavychromaxl_v40",
+// ];
+
+function getAllowedSd15Set() {
+  const raw = process.env.API_ALLOWED_SD15_MODELS;
+  const names =
+    typeof raw === "string" && raw.trim()
+      ? raw
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : DEFAULT_ALLOWED_SD15;
+  return new Set(names);
+}
+
 function getBearerToken(req) {
   const header = req.headers["authorization"] || req.headers["Authorization"];
   if (!header || typeof header !== "string") return null;
@@ -36,46 +77,19 @@ function ensureAuthorized(req, res) {
   return true;
 }
 
-const ALLOWED_SD15 = new Set([
-  "cyberrealistic_v20",
-  "deliberate_v11",
-  "realisticVisionV60B1_v60B1VAE",
-  "dreamShaper_8_pruned",
-  "revAnimated_v122",
-  "rpg_v5",
-  "toonAme_version20",
-  "lofi_V2pre",
-  "qgo10b_qgo10b",
-  "liberty_main",
-]);
-
-const ALLOWED_SDXL = new Set([
-  "cyberrealisticPony_v130",
-  "dreamshaperXL_turboDpmppSDE",
-  "illustriousXL20_v20",
-  "juggernautXL_v7Rundiffusion",
-  "juggernautXL_v9Rdphoto2Lightning",
-  "ponyRealism_V23",
-  "protovisionXLHighFidelity3D_releaseV660Bakedvae",
-  "realcartoonXL_v6",
-  "realDream_sdxlLightning1",
-  "sd_xl_base_1.0",
-  "sd_xl_turbo_1.0_fp16",
-  "zavychromaxl_v40",
-]);
-
 function handleApiGet(req, res) {
   if (!ensureAuthorized(req, res)) return;
 
   const now = new Date().toISOString();
   const models = getModels();
-  // WAN remains disabled for this provider for now.
+  const allowedSd15 = getAllowedSd15Set();
+  // Provider API only exposes models that can run the new managed Comfy path.
+  // Today this is flux checkpoints and sd15 checkpoints (via managedWorkflowId).
   const filteredModels = models.filter(
     (m) =>
-      m.family !== "wan" &&
-      (m.family !== "sdxl" || ALLOWED_SDXL.has(m.name)) &&
-      (m.family !== "sd15" || ALLOWED_SD15.has(m.name)) &&
-      (m.family !== "z-image" || true), // Always allow z-image
+      Boolean(m.managedWorkflowId) &&
+      (m.family !== "flux" || m.loadKind === "checkpoint") &&
+      (m.family !== "sd15" || allowedSd15.has(m.name)),
   );
   const modelOptions = filteredModels.map((m) => ({
     label: `${m.family}: ${m.name}`,

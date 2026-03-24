@@ -5,6 +5,11 @@ const path = require("path");
 
 const { runGenerator, sanitizePromptText } = require("../handlers/generate.js");
 const { resolveModel } = require("../handlers/models.js");
+const {
+  runComfyGeneration,
+  isManagedComfyWorkflowSupported,
+  wantsManagedComfyBackend,
+} = require("../generator/comfy/index.js");
 
 const { TEXT2IMG_CREDITS } = require("../lib.js");
 
@@ -135,7 +140,34 @@ async function _processLoop() {
       }
 
       try {
-        const result = await runGenerator(job.payload, job.outputDir);
+        const wantsManaged = wantsManagedComfyBackend(
+          job.args || {},
+          job.modelEntry || {},
+        );
+        const canManaged = isManagedComfyWorkflowSupported(job.modelEntry || {});
+        const useManagedComfy = wantsManaged && canManaged;
+
+        const result = useManagedComfy
+          ? await runComfyGeneration(
+              {
+                family: job.modelEntry.family,
+                managedWorkflowId: job.modelEntry.managedWorkflowId,
+                modelFile: job.modelEntry.file,
+                modelPath: job.modelEntry.fullPath,
+                comfyCheckpointGroup: job.modelEntry.comfyCheckpointGroup,
+                diffusionModelComfyName: job.modelEntry.diffusionModelComfyName,
+                loadKind: job.modelEntry.loadKind,
+                prompt: job.payload.prompt,
+                negativePrompt: job.payload.negative_prompt,
+                seed: job.seed,
+                width: job.payload.width,
+                height: job.payload.height,
+                steps: job.payload.steps,
+                cfg: job.payload.cfg,
+              },
+              job.outputDir,
+            )
+          : await runGenerator(job.payload, job.outputDir);
         const current = jobs.get(job.id);
         if (!current) {
           // Job removed externally; skip.
@@ -150,6 +182,7 @@ async function _processLoop() {
             family: result.family,
             model: result.model,
             elapsed_ms: result.elapsed_ms,
+            backend: useManagedComfy ? "managed-comfy" : "python-worker",
           };
         } else {
           current.status = "failed";
@@ -211,6 +244,7 @@ function enqueueText2ImgJob(args, outputDir) {
   };
 
   const id = generateJobId();
+  const seed = Math.floor(Math.random() * 2_147_483_647) + 1;
   const job = {
     id,
     method: "text2img",
@@ -225,6 +259,17 @@ function enqueueText2ImgJob(args, outputDir) {
     imageWidth: defaults.width ?? 1024,
     imageHeight: defaults.height ?? 1024,
     credits: TEXT2IMG_CREDITS,
+    seed,
+    modelEntry: {
+      modelId: entry.modelId,
+      file: entry.file,
+      family: entry.family,
+      fullPath: entry.fullPath,
+      loadKind: entry.loadKind,
+      managedWorkflowId: entry.managedWorkflowId,
+      comfyCheckpointGroup: entry.comfyCheckpointGroup,
+      diffusionModelComfyName: entry.diffusionModelComfyName,
+    },
     payload,
     outputDir,
   };
