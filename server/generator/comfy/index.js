@@ -10,11 +10,8 @@ const {
 } = require("./managed-instance.js");
 
 function getDefaultManagedComfyFamilies() {
-  const raw = process.env.DEFAULT_MANAGED_COMFY_FAMILIES || "flux,sd15";
-  return raw
-    .split(",")
-    .map((s) => s.trim().toLowerCase())
-    .filter(Boolean);
+  // Hardcoded default: include sdxl, z-image, flux, and sd15
+  return ["flux", "sd15", "z-image", "sdxl"];
 }
 
 function modelSupportsManagedComfy(entry) {
