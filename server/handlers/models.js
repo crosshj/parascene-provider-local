@@ -40,6 +40,13 @@ const MODEL_DIRS = [
     comfyCheckpointGroup: null,
   },
   {
+    rel: "diffusion_models\\flux",
+    family: "flux",
+    loadKind: "diffusion_model",
+    managedWorkflowId: "text2image-flux-diffusion",
+    comfyCheckpointGroup: null,
+  },
+  {
     rel: "checkpoints\\FLUX1",
     family: "flux",
     loadKind: "checkpoint",

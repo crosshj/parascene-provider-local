@@ -11,6 +11,7 @@ const path = require("path");
 
 const MANAGED_ID_TO_JSON = {
   "text2image-flux-checkpoint": "text2image-flux-checkpoint.json",
+  "text2image-flux-diffusion": "text2image-flux-diffusion.json",
   "text2image-sd15-checkpoint": "text2image-sd15-checkpoint.json",
   "text2image-sdxl-checkpoint": "text2image-sdxl-checkpoint.json",
   "text2image-zimage-diffusion": "text2image-zimage-diffusion.json",
@@ -68,7 +69,8 @@ function getModelDefaults(family, fileName, managedWorkflowId) {
 
   if (
     family === "flux" &&
-    managedWorkflowId === "text2image-flux-checkpoint"
+    (managedWorkflowId === "text2image-flux-checkpoint" ||
+      managedWorkflowId === "text2image-flux-diffusion")
   ) {
     const lower = String(fileName || "").toLowerCase();
     if (lower.includes("schnell")) {

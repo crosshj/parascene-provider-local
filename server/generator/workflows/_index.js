@@ -2,6 +2,7 @@
 
 const WORKFLOWS = {
   "text2image-flux-checkpoint": require("./text2image-flux-checkpoint.js"),
+  "text2image-flux-diffusion": require("./text2image-flux-diffusion.js"),
   "text2image-sd15-checkpoint": require("./text2image-sd15-checkpoint.js"),
   "text2image-qwen-diffusion": require("./text2image-qwen-diffusion.js"),
   "text2image-qwen-checkpoint": require("./text2image-qwen-checkpoint.js"),
