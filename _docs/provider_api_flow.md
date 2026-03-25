@@ -19,10 +19,9 @@ End-to-end path from the browser to a generated image when using the token-gated
   `Authorization: Bearer <token>`.
 - **api.js** `handleApiGet`:
   - Verifies the bearer token against `PARASCENE_API_KEY`; if invalid → **401** (frontend clears token and shows token gate).
-  - Builds **model options** from **getModels()** (same registry as `resolveModel`), so every option is a valid model name.
-  - Returns **200** with JSON:
-    - `status: "ok"`, `last_check_at`, `methods: { text2img: { id: "text2img", default: true, name, description, intent, credits, fields: { model: { options: [{ label, value }] }, prompt } } }`.
-- **app-new.js** picks the default method (`text2img`), reads `fields.model.options`, and fills the **model `<select>`** with those options. So the dropdown always matches what the server can resolve.
+  - Builds **model options** from **getModels()** (same registry as `resolveModel`), filtered to models with a registered Comfy workflow (and optional sd15/sdxl allowlists).
+  - Returns **200** with JSON describing `text2img` and `fields.model.options`.
+- **app-new.js** picks the default method (`text2img`), reads `fields.model.options`, and fills the **model `<select>`** with those options.
 
 ---
 
@@ -44,22 +43,18 @@ End-to-end path from the browser to a generated image when using the token-gated
   - Sees no `args.job_id` → **Start** path.
   - For `method === "text2img"`:
     - Ensures `ctx.outputDir` is set (else **503**).
-    - Generates **job_id** = `job_<timestamp36>_<random6>` (e.g. `job_m5k2x7_abc12d`).
-    - **startText2ImgJob(jobId, args, ctx.outputDir)**:
-      - Validates prompt and model; **resolveModel(args.model)** (using same registry as GET /api options) → **400** if unknown model.
-      - Builds payload (prompt, model fullPath, family, negative_prompt, etc.) like **handleGenerate**.
-      - Stores job in **jobs** map with `status: "pending"`.
-      - Calls **runGenerator(payload, outputDir)** (from **generate.js**). That enqueues the job on the Python worker queue; the Promise is not awaited.
+    - **enqueueText2ImgJob(args, ctx.outputDir)** (**scheduler.js**):
+      - Validates prompt, model, and that the model has a registered workflow → **400** if invalid.
+      - Stores job in the scheduler **jobs** map with `status: "pending"`.
+      - Schedules the async **scheduler** loop which calls **`runComfyGeneration`** (Comfy HTTP `/prompt` + history + `/view`) when the job runs.
     - Responds immediately with **202** and `{ status: "pending", job_id }`.
 
 ---
 
-## 5. Python worker runs the job
+## 5. Scheduler runs the job (Comfy)
 
-- **generate.js**: the existing queue feeds one job at a time to the Python worker. The worker writes one JSON line per completed job.
-- When this job completes, **runGenerator**’s Promise resolves with `{ ok, file_name, seed, family, model, elapsed_ms }`.
-- **api.js**’s `.then()` in **startText2ImgJob** runs:
-  - Updates the job in **jobs** map: `status: "succeeded"`, `result: { ok: true, file_name, image_url: "/outputs/...", seed, family, model, elapsed_ms }` (or `status: "failed"`, `result: { ok: false, error }` on failure).
+- **scheduler.js** processes pending jobs one at a time (with model-key stickiness), calling **`runComfyGeneration`** with the job payload (prompt, dimensions, steps, cfg, seed, model metadata).
+- On success, the job record gets `status: "succeeded"` and `result` including `image_url`, `backend: "comfy"`, etc. On failure, `status: "failed"` and an error message.
 
 ---
 
@@ -68,31 +63,26 @@ End-to-end path from the browser to a generated image when using the token-gated
 - **app-new.js** has received **202** and **job_id**. It enters a loop:
   - **POST `/api`** with body `{ method: "text2img", args: { job_id } }`.
   - **api.js** sees `args.job_id` → **Poll** path:
-    - Looks up **jobs.get(job_id)**. If missing → **404**.
-    - If job `status === "pending"` → **202** `{ status: "pending", job_id }`.
-    - If job `status === "succeeded"` or `"failed"` → **200** `{ status, job_id, result }`.
-- **app-new.js**:
-  - On **202**: waits 1.5s, then polls again.
-  - On **200**: if `status === "succeeded"` and `result.image_url`, it sets the preview image to `result.image_url`, calls **renderMeta(result)**, and shows “Done.” If `status === "failed"`, it shows **result.error**.
+    - Looks up the job. If missing → **404**.
+    - If job `status === "pending"` or `"running"` → **202** `{ status, job_id }`.
+    - If job `status === "succeeded"` or `"failed"` → **200** `{ status, job_id, result }` (image body path may apply for succeeded text2img per **api.js**).
+- **app-new.js** waits between polls, then shows the image or error.
 
 ---
 
 ## 7. User sees the image
 
-- The **result** from the final **200** includes `image_url` (e.g. `/outputs/abc123.png`). The frontend sets `<img src="...">` to that URL; the browser requests **GET `/outputs/<file>`**, which **outputs.js** serves from the same output dir the generator wrote to. So the full chain is: token → GET /api (capabilities) → POST /api (start) → 202 + job_id → POST /api (poll) → 200 + result → GET /outputs/:file → image.
+- The **result** includes `image_url` (e.g. `/outputs/abc123.png`). The browser requests **GET `/outputs/<file>`**, which **outputs.js** serves from `OUTPUT_DIR`.
 
 ---
 
 ## Summary of connections
 
-| Step              | Who              | Uses / produces |
-|-------------------|------------------|-----------------|
-| Token             | app-new.js       | `localStorage`, `Authorization` header |
-| Capabilities      | GET /api         | getModels() → same names as resolveModel() |
-| Model select      | app-new.js       | GET /api `methods[].fields.model.options` |
-| Start job         | POST /api        | runGenerator(payload, ctx.outputDir), job_id |
-| Job storage       | api.js           | jobs map, updated when runGenerator resolves |
-| Poll              | POST /api        | jobs.get(job_id) → 202 or 200 + result |
-| Image URL         | result.image_url | `/outputs/<file_name>` → handleOutputImage |
+- **Token:** app-new.js → `Authorization` on GET `/api` and POST `/api`.
+- **Capabilities:** GET `/api` → filtered model list matching `resolveModel` / workflows.
+- **Start job:** POST `/api` → **enqueueText2ImgJob** → pending job + **202** + `job_id`.
+- **Execution:** **scheduler** → **runComfyGeneration** → Comfy HTTP API → file under `OUTPUT_DIR`.
+- **Poll:** POST `/api` with `job_id` → job status / result.
+- **Image:** `result.image_url` → GET `/outputs/...` → **handleOutputImage**.
 
-All dots are connected: same token for GET and POST, same model list for capabilities and text2img, same generator and output dir for the async job and for serving the file.
+All dots are connected: same token, same model list, same output dir for async jobs and static file serving.

@@ -64,9 +64,9 @@ function waitForHealth(host, port, timeoutMs = DEFAULT_HEALTH_TIMEOUT_MS) {
 const WORKER_PID_FILE = "runtime/.worker.pid";
 
 /**
- * If a worker PID file exists under dataRoot, kill that process (orphan from a
- * previous run) and remove the file. Ensures we don't leave a Python worker
- * running when the server was hard-killed. Call before starting the Node app.
+ * If an engine PID file exists under dataRoot, kill that process (orphan from a
+ * previous run) and remove the file. Ensures we don't leave a Comfy (or other engine)
+ * process running when the server was hard-killed. Call before starting the Node app.
  */
 function killOrphanWorker(dataRoot, log) {
   if (!dataRoot) return;
@@ -110,7 +110,7 @@ function killOrphanWorker(dataRoot, log) {
 
 /**
  * Kill a specific process if it is still running. Used after rollout to clean up
- * the previous server's worker if it survived (e.g. old Node was SIGKILL'd).
+ * the previous server's generation engine if it survived (e.g. old Node was SIGKILL'd).
  * Does not touch the PID file.
  */
 function cleanupWorkerPid(pid, log) {

@@ -33,14 +33,14 @@ class UpdateQueue {
     log,
     onRestartRequired,
     onRollingNodeRollout,
-    onRollingPythonRecycle,
+    onRollingEngineRecycle,
   }) {
     this.serviceRoot = serviceRoot;
     this.dataRoot = dataRoot || serviceRoot;
     this.log = log;
     this.onRestartRequired = onRestartRequired;
     this.onRollingNodeRollout = onRollingNodeRollout;
-    this.onRollingPythonRecycle = onRollingPythonRecycle;
+    this.onRollingEngineRecycle = onRollingEngineRecycle;
 
     this.runtimeDir = path.join(this.dataRoot, "runtime");
     this.statePath = path.join(this.runtimeDir, "update-state.json");
@@ -283,11 +283,11 @@ class UpdateQueue {
                 jobId: job.id,
                 releaseDir: result.releaseDir,
               });
-              if (typeof this.onRollingPythonRecycle === "function") {
+              if (typeof this.onRollingEngineRecycle === "function") {
                 try {
-                  this.onRollingPythonRecycle();
+                  this.onRollingEngineRecycle();
                 } catch (recycleErr) {
-                  this.log.warn("updater.rolling.python.recycle.error", {
+                  this.log.warn("updater.rolling.engine.recycle.error", {
                     error: recycleErr.message,
                   });
                 }

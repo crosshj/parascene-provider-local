@@ -8,6 +8,9 @@ const fs = require("fs");
 const path = require("path");
 
 const { sendJson } = require("../lib.js");
+const {
+  isManagedComfyWorkflowSupported,
+} = require("../generator/workflows/_index.js");
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -18,21 +21,14 @@ const MODELS_BASE = process.env.MODELS_BASE || "D:\\comfy_models";
 const DIFFUSION_MODELS_SEGMENT = "diffusion_models";
 
 // Order matters — first match wins if a file appears in multiple dirs.
-// loadKind: how the Python worker / Comfy graph expects weights to be loaded.
-// managedWorkflowId: which server/generator/workflows builder to use (null = Comfy path N/A).
+// loadKind: how Comfy graphs expect weights to be loaded.
+// managedWorkflowId: which server/generator/workflows builder to use (null = excluded from API).
 const MODEL_DIRS = [
   {
     rel: "diffusion_models\\qwen",
     family: "qwen",
     loadKind: "diffusion_model",
     managedWorkflowId: "text2image-qwen-diffusion",
-    comfyCheckpointGroup: null,
-  },
-  {
-    rel: "diffusion_models\\flux",
-    family: "flux",
-    loadKind: "diffusion_model",
-    managedWorkflowId: null,
     comfyCheckpointGroup: null,
   },
   {
@@ -50,25 +46,11 @@ const MODEL_DIRS = [
     comfyCheckpointGroup: "FLUX1",
   },
   {
-    rel: "checkpoints\\pony",
-    family: "sdxl",
-    loadKind: "checkpoint",
-    managedWorkflowId: null,
-    comfyCheckpointGroup: "pony",
-  },
-  {
     rel: "checkpoints\\1.5",
     family: "sd15",
     loadKind: "checkpoint",
     managedWorkflowId: "text2image-sd15-checkpoint",
     comfyCheckpointGroup: "1.5",
-  },
-  {
-    rel: "checkpoints\\WAN",
-    family: "wan",
-    loadKind: "checkpoint",
-    managedWorkflowId: null,
-    comfyCheckpointGroup: "WAN",
   },
   {
     rel: "checkpoints\\qwen",
@@ -273,19 +255,15 @@ function modelToPublicJson(m) {
 }
 
 function getModelsPolicy() {
-  const raw = process.env.DEFAULT_MANAGED_COMFY_FAMILIES || "flux,sd15";
-  const defaultManagedComfyFamilies = raw
-    .split(",")
-    .map((s) => s.trim().toLowerCase())
-    .filter(Boolean);
-  return { defaultManagedComfyFamilies };
+  return { defaultManagedComfyFamilies: [] };
 }
 
 function handleModels(_req, res, _ctx) {
+  const models = getModels().filter((m) => isManagedComfyWorkflowSupported(m));
   sendJson(res, 200, {
     ok: true,
     policy: getModelsPolicy(),
-    models: getModels().map(modelToPublicJson),
+    models: models.map(modelToPublicJson),
   });
 }
 

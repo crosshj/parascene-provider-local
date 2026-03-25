@@ -83,7 +83,6 @@ const previewWrap = document.getElementById("preview-wrap");
 const idleEl = document.getElementById("preview-idle");
 const imageEl = document.getElementById("image");
 const metaRowEl = document.getElementById("meta-row");
-const forcePythonFlagEl = document.getElementById("flag-force-python-worker");
 const STORAGE_KEY = "local-image-generator.form.v1";
 
 let modelRegistry = {};
@@ -135,7 +134,6 @@ function collectFormValues() {
     steps: form.steps.value,
     cfg: form.cfg.value,
     seed: form.seed.value,
-    force_python_worker: forcePythonFlagEl?.checked === true,
   };
 }
 
@@ -190,7 +188,7 @@ function renderMeta(data) {
   const items = [
     ["family", data.family],
     ["model", data.model.split(/[\\/]/).pop()],
-    ["backend", data.backend || "python-worker"],
+    ["backend", data.backend || "comfy"],
     ["seed", data.seed],
     ["time", data.elapsed_ms + "\u202fms"],
   ];
@@ -256,16 +254,8 @@ function applyModelsFromPayload(data) {
   lastModelsPayload = data;
   modelRegistry = {};
 
-  const forcePython = forcePythonFlagEl?.checked === true;
-  const filtered = data.models.filter((m) => {
-    if (m.family !== "flux") return true;
-    return forcePython
-      ? m.loadKind === "diffusion_model"
-      : m.loadKind === "checkpoint";
-  });
-
   const groups = {};
-  for (const m of filtered) {
+  for (const m of data.models) {
     modelRegistry[m.modelId] = m;
     (groups[m.family] ??= []).push(m);
   }
@@ -312,15 +302,6 @@ async function loadModels() {
     const res = await apiFetch("/api/models", { method: "GET" });
     const data = await res.json();
     if (!data.ok) throw new Error("Bad response");
-
-    if (savedValues && forcePythonFlagEl) {
-      const f = savedValues;
-      if (f.force_python_worker != null) {
-        forcePythonFlagEl.checked = Boolean(f.force_python_worker);
-      } else if (f.use_managed_comfy != null) {
-        forcePythonFlagEl.checked = !Boolean(f.use_managed_comfy);
-      }
-    }
 
     applyModelsFromPayload(data);
 
@@ -437,11 +418,6 @@ modelSel.addEventListener("change", applyModelDefaults);
   "cfg",
   "seed",
 ].forEach((n) => form[n].addEventListener("input", saveFormValues));
-forcePythonFlagEl?.addEventListener("change", () => {
-  if (lastModelsPayload) applyModelsFromPayload(lastModelsPayload);
-  saveFormValues();
-});
-
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   setStatusMessage("Generating…");
@@ -463,9 +439,6 @@ form.addEventListener("submit", async (e) => {
     height: Number(form.height.value),
     steps: Number(form.steps.value),
     cfg: Number(form.cfg.value),
-    featureFlags: {
-      forcePythonWorker: forcePythonFlagEl?.checked === true,
-    },
   };
 
   const seedRaw = form.seed.value.trim();

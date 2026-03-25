@@ -17,10 +17,7 @@ const { handleHealth } = require("./handlers/health.js");
 const { handleModels } = require("./handlers/models.js");
 const { handleApiGet, handleApiPost } = require("./handlers/api.js");
 const { handleGpu } = require("./handlers/gpu.js");
-const {
-  ensureWorkerStarted,
-  handleGenerate,
-} = require("./handlers/generate.js");
+const { handleGenerate } = require("./handlers/generate.js");
 const { ensureManagedComfyReady } = require("./generator/comfy/index.js");
 const { handleOutputImage } = require("./handlers/outputs.js");
 const { handlePublic } = require("./handlers/public.js");
@@ -71,14 +68,8 @@ app.get("*", handlePublic);
 app.listen(Number(PORT), HOST, () => {
   console.log(`Server running at http://${HOST}:${PORT}/`);
   if (!ctx.outputDir) {
-    console.warn("[generator] warm start skipped: OUTPUT_DIR not configured");
+    console.warn("[comfy] warm start skipped: OUTPUT_DIR not configured");
     return;
-  }
-  try {
-    const worker = ensureWorkerStarted(ctx.outputDir);
-    console.log(`[generator] warm start ready pid=${worker.pid ?? "unknown"}`);
-  } catch (err) {
-    console.error(`[generator] warm start failed: ${err.message}`);
   }
   ensureManagedComfyReady()
     .then((status) => {

@@ -2,7 +2,9 @@
 
 const { sendJson } = require("../lib.js");
 const { getModels } = require("./models.js");
-const { getWorkerStatus } = require("./generate.js");
+const {
+  isManagedComfyWorkflowSupported,
+} = require("../generator/workflows/_index.js");
 const { getManagedComfyStatus } = require("../generator/comfy/index.js");
 const { getSummary: getJobSummary } = require("../jobs/scheduler.js");
 
@@ -36,11 +38,16 @@ function handleHealth(_req, res, ctx) {
       root: null,
     }))
     .then((comfy) => {
-      const worker = getWorkerStatus();
+      // Same contract as the old Python worker slot: service + app-status read `worker`.
+      const worker = {
+        running: comfy.running === true,
+        pid: comfy.pid != null ? comfy.pid : null,
+      };
       const outputDirAbs = ctx.outputDir ?? null;
       const publicDirAbs = ctx.publicDir ?? null;
       const payloadBase = {
-        models: getModels().length,
+        models: getModels().filter((m) => isManagedComfyWorkflowSupported(m))
+          .length,
         output_dir: outputDirAbs ? makeRelativeToService(outputDirAbs) : null,
         output_dir_abs: outputDirAbs,
         public_dir: publicDirAbs ? makeRelativeToService(publicDirAbs) : null,

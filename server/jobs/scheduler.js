@@ -3,12 +3,11 @@
 const fs = require("fs");
 const path = require("path");
 
-const { runGenerator, sanitizePromptText } = require("../handlers/generate.js");
+const { sanitizePromptText } = require("../handlers/generate.js");
 const { resolveModel } = require("../handlers/models.js");
 const {
   runComfyGeneration,
   isManagedComfyWorkflowSupported,
-  wantsManagedComfyBackend,
 } = require("../generator/comfy/index.js");
 
 const { TEXT2IMG_CREDITS } = require("../lib.js");
@@ -140,16 +139,7 @@ async function _processLoop() {
       }
 
       try {
-        const wantsManaged = wantsManagedComfyBackend(
-          job.args || {},
-          job.modelEntry || {},
-        );
-        const canManaged = isManagedComfyWorkflowSupported(
-          job.modelEntry || {},
-        );
-        const useManagedComfy = wantsManaged && canManaged;
-
-        let comfyInput = {
+        const comfyInput = {
           family: job.modelEntry.family,
           managedWorkflowId: job.modelEntry.managedWorkflowId,
           modelFile: job.modelEntry.file,
@@ -158,15 +148,15 @@ async function _processLoop() {
           diffusionModelComfyName: job.modelEntry.diffusionModelComfyName,
           loadKind: job.modelEntry.loadKind,
           prompt: job.payload.prompt,
+          negativePrompt: sanitizePromptText(job.payload.negative_prompt || ""),
+          seed: job.seed,
+          width: job.payload.width,
+          height: job.payload.height,
+          steps: job.payload.steps,
+          cfg: job.payload.cfg,
         };
-        // Only include seed if present
-        if (job.seed !== undefined) {
-          comfyInput.seed = job.seed;
-        }
-        // Do NOT include steps, cfg, width, height, etc. for managed comfy jobs from app-new.html
-        const result = useManagedComfy
-          ? await runComfyGeneration(comfyInput, job.outputDir)
-          : await runGenerator(job.payload, job.outputDir);
+
+        const result = await runComfyGeneration(comfyInput, job.outputDir);
         const current = jobs.get(job.id);
         if (!current) {
           // Job removed externally; skip.
@@ -181,7 +171,7 @@ async function _processLoop() {
             family: result.family,
             model: result.model,
             elapsed_ms: result.elapsed_ms,
-            backend: useManagedComfy ? "managed-comfy" : "python-worker",
+            backend: "comfy",
           };
         } else {
           current.status = "failed";
@@ -229,11 +219,18 @@ function enqueueText2ImgJob(args, outputDir) {
     };
   }
 
+  if (!isManagedComfyWorkflowSupported(entry)) {
+    return {
+      error:
+        "This model has no registered Comfy workflow. Choose another model from GET /api.",
+    };
+  }
+
   const defaults = entry.defaults || {};
   const payload = {
     prompt,
     prompt_2: "",
-    negative_prompt: "",
+    negative_prompt: sanitizePromptText(args.negative_prompt || ""),
     model: entry.fullPath,
     family: entry.family,
     width: defaults.width ?? 1024,

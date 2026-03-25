@@ -204,7 +204,7 @@ function main() {
         : nodeAppActivePort);
     const releaseRoot = releaseDir || resolveReleaseRoot(config.dataRoot);
 
-    // Get previous server's worker PID so we can clean it up after we tear down the old process.
+    // Get previous server's generation engine PID (Comfy) so we can clean it up after we tear down the old process.
     let previousWorkerPid = null;
     if (activeNodeTarget) {
       try {
@@ -260,10 +260,10 @@ function main() {
     });
   }
 
-  function performPythonRecycle() {
-    log.info("orchestrator.python.recycle.requested", {});
-    // Python is server-owned; the deploy already did a Node rollout, so the new server
-    // will spawn a fresh worker on first generate. No second rollout.
+  function performEngineRecycle() {
+    log.info("orchestrator.engine.recycle.requested", {});
+    // Comfy is server-owned; after a Node rollout the new process warms Comfy on boot.
+    // Full Comfy restart is heavier than the old Python worker—avoid redundant recycle here unless you add explicit restart logic.
   }
 
   updateQueue = new UpdateQueue({
@@ -272,7 +272,7 @@ function main() {
     log,
     onRestartRequired: requestServiceRestart,
     onRollingNodeRollout: performNodeRollout,
-    onRollingPythonRecycle: performPythonRecycle,
+    onRollingEngineRecycle: performEngineRecycle,
   });
   updateQueue.start();
 

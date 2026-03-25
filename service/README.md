@@ -42,7 +42,7 @@ Provider API auth:
 
 - `PARASCENE_API_KEY` (shared bearer token for `/api` and related client calls; defaults to `parascene-local-dev-token` in local development)
 
-The Python image generator is owned by the server (Node app): the server spawns it on first generate and it is torn down when the server process exits. The service does not start or monitor a separate worker.
+The **ComfyUI** generation engine is owned by the Node app: the server ensures Comfy is reachable (may spawn a managed instance; see `server/generator/comfy/managed-instance.js`) and tears it down when the Node process exits. The service does not start Comfy itself; it proxies **`/api/health`**, which reports the engine PID in the **`worker`** field for deploy/orphan cleanup (same JSON contract as before).
 
 ## Run
 

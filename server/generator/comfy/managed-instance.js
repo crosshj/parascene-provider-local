@@ -9,6 +9,70 @@ const COMFY_HOST = "127.0.0.1";
 const COMFY_PORT = 8188;
 const COMFY_HEALTHCHECK_TIMEOUT_MS = 4_000;
 
+/** DATA_ROOT/runtime when set (service); else repo runtime/ (standalone, aligns with scheduler jobs dir). */
+function getEnginePidFilePath() {
+  const dataRoot = process.env.DATA_ROOT;
+  if (dataRoot) {
+    return path.join(dataRoot, "runtime", ".worker.pid");
+  }
+  const repoRoot = path.dirname(path.dirname(path.dirname(__dirname)));
+  return path.join(repoRoot, "runtime", ".worker.pid");
+}
+
+function writeEnginePid(pid) {
+  if (pid == null || !Number.isInteger(pid)) return;
+  try {
+    const pidFile = getEnginePidFilePath();
+    fs.mkdirSync(path.dirname(pidFile), { recursive: true });
+    fs.writeFileSync(pidFile, String(pid));
+  } catch {
+    /* ignore */
+  }
+}
+
+function clearEnginePid() {
+  try {
+    fs.unlinkSync(getEnginePidFilePath());
+  } catch {
+    /* ignore */
+  }
+}
+
+function killOrphanEngineFromPidFile() {
+  const pidFile = getEnginePidFilePath();
+  let pid;
+  try {
+    pid = parseInt(fs.readFileSync(pidFile, "utf8").trim(), 10);
+  } catch {
+    clearEnginePid();
+    return;
+  }
+  if (!pid || isNaN(pid)) {
+    clearEnginePid();
+    return;
+  }
+  try {
+    process.kill(pid, 0);
+  } catch {
+    console.log(
+      `[comfy] stale engine PID file (process ${pid} gone), removed`,
+    );
+    clearEnginePid();
+    return;
+  }
+  try {
+    process.kill(pid, "SIGTERM");
+    console.log(`[comfy] killed orphaned engine pid=${pid}`);
+  } catch (err) {
+    console.warn(`[comfy] failed to kill orphan pid=${pid}:`, err.message);
+  }
+  clearEnginePid();
+}
+
+if (!process.env.DATA_ROOT) {
+  killOrphanEngineFromPidFile();
+}
+
 let _proc = null;
 let _startingPromise = null;
 
@@ -45,7 +109,6 @@ function _spawnComfy() {
   // Kill any process listening on COMFY_PORT (Windows only)
   if (process.platform === "win32") {
     try {
-      // Find PIDs listening on the port
       const netstatOut = execSync(
         `netstat -aon | findstr :${COMFY_PORT}.*LISTENING`,
         { encoding: "utf8" },
@@ -65,11 +128,11 @@ function _spawnComfy() {
         try {
           console.log(`Killing PID ${pid} on port ${COMFY_PORT}...`);
           execSync(`taskkill /F /PID ${pid}`);
-        } catch (e) {
+        } catch {
           // Ignore errors if process already exited
         }
       }
-    } catch (e) {
+    } catch {
       // No process found or netstat failed, ignore
     }
   }
@@ -107,11 +170,15 @@ function _spawnComfy() {
     process.stderr.write(`[comfy] ${chunk.toString()}`);
   });
   child.on("exit", (code) => {
-    if (_proc === child) _proc = null;
+    if (_proc === child) {
+      _proc = null;
+      clearEnginePid();
+    }
     console.warn(`[comfy] process exited (code=${code})`);
   });
 
   _proc = child;
+  writeEnginePid(child.pid);
   console.log(`[comfy] started managed instance pid=${child.pid ?? "unknown"}`);
   return child;
 }
@@ -161,6 +228,7 @@ function stopManagedComfy() {
     // Ignore shutdown failures.
   }
   _proc = null;
+  clearEnginePid();
 }
 
 process.on("exit", stopManagedComfy);
@@ -176,4 +244,5 @@ module.exports = {
   COMFY_PORT,
   ensureManagedComfyReady,
   getManagedComfyStatus,
+  getEnginePidFilePath,
 };
