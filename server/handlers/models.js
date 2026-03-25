@@ -11,6 +11,7 @@ const { sendJson } = require("../lib.js");
 const {
   isManagedComfyWorkflowSupported,
 } = require("../generator/workflows/_index.js");
+const { getModelDefaults } = require("../generator/workflows/_defaults.js");
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -76,32 +77,6 @@ const FILENAME_OVERRIDES = [
   { test: /sdxl/i, family: "sdxl" },
   { test: /sd_xl/i, family: "sdxl" },
 ];
-
-const FAMILY_DEFAULTS = {
-  flux: { steps: 20, cfg: 1.0, width: 1024, height: 1024 },
-  "z-image": { steps: 9, cfg: 1.0, width: 1024, height: 1024 },
-  sdxl: { steps: 30, cfg: 7.0, width: 1024, height: 1024 },
-  sd15: { steps: 20, cfg: 2.0, width: 512, height: 512 },
-  wan: { steps: 25, cfg: 7.0, width: 768, height: 768 },
-  qwen: { steps: 4, cfg: 1.0, width: 1024, height: 1024 },
-};
-
-function getModelDefaults(family, fileName) {
-  const base = FAMILY_DEFAULTS[family] ?? FAMILY_DEFAULTS.sd15;
-  if (family !== "flux") return base;
-
-  const lower = String(fileName || "").toLowerCase();
-
-  if (lower.includes("schnell")) {
-    return { ...base, steps: 4, cfg: 1.0 };
-  }
-
-  if (lower.includes("dev")) {
-    return { ...base, steps: 20, cfg: 1.0 };
-  }
-
-  return base;
-}
 
 // ---------------------------------------------------------------------------
 // Internal helpers
@@ -195,7 +170,7 @@ function scanModels() {
         managedWorkflowId: spec.managedWorkflowId ?? null,
         comfyCheckpointGroup: spec.comfyCheckpointGroup ?? null,
         diffusionModelComfyName: diffusionName,
-        defaults: getModelDefaults(family, file),
+        defaults: getModelDefaults(family, file, spec.managedWorkflowId),
       });
     }
   }
@@ -270,7 +245,6 @@ function handleModels(_req, res, _ctx) {
 module.exports = {
   getModels,
   resolveModel,
-  FAMILY_DEFAULTS,
   handleModels,
   MODELS_BASE,
 };
