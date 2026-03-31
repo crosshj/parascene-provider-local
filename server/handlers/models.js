@@ -233,7 +233,64 @@ function modelToPublicJson(m) {
     comfyCheckpointGroup: m.comfyCheckpointGroup,
     diffusionModelComfyName: m.diffusionModelComfyName,
     defaults: m.defaults,
+    // Capability-style fields so UIs (app.html, app-new.html) can reason about
+    // how each model can be used without re-encoding workflow naming rules.
+    methods: deriveModelMethods(m),
+    supportsImageInput: deriveSupportsImageInput(m),
   };
+}
+
+/**
+ * Derive the list of supported generation "methods" for a model based on its
+ * managed workflow id and other metadata. This is intentionally simple and
+ * conservative so it stays in sync with our internal workflow naming.
+ *
+ * Examples:
+ * - "text2image-flux-diffusion"  -> ["text2img"]
+ * - "image2image-sdxl-checkpoint" -> ["image2image"]
+ *
+ * Later, as we add text2video/image2video, we can extend this mapping without
+ * changing the UI contract.
+ */
+function deriveModelMethods(m) {
+  const id = String(m.managedWorkflowId || "");
+  if (!id) {
+    // Fallback: treat as a plain text-to-image model.
+    return ["text2img"];
+  }
+
+  // Special-case SDXL so the UI can expose both text2img and image2image
+  // methods even though the registry row currently only carries the
+  // text2image managed workflow id.
+  if (id === "text2image-sdxl-checkpoint" && m.family === "sdxl") {
+    return ["text2img", "image2image"];
+  }
+
+  if (id.startsWith("text2image-")) {
+    return ["text2img"];
+  }
+  if (id.startsWith("image2image-")) {
+    return ["image2image"];
+  }
+  if (id.startsWith("text2video-")) {
+    return ["text2video"];
+  }
+  if (id.startsWith("image2video-")) {
+    return ["image2video"];
+  }
+
+  // Default to text2img unless a workflow explicitly opts into something else.
+  return ["text2img"];
+}
+
+function deriveSupportsImageInput(m) {
+  const methods = deriveModelMethods(m);
+  // For now, only image2image / image2video style workflows require an input
+  // image. If we later add other methods that can optionally take images, we
+  // can broaden this.
+  return methods.some((method) =>
+    method === "image2image" || method === "image2video",
+  );
 }
 
 function getModelsPolicy() {

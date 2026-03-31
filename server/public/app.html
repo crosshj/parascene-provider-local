@@ -91,6 +91,12 @@
                   <option value="">Loading models…</option>
                 </select>
               </div>
+              <div class="field c2">
+                <label for="method">Method</label>
+                <select id="method" name="method">
+                  <!-- Options are populated dynamically from /api/models -->
+                </select>
+              </div>
 
               <div class="field c2">
                 <label for="width">Width</label>
@@ -164,6 +170,15 @@
                     </svg>
                   </button>
                 </div>
+              </div>
+              <div class="field c4">
+                <label for="image_url">Image URL (for image-to-image)</label>
+                <input
+                  id="image_url"
+                  name="image_url"
+                  type="url"
+                  placeholder="https://example.com/image.png"
+                />
               </div>
             </div>
 

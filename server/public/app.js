@@ -75,6 +75,7 @@ async function apiFetch(path, options = {}) {
 
 const form = document.getElementById("gen-form");
 const modelSel = document.getElementById("model");
+const methodSel = document.getElementById("method");
 const badge = document.getElementById("family-badge");
 const statusEl = document.getElementById("status");
 const copyErrorBtn = document.getElementById("copy-error-btn");
@@ -83,9 +84,11 @@ const previewWrap = document.getElementById("preview-wrap");
 const idleEl = document.getElementById("preview-idle");
 const imageEl = document.getElementById("image");
 const metaRowEl = document.getElementById("meta-row");
-const STORAGE_KEY = "local-image-generator.form.v1";
+const STORAGE_KEY = "local-image-generator.form.v2";
 
 let modelRegistry = {};
+// Remember last-selected model per method (e.g. text2img, image2image).
+let perMethodModel = {};
 /** @type {{ ok?: boolean, policy?: object, models?: object[] } | null} */
 let lastModelsPayload = null;
 let savedValues = null;
@@ -134,6 +137,9 @@ function collectFormValues() {
     steps: form.steps.value,
     cfg: form.cfg.value,
     seed: form.seed.value,
+    method: methodSel ? methodSel.value : "",
+    image_url: form.image_url ? form.image_url.value : "",
+    perMethodModel,
   };
 }
 
@@ -159,6 +165,96 @@ function restoreSavedValues() {
 function updateFamilyBadge() {
   const entry = modelRegistry[modelSel.value];
   badge.textContent = entry ? entry.family : "";
+}
+
+function modelSupportsMethod(entry, method) {
+  const methods =
+    Array.isArray(entry.methods) && entry.methods.length > 0
+      ? entry.methods
+      : ["text2img"];
+  return methods.includes(method);
+}
+
+function getAllMethodsFromModels(models) {
+  const order = ["text2img", "image2image", "text2video", "image2video"];
+  const seen = new Set();
+  const out = [];
+  for (const m of models) {
+    const methods =
+      Array.isArray(m.methods) && m.methods.length > 0
+        ? m.methods
+        : ["text2img"];
+    for (const meth of methods) {
+      if (!seen.has(meth)) {
+        seen.add(meth);
+        out.push(meth);
+      }
+    }
+  }
+  out.sort((a, b) => {
+    const ia = order.indexOf(a);
+    const ib = order.indexOf(b);
+    return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+  });
+  return out;
+}
+
+function rebuildModelOptionsForMethod(method, preferredId) {
+  modelSel.innerHTML = "";
+  const groups = {};
+  for (const m of Object.values(modelRegistry)) {
+    if (!modelSupportsMethod(m, method)) continue;
+    (groups[m.family] ??= []).push(m);
+  }
+
+  let firstValue = null;
+  for (const [family, models] of Object.entries(groups)) {
+    const grp = document.createElement("optgroup");
+    grp.label = family.toUpperCase();
+    for (const m of models) {
+      const opt = document.createElement("option");
+      opt.value = m.modelId;
+      opt.textContent = m.name;
+      grp.appendChild(opt);
+      if (!firstValue) firstValue = m.modelId;
+    }
+    modelSel.appendChild(grp);
+  }
+
+  let pick = null;
+  if (
+    preferredId &&
+    modelRegistry[preferredId] &&
+    modelSupportsMethod(modelRegistry[preferredId], method)
+  ) {
+    pick = preferredId;
+  } else if (
+    perMethodModel[method] &&
+    modelRegistry[perMethodModel[method]] &&
+    modelSupportsMethod(modelRegistry[perMethodModel[method]], method)
+  ) {
+    pick = perMethodModel[method];
+  } else if (firstValue) {
+    pick = firstValue;
+  }
+
+  if (pick) modelSel.value = pick;
+  return pick;
+}
+
+function updateImageUrlVisibility() {
+  const field = form.image_url && form.image_url.closest(".field");
+  if (!field || !methodSel) return;
+  const method = methodSel.value;
+  const entry = modelRegistry[modelSel.value];
+  if (!entry) {
+    field.style.display = "none";
+    return;
+  }
+  const isImageMethod =
+    method === "image2image" || method === "image2video";
+  const supports = isImageMethod && modelSupportsMethod(entry, method);
+  field.style.display = supports ? "" : "none";
 }
 
 // ── Preview state ─────────────────────────────────────
@@ -253,46 +349,49 @@ function applyModelsFromPayload(data) {
 
   lastModelsPayload = data;
   modelRegistry = {};
-
-  const groups = {};
   for (const m of data.models) {
     modelRegistry[m.modelId] = m;
-    (groups[m.family] ??= []).push(m);
   }
 
-  const prevSelection = modelSel.value;
-
-  modelSel.innerHTML = "";
-  for (const [family, models] of Object.entries(groups)) {
-    const grp = document.createElement("optgroup");
-    grp.label = family.toUpperCase();
-    for (const m of models) {
+  const allMethods = getAllMethodsFromModels(data.models);
+  if (methodSel) {
+    methodSel.innerHTML = "";
+    for (const m of allMethods) {
       const opt = document.createElement("option");
-      opt.value = m.modelId;
-      opt.textContent = m.name;
-      grp.appendChild(opt);
+      opt.value = m;
+      opt.textContent = m;
+      methodSel.appendChild(opt);
     }
-    modelSel.appendChild(grp);
   }
 
-  const pick =
-    (prevSelection && modelRegistry[prevSelection] && prevSelection) ||
-    (savedValues &&
-      typeof savedValues.model === "string" &&
-      savedValues.model &&
-      modelRegistry[savedValues.model] &&
-      savedValues.model) ||
-    null;
+  const savedMethod =
+    savedValues && typeof savedValues.method === "string"
+      ? savedValues.method
+      : null;
+  const currentMethod =
+    (savedMethod && allMethods.includes(savedMethod)
+      ? savedMethod
+      : allMethods[0] || "text2img");
 
-  if (pick) {
-    modelSel.value = pick;
+  if (methodSel) methodSel.value = currentMethod;
+
+  const preferredModelId =
+    savedValues && typeof savedValues.model === "string"
+      ? savedValues.model
+      : null;
+  const pick = rebuildModelOptionsForMethod(
+    currentMethod,
+    preferredModelId,
+  );
+
+  if (pick && modelRegistry[pick]) {
+    perMethodModel[currentMethod] = pick;
+    applyModelDefaults();
   } else {
-    const first = modelSel.querySelector("option");
-    if (first) modelSel.value = first.value;
+    updateFamilyBadge();
   }
 
-  if (modelRegistry[modelSel.value]) applyModelDefaults();
-  else updateFamilyBadge();
+  updateImageUrlVisibility();
 
   saveFormValues();
 }
@@ -302,6 +401,13 @@ async function loadModels() {
     const res = await apiFetch("/api/models", { method: "GET" });
     const data = await res.json();
     if (!data.ok) throw new Error("Bad response");
+
+    if (savedValues && savedValues.perMethodModel) {
+      perMethodModel =
+        typeof savedValues.perMethodModel === "object"
+          ? { ...savedValues.perMethodModel }
+          : {};
+    }
 
     applyModelsFromPayload(data);
 
@@ -315,10 +421,11 @@ async function loadModels() {
       if (f.steps != null) form.steps.value = f.steps;
       if (f.cfg != null) form.cfg.value = f.cfg;
       if (f.seed != null) form.seed.value = f.seed;
+      if (f.image_url != null && form.image_url)
+        form.image_url.value = f.image_url;
     }
 
-    if (!savedValues) applyModelDefaults();
-    else updateFamilyBadge();
+    updateImageUrlVisibility();
 
     saveFormValues();
   } catch (e) {
@@ -417,7 +524,9 @@ modelSel.addEventListener("change", applyModelDefaults);
   "steps",
   "cfg",
   "seed",
-].forEach((n) => form[n].addEventListener("input", saveFormValues));
+  "method",
+  "image_url",
+].forEach((n) => form[n] && form[n].addEventListener("input", saveFormValues));
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   setStatusMessage("Generating…");
@@ -439,7 +548,13 @@ form.addEventListener("submit", async (e) => {
     height: Number(form.height.value),
     steps: Number(form.steps.value),
     cfg: Number(form.cfg.value),
+    method: methodSel ? methodSel.value : undefined,
   };
+
+  const imageUrl = form.image_url ? form.image_url.value.trim() : "";
+  if (imageUrl) {
+    body.image_url = imageUrl;
+  }
 
   const seedRaw = form.seed.value.trim();
   if (seedRaw) {

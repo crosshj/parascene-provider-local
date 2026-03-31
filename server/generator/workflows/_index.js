@@ -8,6 +8,8 @@ const WORKFLOWS = {
   "text2image-qwen-checkpoint": require("./text2image/qwen-checkpoint.js"),
   "text2image-sdxl-checkpoint": require("./text2image/sdxl-checkpoint.js"),
   "text2image-zimage-diffusion": require("./text2image/zimage-diffusion.js"),
+  // Image-to-image workflows
+  "image2image-sdxl-checkpoint": require("./image2image/sdxl-checkpoint.js"),
 };
 
 function buildWorkflowByFamily(input) {
