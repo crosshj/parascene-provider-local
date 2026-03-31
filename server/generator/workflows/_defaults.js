@@ -9,16 +9,6 @@
 const fs = require("fs");
 const path = require("path");
 
-const MANAGED_ID_TO_JSON = {
-  "text2image-flux-checkpoint": "text2image-flux-checkpoint.json",
-  "text2image-flux-diffusion": "text2image-flux-diffusion.json",
-  "text2image-sd15-checkpoint": "text2image-sd15-checkpoint.json",
-  "text2image-sdxl-checkpoint": "text2image-sdxl-checkpoint.json",
-  "text2image-zimage-diffusion": "text2image-zimage-diffusion.json",
-  "text2image-qwen-diffusion": "text2image-qwen-diffusion.json",
-  "text2image-qwen-checkpoint": "text2image-qwen-checkpoint.json",
-};
-
 const _cache = Object.create(null);
 
 function _extractFromWorkflowJson(wf) {
@@ -38,11 +28,15 @@ function _loadTemplateDefaults(managedWorkflowId) {
   if (_cache[managedWorkflowId] !== undefined) {
     return _cache[managedWorkflowId];
   }
-  const jsonName = MANAGED_ID_TO_JSON[managedWorkflowId];
-  if (!jsonName) {
+
+  const id = String(managedWorkflowId || "");
+  const [segment, ...rest] = id.split("-");
+  if (!segment || rest.length === 0) {
     _cache[managedWorkflowId] = null;
     return null;
   }
+  const jsonName = path.join(segment, rest.join("-") + ".json");
+
   const full = path.join(__dirname, jsonName);
   let wf;
   try {

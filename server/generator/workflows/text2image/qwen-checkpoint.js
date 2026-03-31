@@ -3,10 +3,7 @@
 const path = require("path");
 const fs = require("fs");
 const WORKFLOW_TEMPLATE = JSON.parse(
-  fs.readFileSync(
-    path.join(__dirname, "text2image-qwen-checkpoint.json"),
-    "utf8",
-  ),
+  fs.readFileSync(path.join(__dirname, "qwen-checkpoint.json"), "utf8"),
 );
 
 function toPositiveInt(value, fallback) {

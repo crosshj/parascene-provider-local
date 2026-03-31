@@ -3,10 +3,7 @@
 const path = require("path");
 const fs = require("fs");
 const WORKFLOW_TEMPLATE = JSON.parse(
-  fs.readFileSync(
-    path.join(__dirname, "text2image-flux-checkpoint.json"),
-    "utf8",
-  ),
+  fs.readFileSync(path.join(__dirname, "flux-diffusion.json"), "utf8"),
 );
 
 function toPositiveInt(value, fallback) {
@@ -23,11 +20,10 @@ function cloneBaseWorkflow() {
   return JSON.parse(JSON.stringify(WORKFLOW_TEMPLATE));
 }
 
-function FluxWorkflow(overrides = {}) {
+function FluxDiffusionWorkflow(overrides = {}) {
   const workflow = cloneBaseWorkflow();
-  if (overrides.modelFile) {
-    const group = overrides.comfyCheckpointGroup || "FLUX1";
-    workflow["30"].inputs.ckpt_name = group + "\\" + overrides.modelFile;
+  if (overrides.diffusionModelComfyName) {
+    workflow["38"].inputs.unet_name = overrides.diffusionModelComfyName;
   }
   workflow["6"].inputs.text = overrides.prompt || "";
   workflow["33"].inputs.text = overrides.negativePrompt || "";
@@ -50,18 +46,22 @@ function FluxWorkflow(overrides = {}) {
     );
   }
   if (overrides.width !== undefined) {
-    workflow["27"].inputs.width = toPositiveInt(
+    const w = toPositiveInt(
       overrides.width,
       workflow["27"].inputs.width,
     );
+    workflow["27"].inputs.width = w;
+    workflow["42"].inputs.width = w;
   }
   if (overrides.height !== undefined) {
-    workflow["27"].inputs.height = toPositiveInt(
+    const h = toPositiveInt(
       overrides.height,
       workflow["27"].inputs.height,
     );
+    workflow["27"].inputs.height = h;
+    workflow["42"].inputs.height = h;
   }
   return workflow;
 }
 
-module.exports = FluxWorkflow;
+module.exports = FluxDiffusionWorkflow;

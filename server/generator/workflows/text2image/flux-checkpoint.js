@@ -3,10 +3,7 @@
 const path = require("path");
 const fs = require("fs");
 const WORKFLOW_TEMPLATE = JSON.parse(
-  fs.readFileSync(
-    path.join(__dirname, "text2image-qwen-diffusion.json"),
-    "utf8",
-  ),
+  fs.readFileSync(path.join(__dirname, "flux-checkpoint.json"), "utf8"),
 );
 
 function toPositiveInt(value, fallback) {
@@ -23,9 +20,14 @@ function cloneBaseWorkflow() {
   return JSON.parse(JSON.stringify(WORKFLOW_TEMPLATE));
 }
 
-function QwenWorkflow(overrides = {}) {
+function FluxWorkflow(overrides = {}) {
   const workflow = cloneBaseWorkflow();
+  if (overrides.modelFile) {
+    const group = overrides.comfyCheckpointGroup || "FLUX1";
+    workflow["30"].inputs.ckpt_name = group + "\\" + overrides.modelFile;
+  }
   workflow["6"].inputs.text = overrides.prompt || "";
+  workflow["33"].inputs.text = overrides.negativePrompt || "";
   if (overrides.seed !== undefined) {
     workflow["31"].inputs.seed = toPositiveInt(
       overrides.seed,
@@ -45,18 +47,18 @@ function QwenWorkflow(overrides = {}) {
     );
   }
   if (overrides.width !== undefined) {
-    workflow["39"].inputs.width = toPositiveInt(
+    workflow["27"].inputs.width = toPositiveInt(
       overrides.width,
-      workflow["39"].inputs.width,
+      workflow["27"].inputs.width,
     );
   }
   if (overrides.height !== undefined) {
-    workflow["39"].inputs.height = toPositiveInt(
+    workflow["27"].inputs.height = toPositiveInt(
       overrides.height,
-      workflow["39"].inputs.height,
+      workflow["27"].inputs.height,
     );
   }
   return workflow;
 }
 
-module.exports = QwenWorkflow;
+module.exports = FluxWorkflow;
