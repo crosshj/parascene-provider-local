@@ -4,8 +4,13 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 
-const { COMFY_HOST, COMFY_PORT, ensureManagedComfyReady } = require("./managed-instance.js");
+const {
+  COMFY_HOST,
+  COMFY_PORT,
+  ensureManagedComfyReady,
+} = require("./managed-instance.js");
 const { buildWorkflowByFamily } = require("../workflows/_index.js");
+const { downloadImagesToComfyInput } = require("./image-input.js");
 
 function _url(pathname) {
   return `http://${COMFY_HOST}:${COMFY_PORT}${pathname}`;
@@ -38,7 +43,8 @@ function parseOutputImage(historyData, promptId) {
   }
 
   for (const value of Object.values(root.outputs)) {
-    if (!value || !Array.isArray(value.images) || value.images.length === 0) continue;
+    if (!value || !Array.isArray(value.images) || value.images.length === 0)
+      continue;
     const img = value.images[0];
     if (img && img.filename) {
       return {
@@ -77,6 +83,12 @@ function makeOutputFilename(seed) {
 async function runComfyGeneration(input, outDir) {
   const started = Date.now();
   await ensureManagedComfyReady();
+
+  // If input.image_urls is an array, download and replace with filenames
+  if (Array.isArray(input.image_urls)) {
+    input.image_filenames = await downloadImagesToComfyInput(input.image_urls);
+    // delete input.image_urls;
+  }
 
   const workflow = buildWorkflowByFamily(input);
   const queued = await requestJson("/prompt", {
