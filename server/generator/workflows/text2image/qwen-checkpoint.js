@@ -21,7 +21,7 @@ function cloneBaseWorkflow() {
 }
 
 function QwenCheckpointWorkflow(overrides = {}) {
-  console.log("[QWEN-CHECKPOINT WORKFLOW] Invoked with overrides:", overrides);
+  // console.log("[QWEN-CHECKPOINT WORKFLOW] Invoked with overrides:", overrides);
   try {
     const workflow = cloneBaseWorkflow();
     workflow["6"].inputs.text = overrides.prompt || "";
