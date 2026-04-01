@@ -55,8 +55,7 @@ const BASE_PROVIDER_CAPABILITIES = {
             },
             {
               label: "flux: real-dream-flux-1-fp8",
-              value:
-                "diffusion_models/flux/real-dream-flux-1-fp8.safetensors",
+              value: "diffusion_models/flux/real-dream-flux-1-fp8.safetensors",
             },
             {
               label: "flux: STOIQOAfroditeFLUXXL_F1DAlpha",
@@ -120,8 +119,7 @@ const BASE_PROVIDER_CAPABILITIES = {
             },
             {
               label: "sdxl: dreamshaperXL_turboDpmppSDE",
-              value:
-                "checkpoints/xl/dreamshaperXL_turboDpmppSDE.safetensors",
+              value: "checkpoints/xl/dreamshaperXL_turboDpmppSDE.safetensors",
             },
             {
               label: "sdxl: illustriousXL20_v20",
@@ -163,8 +161,7 @@ const BASE_PROVIDER_CAPABILITIES = {
             },
             {
               label: "z-image: z_image_turbo_bf16",
-              value:
-                "diffusion_models/z-image/z_image_turbo_bf16.safetensors",
+              value: "diffusion_models/z-image/z_image_turbo_bf16.safetensors",
             },
           ],
         },
@@ -188,7 +185,50 @@ const BASE_PROVIDER_CAPABILITIES = {
           label: "Model",
           type: "select",
           required: true,
-          options: [],
+          options: [
+            {
+              label: "sdxl: dreamshaperXL_turboDpmppSDE",
+              value: "checkpoints/xl/dreamshaperXL_turboDpmppSDE.safetensors",
+            },
+            {
+              label: "sdxl: illustriousXL20_v20",
+              value: "checkpoints/xl/illustriousXL20_v20.safetensors",
+            },
+            {
+              label: "sdxl: juggernautXL_v7Rundiffusion",
+              value: "checkpoints/xl/juggernautXL_v7Rundiffusion.safetensors",
+            },
+            {
+              label: "sdxl: juggernautXL_v9Rdphoto2Lightning",
+              value:
+                "checkpoints/xl/juggernautXL_v9Rdphoto2Lightning.safetensors",
+            },
+            {
+              label: "sdxl: protovisionXLHighFidelity3D_releaseV660Bakedvae",
+              value:
+                "checkpoints/xl/protovisionXLHighFidelity3D_releaseV660Bakedvae.safetensors",
+            },
+            {
+              label: "sdxl: realcartoonXL_v6",
+              value: "checkpoints/xl/realcartoonXL_v6.safetensors",
+            },
+            {
+              label: "sdxl: realDream_sdxlLightning1",
+              value: "checkpoints/xl/realDream_sdxlLightning1.safetensors",
+            },
+            {
+              label: "sdxl: sd_xl_base_1.0",
+              value: "checkpoints/xl/sd_xl_base_1.0.safetensors",
+            },
+            {
+              label: "sdxl: sd_xl_turbo_1.0_fp16",
+              value: "checkpoints/xl/sd_xl_turbo_1.0_fp16.safetensors",
+            },
+            {
+              label: "sdxl: zavychromaxl_v40",
+              value: "checkpoints/xl/zavychromaxl_v40.safetensors",
+            },
+          ],
         },
         prompt: {
           label: "Prompt",
@@ -208,4 +248,3 @@ const BASE_PROVIDER_CAPABILITIES = {
 module.exports = {
   BASE_PROVIDER_CAPABILITIES,
 };
-
