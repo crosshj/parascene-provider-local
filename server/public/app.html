@@ -83,18 +83,18 @@
 
             <div class="params">
               <div class="field c4">
+                <label for="method">Method</label>
+                <select id="method" name="method">
+                  <!-- Options are populated dynamically from /api/models -->
+                </select>
+              </div>
+              <div class="field c4">
                 <label for="model">
                   Model
                   <span id="family-badge" class="badge"></span>
                 </label>
                 <select id="model" name="model" required>
                   <option value="">Loading models…</option>
-                </select>
-              </div>
-              <div class="field c2">
-                <label for="method">Method</label>
-                <select id="method" name="method">
-                  <!-- Options are populated dynamically from /api/models -->
                 </select>
               </div>
 
