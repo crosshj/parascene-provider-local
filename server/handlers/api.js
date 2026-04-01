@@ -176,7 +176,11 @@ async function handleApiPost(req, res, ctx = {}) {
       });
     }
     // Succeeded + text2img: return image binary (Content-Type: image/png) and metadata headers.
-    if (job.method === "text2img" && job.result?.file_name && ctx.outputDir) {
+    if (
+      (job.method === "text2img" || job.method === "image2image") &&
+      job.result?.file_name &&
+      ctx.outputDir
+    ) {
       const filePath = path.join(ctx.outputDir, job.result.file_name);
       return fs.readFile(filePath, (err, data) => {
         if (err) {

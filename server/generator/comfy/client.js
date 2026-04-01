@@ -87,6 +87,10 @@ async function runComfyGeneration(input, outDir) {
   // If input.image_urls is an array, download and replace with filenames
   if (Array.isArray(input.image_urls)) {
     input.image_filenames = await downloadImagesToComfyInput(input.image_urls);
+    // For image2image, set inputImageFilename for workflow
+    if (input.image_filenames.length > 0) {
+      input.inputImageFilename = input.image_filenames[0];
+    }
     // delete input.image_urls;
   }
 
