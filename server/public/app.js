@@ -271,17 +271,20 @@ function rebuildModelOptionsForMethod(method, preferredId) {
 }
 
 function updateImageUrlVisibility() {
-  const field = form.image_url && form.image_url.closest(".field");
-  if (!field || !methodSel) return;
+  const imageField = form.image_url && form.image_url.closest(".field");
+  const denoiseField = document.getElementById("denoise-field");
+  if (!imageField || !methodSel || !denoiseField) return;
   const method = methodSel.value;
   const entry = modelRegistry[modelSel.value];
   if (!entry) {
-    field.style.display = "none";
+    imageField.style.display = "none";
+    denoiseField.style.display = "none";
     return;
   }
   const isImageMethod = method === "image2image" || method === "image2video";
   const supports = isImageMethod && modelSupportsMethod(entry, method);
-  field.style.display = supports ? "" : "none";
+  imageField.style.display = supports ? "" : "none";
+  denoiseField.style.display = method === "image2image" ? "" : "none";
 }
 
 // ── Preview state ─────────────────────────────────────
@@ -718,6 +721,14 @@ form.addEventListener("submit", async (e) => {
   const imageUrl = form.image_url ? form.image_url.value.trim() : "";
   if (imageUrl) {
     body.image_url = imageUrl;
+  }
+
+  // Only send denoise for image2image
+  if (methodSel && methodSel.value === "image2image") {
+    const denoiseVal = form.denoise && form.denoise.value.trim();
+    if (denoiseVal !== "" && !isNaN(Number(denoiseVal))) {
+      body.denoise = Number(denoiseVal);
+    }
   }
 
   const seedRaw = form.seed.value.trim();

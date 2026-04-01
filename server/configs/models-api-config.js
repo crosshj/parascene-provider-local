@@ -32,7 +32,7 @@ const BASE_MODELS_RESPONSE = {
       async: false,
       name: "Image To Image",
       description: "Generate an image from an input image and text.",
-      intent: "image_generate",
+      intent: "image_mutate",
       fields: {
         model: {
           label: "Model",
@@ -50,6 +50,16 @@ const BASE_MODELS_RESPONSE = {
           type: "text",
           required: true,
         },
+        denoise: {
+          label: "Denoise",
+          type: "number",
+          required: false,
+          min: 0,
+          max: 1,
+          step: 0.01,
+          description:
+            "Strength of denoising. If not provided, SDXL models default to 0.65.",
+        },
       },
     },
   },
@@ -58,4 +68,3 @@ const BASE_MODELS_RESPONSE = {
 module.exports = {
   BASE_MODELS_RESPONSE,
 };
-

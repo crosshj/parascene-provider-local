@@ -178,7 +178,7 @@ const BASE_PROVIDER_CAPABILITIES = {
       async: true,
       name: "Image To Image",
       description: "Generate an image from an input image and text.",
-      intent: "image_generate",
+      intent: "image_mutate",
       credits: 0.5,
       fields: {
         model: {
@@ -239,6 +239,16 @@ const BASE_PROVIDER_CAPABILITIES = {
           label: "Image URL",
           type: "text",
           required: true,
+        },
+        denoise: {
+          label: "Denoise",
+          type: "number",
+          required: false,
+          min: 0,
+          max: 1,
+          step: 0.01,
+          description:
+            "Strength of denoising. If not provided, SDXL models default to 0.65.",
         },
       },
     },

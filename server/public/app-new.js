@@ -146,6 +146,7 @@ function initApp() {
   if (!form) return;
 
   const modelSel = document.getElementById("model");
+  const methodSel = document.getElementById("method");
   const badge = document.getElementById("family-badge");
   const statusEl = document.getElementById("status");
   const copyErrorBtn = document.getElementById("copy-error-btn");
@@ -154,13 +155,12 @@ function initApp() {
   const imageEl = document.getElementById("image");
   const metaRowEl = document.getElementById("meta-row");
 
-  const STORAGE_KEY = "local-image-generator.form.v1";
+  const STORAGE_KEY = "local-image-generator.form.v2";
   let savedValues = null;
   let lastErrorText = "";
 
-  const methodState = {
-    activeMethodId: "text2img",
-  };
+  // Remember last-selected model per method
+  let perMethodModel = {};
 
   function setStatusMessage(text, isError = false) {
     statusEl.textContent = text || "";
@@ -192,6 +192,9 @@ function initApp() {
     return {
       prompt: form.prompt.value,
       model: modelSel.value,
+      method: methodSel ? methodSel.value : "",
+      denoise: form.denoise ? form.denoise.value : undefined,
+      perMethodModel,
     };
   }
 
@@ -275,39 +278,107 @@ function initApp() {
         throw new Error("Provider did not return any methods.");
       }
 
+      // Populate method selector
       const methodIds = Object.keys(methods);
-      const defaultMethodId =
-        methodIds.find((id) => methods[id] && methods[id].default) ||
-        (methods.text2img ? "text2img" : methodIds[0]);
-
-      methodState.activeMethodId = defaultMethodId;
-
-      const activeMethod = methods[defaultMethodId] || {};
-      const fields = activeMethod.fields || {};
-      const modelField = fields.model;
-      if (!modelField || !Array.isArray(modelField.options)) {
-        throw new Error("Provider method is missing model options.");
-      }
-
-      modelSel.innerHTML = "";
-      for (const optDef of modelField.options) {
+      methodSel.innerHTML = "";
+      for (const id of methodIds) {
         const opt = document.createElement("option");
-        opt.value = optDef.value;
-        opt.textContent = optDef.label || optDef.value;
-        modelSel.appendChild(opt);
+        opt.value = id;
+        opt.textContent = id;
+        methodSel.appendChild(opt);
       }
 
-      // Restore saved prompt and model only.
-      const saved = savedValues;
-      if (
-        saved &&
-        typeof saved.model === "string" &&
-        saved.model &&
-        Array.from(modelSel.options).some((o) => o.value === saved.model)
-      ) {
-        modelSel.value = saved.model;
+      // Restore per-method model memory
+      if (savedValues && savedValues.perMethodModel) {
+        perMethodModel =
+          typeof savedValues.perMethodModel === "object"
+            ? { ...savedValues.perMethodModel }
+            : {};
       }
-      if (saved && saved.prompt != null) form.prompt.value = saved.prompt;
+
+      // Restore saved method or pick default
+      let initialMethod = methodIds[0];
+      if (
+        savedValues &&
+        typeof savedValues.method === "string" &&
+        methodIds.includes(savedValues.method)
+      ) {
+        initialMethod = savedValues.method;
+      } else if (methodIds.includes("text2img")) {
+        initialMethod = "text2img";
+      }
+      methodSel.value = initialMethod;
+
+      function rebuildModelsForMethod(methodId, preferredModelId) {
+        const methodDef = methods[methodId];
+        const modelField = methodDef?.fields?.model;
+        const options = modelField?.options || [];
+        modelSel.innerHTML = "";
+        let firstValue = null;
+        for (const o of options) {
+          const opt = document.createElement("option");
+          opt.value = o.value;
+          opt.textContent = o.label || o.value;
+          modelSel.appendChild(opt);
+          if (!firstValue) firstValue = o.value;
+        }
+        let pick = null;
+        if (
+          preferredModelId &&
+          options.some((o) => o.value === preferredModelId)
+        ) {
+          pick = preferredModelId;
+        } else if (
+          perMethodModel[methodId] &&
+          options.some((o) => o.value === perMethodModel[methodId])
+        ) {
+          pick = perMethodModel[methodId];
+        } else if (firstValue) {
+          pick = firstValue;
+        }
+        if (pick) modelSel.value = pick;
+        return pick;
+      }
+
+      // Initial model selection
+      let preferredModelId =
+        savedValues && typeof savedValues.model === "string"
+          ? savedValues.model
+          : null;
+      const initialModel = rebuildModelsForMethod(
+        initialMethod,
+        preferredModelId,
+      );
+      if (initialModel) {
+        perMethodModel[initialMethod] = initialModel;
+      }
+
+      // Restore prompt
+      if (savedValues && savedValues.prompt != null)
+        form.prompt.value = savedValues.prompt;
+
+      // Events
+      methodSel.addEventListener("change", () => {
+        const methodId = methodSel.value;
+        const prevModel = modelSel.value;
+        const pick = rebuildModelsForMethod(
+          methodId,
+          perMethodModel[methodId] || null,
+        );
+        if (pick) perMethodModel[methodId] = pick;
+        // Save method/model selection
+        saveFormValues();
+        updateFamilyBadge();
+      });
+
+      modelSel.addEventListener("change", () => {
+        const methodId = methodSel.value;
+        if (methodId) {
+          perMethodModel[methodId] = modelSel.value;
+        }
+        saveFormValues();
+        updateFamilyBadge();
+      });
 
       updateFamilyBadge();
       saveFormValues();
@@ -342,6 +413,23 @@ function initApp() {
       prompt: form.prompt.value.trim(),
       model: modelSel.value,
     };
+
+    // Only send denoise for image2image
+    if (methodSel && methodSel.value === "image2image") {
+      const denoiseVal = form.denoise && form.denoise.value.trim();
+      if (denoiseVal !== "" && !isNaN(Number(denoiseVal))) {
+        body.denoise = Number(denoiseVal);
+      }
+    }
+    // Show/hide denoise field based on method
+    function updateDenoiseField() {
+      const denoiseField = document.getElementById("denoise-field");
+      if (!denoiseField) return;
+      denoiseField.style.display =
+        methodSel.value === "image2image" ? "" : "none";
+    }
+    methodSel.addEventListener("change", updateDenoiseField);
+    updateDenoiseField();
 
     try {
       // Provider API: start job (POST /api with method + args, no job_id).

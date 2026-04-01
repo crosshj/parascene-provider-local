@@ -62,6 +62,16 @@
               </div>
 
               <div class="field">
+
+              <div class="field">
+                <label for="method">Method</label>
+                <select id="method" name="method">
+                  <!-- Options are populated dynamically from /api -->
+                </select>
+              </div>
+
+
+              <div class="field">
                 <label for="model">
                   Model
                   <span id="family-badge" class="badge"></span>
@@ -70,6 +80,18 @@
                   <option value="">Loading models…</option>
                 </select>
               </div>
+
+              <div class="field" id="denoise-field" style="display:none">
+                <label for="denoise">Denoise (0-1, optional)</label>
+                <input
+                  id="denoise"
+                  name="denoise"
+                  type="number"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  placeholder="(default for SDXL: 0.65)"
+                />
 
               <div class="actions">
                 <button type="submit" class="btn-primary">Generate</button>

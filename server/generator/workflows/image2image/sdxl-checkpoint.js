@@ -4,10 +4,7 @@ const path = require("path");
 const fs = require("fs");
 
 const WORKFLOW_TEMPLATE = JSON.parse(
-  fs.readFileSync(
-    path.join(__dirname, "sdxl-checkpoint.json"),
-    "utf8",
-  ),
+  fs.readFileSync(path.join(__dirname, "sdxl-checkpoint.json"), "utf8"),
 );
 
 function toPositiveInt(value, fallback) {
@@ -62,6 +59,12 @@ function SDXLImageToImageWorkflow(overrides = {}) {
         workflow["31"].inputs.cfg,
       );
     }
+    if (overrides.denoise !== undefined) {
+      workflow["31"].inputs.denoise = toNumber(
+        overrides.denoise,
+        workflow["31"].inputs.denoise,
+      );
+    }
 
     // Image input on node "34" (LoadImage)
     if (
@@ -85,4 +88,3 @@ function SDXLImageToImageWorkflow(overrides = {}) {
 }
 
 module.exports = SDXLImageToImageWorkflow;
-

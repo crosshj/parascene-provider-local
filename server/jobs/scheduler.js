@@ -139,6 +139,8 @@ async function _processLoop() {
       }
 
       try {
+        // TODO: runComfyGeneration should be able to interpret the job object directly,
+        // instead of requiring this explicit mapping here.
         const comfyInput = {
           family: job.modelEntry.family,
           managedWorkflowId: job.modelEntry.managedWorkflowId,
@@ -147,13 +149,19 @@ async function _processLoop() {
           comfyCheckpointGroup: job.modelEntry.comfyCheckpointGroup,
           diffusionModelComfyName: job.modelEntry.diffusionModelComfyName,
           loadKind: job.modelEntry.loadKind,
-          prompt: job.payload.prompt,
+          seed: job.payload.seed || job.seed,
+          prompt: sanitizePromptText(job.payload.prompt || ""),
+          negative_prompt: job.payload.negative_prompt,
           negativePrompt: sanitizePromptText(job.payload.negative_prompt || ""),
-          seed: job.seed,
+          model: job.payload.model,
           width: job.payload.width,
           height: job.payload.height,
           steps: job.payload.steps,
           cfg: job.payload.cfg,
+          // Add denoise if present
+          ...(job.payload.denoise !== undefined
+            ? { denoise: job.payload.denoise }
+            : {}),
         };
 
         const result = await runComfyGeneration(comfyInput, job.outputDir);
