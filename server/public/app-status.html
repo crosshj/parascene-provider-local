@@ -57,7 +57,7 @@
           <header class="status-head">
             <h1>Service Status</h1>
             <p class="subtle">
-              Operational view for orchestrator, Node app, Python worker, GPU,
+              Operational view for orchestrator, Node app, Comfy engine, GPU,
               updater, and provider API.
             </p>
           </header>
@@ -199,18 +199,6 @@
               </div>
             </section>
 
-            <section class="status-card span-4">
-              <h3>Comfy worker process</h3>
-              <div class="status-row">
-                <div class="status-k">state</div>
-                <div id="wkState" class="status-v">—</div>
-              </div>
-              <div class="status-row">
-                <div class="status-k">pid</div>
-                <div id="wkPid" class="status-v">—</div>
-              </div>
-            </section>
-
             <section class="status-card span-8">
               <h3>Comfy Engine</h3>
               <div class="status-row">
@@ -242,6 +230,22 @@
                 <div id="comfyStatsHttp" class="status-v">—</div>
               </div>
               <div class="status-row">
+                <div class="status-k">/queue HTTP</div>
+                <div id="comfyQueueHttp" class="status-v">—</div>
+              </div>
+              <div class="status-row">
+                <div class="status-k">running prompts</div>
+                <div id="comfyQueueRunning" class="status-v">—</div>
+              </div>
+              <div class="status-row">
+                <div class="status-k">pending prompts</div>
+                <div id="comfyQueuePending" class="status-v">—</div>
+              </div>
+              <div class="status-row">
+                <div class="status-k">active prompt id</div>
+                <div id="comfyActivePromptId" class="status-v">—</div>
+              </div>
+              <div class="status-row">
                 <div class="status-k">GPU devices</div>
                 <div id="comfyDevices" class="status-v">—</div>
               </div>
@@ -249,49 +253,85 @@
                 <div class="status-k">device names</div>
                 <div id="comfyDeviceNames" class="status-v">—</div>
               </div>
+              <div class="status-row">
+                <div class="status-k">ComfyUI version</div>
+                <div id="comfyVersion" class="status-v">—</div>
+              </div>
+              <div class="status-row">
+                <div class="status-k">Python / PyTorch</div>
+                <div id="comfyRuntime" class="status-v">—</div>
+              </div>
+              <div class="status-row">
+                <div class="status-k">host RAM (free / total)</div>
+                <div id="comfyRam" class="status-v">—</div>
+              </div>
+              <div class="status-row">
+                <div class="status-k">GPU VRAM (free / total)</div>
+                <div id="comfyVram" class="status-v">—</div>
+              </div>
             </section>
 
-            <section class="status-card span-4">
-              <h3>Generation jobs</h3>
+            <section class="status-card span-8">
+              <h3>Generation Pipeline (Scheduler → Comfy → GPU)</h3>
               <div class="status-row">
-                <div class="status-k">queue length</div>
+                <div class="status-k">pipeline state</div>
+                <div id="pipelineState" class="status-v">—</div>
+              </div>
+              <div class="status-row">
+                <div class="status-k">scheduler vs comfy pending</div>
+                <div id="pipelineLag" class="status-v">—</div>
+              </div>
+              <div class="status-row">
+                <div class="status-k">scheduler pending</div>
                 <div id="jobQueueLen" class="status-v">—</div>
               </div>
               <div class="status-row">
-                <div class="status-k">running</div>
+                <div class="status-k">scheduler running</div>
                 <div id="jobRunning" class="status-v">—</div>
               </div>
               <div class="status-row">
-                <div class="status-k">active model</div>
+                <div class="status-k">comfy running prompts</div>
+                <div id="comfyQueueRunning" class="status-v">—</div>
+              </div>
+              <div class="status-row">
+                <div class="status-k">comfy pending prompts</div>
+                <div id="comfyQueuePending" class="status-v">—</div>
+              </div>
+              <div class="status-row">
+                <div class="status-k">active model (scheduler)</div>
                 <div id="jobActiveModel" class="status-v">—</div>
               </div>
               <div class="status-row">
-                <div class="status-k">pending by model</div>
+                <div class="status-k">active prompt id (comfy)</div>
+                <div id="comfyActivePromptId" class="status-v">—</div>
+              </div>
+              <div class="status-row">
+                <div class="status-k">scheduler pending by model</div>
                 <div id="jobByModel" class="status-v">—</div>
               </div>
-            </section>
-
-            <section class="status-card span-4">
-              <h3>GPU</h3>
               <div class="status-row">
-                <div class="status-k">probe status</div>
+                <div class="status-k">service gpu probe status</div>
                 <div id="gpuState" class="status-v">—</div>
               </div>
               <div class="status-row">
-                <div class="status-k">last success</div>
+                <div class="status-k">service gpu count</div>
+                <div id="gpuCount" class="status-v">—</div>
+              </div>
+              <div class="status-row">
+                <div class="status-k">comfy device count</div>
+                <div id="comfyDevices" class="status-v">—</div>
+              </div>
+              <div class="status-row">
+                <div class="status-k">probe last success</div>
                 <div id="gpuLastSuccess" class="status-v">—</div>
               </div>
               <div class="status-row">
-                <div class="status-k">last failure</div>
+                <div class="status-k">probe last failure</div>
                 <div id="gpuLastFailure" class="status-v">—</div>
               </div>
               <div class="status-row">
-                <div class="status-k">failure count</div>
+                <div class="status-k">probe failure count</div>
                 <div id="gpuFailCount" class="status-v">—</div>
-              </div>
-              <div class="status-row">
-                <div class="status-k">gpu count</div>
-                <div id="gpuCount" class="status-v">—</div>
               </div>
             </section>
 

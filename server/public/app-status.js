@@ -136,6 +136,36 @@ function fmtComfyDeviceNames(stats) {
     .join(" | ");
 }
 
+function fmtBytes(n) {
+  if (typeof n !== "number" || !Number.isFinite(n) || n < 0) return "—";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let value = n;
+  let i = 0;
+  while (value >= 1024 && i < units.length - 1) {
+    value /= 1024;
+    i += 1;
+  }
+  return `${value.toFixed(value >= 10 || i === 0 ? 0 : 1)} ${units[i]}`;
+}
+
+function extractPromptId(queueEntry) {
+  if (!queueEntry) return null;
+  if (typeof queueEntry === "string") return queueEntry;
+  if (Array.isArray(queueEntry)) {
+    for (const part of queueEntry) {
+      if (typeof part === "string" && part.length >= 8) return part;
+      if (part && typeof part === "object" && typeof part.prompt_id === "string") {
+        return part.prompt_id;
+      }
+    }
+    return null;
+  }
+  if (typeof queueEntry === "object" && typeof queueEntry.prompt_id === "string") {
+    return queueEntry.prompt_id;
+  }
+  return null;
+}
+
 function normalizePath(p) {
   return String(p || "")
     .replace(/\\/g, "/")
@@ -189,11 +219,10 @@ async function getJson(url) {
 }
 
 async function refresh() {
-  const [h, s, ah, am] = await Promise.all([
+  const [h, s, ah] = await Promise.all([
     getJson("/healthz"),
     getJson("/status"),
     getJson("/api/health"),
-    getJson("/api/models"),
   ]);
 
   set("lastRefresh", new Date().toLocaleTimeString());
@@ -216,6 +245,26 @@ async function refresh() {
 
   const apiHealth = ah.data || {};
   const comfy = apiHealth.comfy || {};
+  const system = comfy.system_stats?.system || {};
+  const devices = Array.isArray(comfy.system_stats?.devices)
+    ? comfy.system_stats.devices
+    : [];
+  const queueRunning = Array.isArray(comfy.queue?.queue_running)
+    ? comfy.queue.queue_running
+    : [];
+  const queuePending = Array.isArray(comfy.queue?.queue_pending)
+    ? comfy.queue.queue_pending
+    : [];
+  const activePromptId = extractPromptId(queueRunning[0]);
+  const vramTotal = devices.reduce(
+    (sum, d) => sum + (typeof d?.vram_total === "number" ? d.vram_total : 0),
+    0,
+  );
+  const vramFree = devices.reduce(
+    (sum, d) => sum + (typeof d?.vram_free === "number" ? d.vram_free : 0),
+    0,
+  );
+
   set("comfyState", comfy.running === true ? "running" : "unreachable");
   set("comfyManaged", comfy.managed === true ? "yes" : "no");
   set("comfyPid", comfy.pid != null ? comfy.pid : "—");
@@ -226,11 +275,26 @@ async function refresh() {
     "comfyStatsHttp",
     comfy.system_stats_http_status != null ? comfy.system_stats_http_status : "—",
   );
-  const comfyDevices = Array.isArray(comfy.system_stats?.devices)
-    ? comfy.system_stats.devices.length
-    : "—";
-  set("comfyDevices", comfyDevices);
+  set("comfyQueueHttp", comfy.queue_http_status != null ? comfy.queue_http_status : "—");
+  set("comfyQueueRunning", queueRunning.length);
+  set("comfyQueuePending", queuePending.length);
+  set("comfyActivePromptId", activePromptId || "none");
+  set("comfyDevices", devices.length);
   set("comfyDeviceNames", fmtComfyDeviceNames(comfy.system_stats));
+  set("comfyVersion", system.comfyui_version || "—");
+  const python = system.python_version || "—";
+  const pytorch = system.pytorch_version || "—";
+  set("comfyRuntime", `${python} / ${pytorch}`);
+  if (typeof system.ram_free === "number" && typeof system.ram_total === "number") {
+    set("comfyRam", `${fmtBytes(system.ram_free)} / ${fmtBytes(system.ram_total)}`);
+  } else {
+    set("comfyRam", "—");
+  }
+  if (vramTotal > 0) {
+    set("comfyVram", `${fmtBytes(vramFree)} / ${fmtBytes(vramTotal)}`);
+  } else {
+    set("comfyVram", "—");
+  }
 
   const gpu = st.gpu || {};
   set("gpuState", gpu.status);
@@ -292,10 +356,7 @@ async function refresh() {
   set("apiHealth", `${ah.status} ${apiHealth.ok ? "OK" : "FAIL"}`);
   set("apiOutputDir", apiHealth.output_dir || "—");
   set("apiPublicDir", apiHealth.public_dir || "—");
-  set(
-    "apiModelsCount",
-    Array.isArray(am.data?.models) ? am.data.models.length : "—",
-  );
+  set("apiModelsCount", apiHealth.models ?? "—");
 
   const jobs = apiHealth.jobs || {};
   set("jobQueueLen", jobs.queueLength ?? "0");
@@ -311,6 +372,27 @@ async function refresh() {
   } else {
     set("jobByModel", "none");
   }
+
+  const schedulerPending =
+    typeof jobs.queueLength === "number" ? jobs.queueLength : 0;
+  const schedulerRunning =
+    typeof jobs.runningCount === "number" ? jobs.runningCount : 0;
+  const comfyPendingCount = queuePending.length;
+  const comfyRunningCount = queueRunning.length;
+
+  let pipelineState = "idle";
+  if (comfy.running !== true) {
+    pipelineState = "comfy unreachable";
+  } else if (schedulerPending > 0 && comfyPendingCount === 0 && comfyRunningCount === 0) {
+    pipelineState = "queued at scheduler";
+  } else if (schedulerPending > 0 || schedulerRunning > 0 || comfyPendingCount > 0 || comfyRunningCount > 0) {
+    pipelineState = "flowing";
+  }
+  set("pipelineState", pipelineState);
+  set(
+    "pipelineLag",
+    `${schedulerPending} scheduler / ${comfyPendingCount} comfy (Δ ${Math.max(0, schedulerPending - comfyPendingCount)})`,
+  );
 
   const coreGood = h.ok && s.ok;
   const workerGood = wk.running === true;
