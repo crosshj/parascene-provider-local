@@ -246,6 +246,17 @@ function enqueueText2ImgJob(args, outputDir) {
     steps: defaults.steps ?? 20,
     cfg: defaults.cfg ?? 7,
   };
+  // Pass through image_url/image_urls for image2image
+  if (args.image_url) {
+    // Comfy expects image_urls as an array
+    payload.image_urls = Array.isArray(args.image_url)
+      ? args.image_url
+      : [args.image_url];
+  } else if (args.image_urls) {
+    payload.image_urls = Array.isArray(args.image_urls)
+      ? args.image_urls
+      : [args.image_urls];
+  }
 
   const id = generateJobId();
   const seed = Math.floor(Math.random() * 2_147_483_647) + 1;
