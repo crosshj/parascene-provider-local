@@ -60,10 +60,10 @@ const BASE_MODELS_RESPONSE = {
           description:
             "Optional deterministic seed. If not provided, a random seed is used.",
         },
-        image_url: {
-          label: "Image URL",
-          type: "text",
-          required: true,
+        input_images: {
+          label: "Input Images",
+          type: "image_url_array",
+          required: false,
         },
         denoise: {
           label: "Denoise",

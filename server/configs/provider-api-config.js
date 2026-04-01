@@ -198,44 +198,54 @@ const BASE_PROVIDER_CAPABILITIES = {
             {
               label: "sdxl: dreamshaperXL_turboDpmppSDE",
               value: "checkpoints/xl/dreamshaperXL_turboDpmppSDE.safetensors",
+              hint: "Supports single image input. Low censorship.",
             },
             {
               label: "sdxl: illustriousXL20_v20",
               value: "checkpoints/xl/illustriousXL20_v20.safetensors",
+              hint: "Supports single image input. Low censorship.",
             },
             {
               label: "sdxl: juggernautXL_v7Rundiffusion",
               value: "checkpoints/xl/juggernautXL_v7Rundiffusion.safetensors",
+              hint: "Supports single image input. Low censorship.",
             },
             {
               label: "sdxl: juggernautXL_v9Rdphoto2Lightning",
               value:
                 "checkpoints/xl/juggernautXL_v9Rdphoto2Lightning.safetensors",
+              hint: "Supports single image input. Low censorship.",
             },
             {
               label: "sdxl: protovisionXLHighFidelity3D_releaseV660Bakedvae",
               value:
                 "checkpoints/xl/protovisionXLHighFidelity3D_releaseV660Bakedvae.safetensors",
+              hint: "Supports single image input. Low censorship.",
             },
             {
               label: "sdxl: realcartoonXL_v6",
               value: "checkpoints/xl/realcartoonXL_v6.safetensors",
+              hint: "Supports single image input. Low censorship.",
             },
             {
               label: "sdxl: realDream_sdxlLightning1",
               value: "checkpoints/xl/realDream_sdxlLightning1.safetensors",
+              hint: "Supports single image input. Low censorship.",
             },
             {
               label: "sdxl: sd_xl_base_1.0",
               value: "checkpoints/xl/sd_xl_base_1.0.safetensors",
+              hint: "Supports single image input. Low censorship.",
             },
             {
               label: "sdxl: sd_xl_turbo_1.0_fp16",
               value: "checkpoints/xl/sd_xl_turbo_1.0_fp16.safetensors",
+              hint: "Supports single image input. Low censorship.",
             },
             {
               label: "sdxl: zavychromaxl_v40",
               value: "checkpoints/xl/zavychromaxl_v40.safetensors",
+              hint: "Supports single image input. Low censorship.",
             },
           ],
         },
@@ -253,10 +263,10 @@ const BASE_PROVIDER_CAPABILITIES = {
           description:
             "Optional deterministic seed. If not provided, a random seed is used.",
         },
-        image_url: {
-          label: "Image URL",
-          type: "text",
-          required: true,
+        input_images: {
+          label: "Input Images",
+          type: "image_url_array",
+          required: false,
         },
         denoise: {
           label: "Denoise",

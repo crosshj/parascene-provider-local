@@ -155,7 +155,7 @@ function initApp() {
   const imageEl = document.getElementById("image");
   const metaRowEl = document.getElementById("meta-row");
   const imageUrlField = document.getElementById("image-url-field");
-  const imageUrlInput = document.getElementById("image_url");
+  const imageUrlInput = document.getElementById("input_images");
 
   const STORAGE_KEY = "local-image-generator.form.v2";
   let savedValues = null;
@@ -197,7 +197,7 @@ function initApp() {
       method: methodSel ? methodSel.value : "",
       seed: form.seed ? form.seed.value : undefined,
       denoise: form.denoise ? form.denoise.value : undefined,
-      image_url: imageUrlInput ? imageUrlInput.value : undefined,
+      input_images: imageUrlInput ? imageUrlInput.value : undefined,
       perMethodModel,
     };
   }
@@ -357,13 +357,18 @@ function initApp() {
         perMethodModel[initialMethod] = initialModel;
       }
 
-      // Restore prompt, image_url, denoise
+      // Restore prompt, input_images, denoise
       if (savedValues && savedValues.prompt != null)
         form.prompt.value = savedValues.prompt;
       if (savedValues && savedValues.seed != null && form.seed)
         form.seed.value = savedValues.seed;
-      if (savedValues && savedValues.image_url != null && imageUrlInput)
-        imageUrlInput.value = savedValues.image_url;
+      if (imageUrlInput) {
+        const savedInputImages =
+          savedValues && typeof savedValues.input_images === "string"
+            ? savedValues.input_images
+            : "";
+        imageUrlInput.value = savedInputImages;
+      }
       if (savedValues && savedValues.denoise != null && form.denoise)
         form.denoise.value = savedValues.denoise;
 
@@ -449,13 +454,13 @@ function initApp() {
       }
     }
 
-    // Only send image_url for image2image or image2video
+    // Only send input_images for image2image or image2video
     if (
       (method === "image2image" || method === "image2video") &&
       imageUrlInput &&
       imageUrlInput.value.trim()
     ) {
-      body.image_url = imageUrlInput.value.trim();
+      body.input_images = [imageUrlInput.value.trim()];
     }
 
     try {

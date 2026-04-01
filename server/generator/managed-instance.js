@@ -229,7 +229,10 @@ async function ensureManagedComfyReady() {
 }
 
 async function getManagedComfyStatus() {
-  const [stats, queue] = await Promise.all([_fetchSystemStats(), _fetchQueue()]);
+  const [stats, queue] = await Promise.all([
+    _fetchSystemStats(),
+    _fetchQueue(),
+  ]);
   return {
     running: stats.ok,
     managed: !!(_proc && _proc.exitCode === null),

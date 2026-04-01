@@ -153,7 +153,7 @@ describe("generation flow — correct args reach runComfyGeneration", () => {
           prompt: "a dog",
           model: "fake_sdxl",
           method: "image2image",
-          image_url: IMAGE_URL,
+          input_images: [IMAGE_URL],
           denoise: 0.7,
         },
         OUTPUT_DIR,
@@ -165,14 +165,14 @@ describe("generation flow — correct args reach runComfyGeneration", () => {
       expect(downloadImagesToComfyInput).toHaveBeenCalledWith([IMAGE_URL]);
     });
 
-    it("image2image: throws if image_url is missing", async () => {
+    it("image2image: throws if input_images is missing", async () => {
       resolveModel.mockReturnValue(FAKE_SDXL_I2I);
       await expect(
         buildComfyArgs(
           { prompt: "a dog", model: "fake_sdxl", method: "image2image" },
           OUTPUT_DIR,
         ),
-      ).rejects.toThrow("image2image requires image_url");
+      ).rejects.toThrow("image2image requires input_images");
     });
   });
 
@@ -206,7 +206,7 @@ describe("generation flow — correct args reach runComfyGeneration", () => {
         prompt: "a dog",
         model: "fake_sdxl",
         method: "image2image",
-        image_url: IMAGE_URL,
+        input_images: [IMAGE_URL],
         denoise: 0.6,
       });
       const res = fakeRes();
@@ -244,7 +244,7 @@ describe("generation flow — correct args reach runComfyGeneration", () => {
           prompt: "a dog",
           model: "fake_sdxl",
           method: "image2image",
-          image_url: IMAGE_URL,
+          input_images: [IMAGE_URL],
           denoise: 0.5,
         },
         OUTPUT_DIR,

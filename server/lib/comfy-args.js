@@ -5,6 +5,15 @@ const { sanitizePromptText } = require("../handlers/generate.js");
 const { resolveModel } = require("../handlers/models.js");
 const { downloadImagesToComfyInput } = require("../generator/image-input.js");
 
+function normalizeInputImages(body) {
+  if (Array.isArray(body.input_images)) {
+    return body.input_images
+      .map((v) => String(v || "").trim())
+      .filter(Boolean);
+  }
+  return [];
+}
+
 /**
  * Build the argument payload for Comfy jobs, given user args/body and outputDir.
  * Handles both text2img and image2image (SDXL) flows.
@@ -29,10 +38,11 @@ async function buildComfyArgs(body, outputDir) {
       : Math.floor(Math.random() * 2_147_483_647) + 1;
 
   if (method === "image2image" && entry.family === "sdxl") {
-    const imageUrl = String(body.image_url || "").trim();
-    if (!imageUrl)
-      throw new Error("image2image requires image_url to be provided.");
-    const files = await downloadImagesToComfyInput([imageUrl]);
+    const inputImages = normalizeInputImages(body);
+    if (!inputImages.length) {
+      throw new Error("image2image requires input_images to be provided.");
+    }
+    const files = await downloadImagesToComfyInput(inputImages);
     const [filename] = files;
     if (!filename)
       throw new Error("Failed to prepare input image for image2image.");

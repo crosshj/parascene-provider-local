@@ -140,7 +140,7 @@ function collectFormValues() {
     cfg: form.cfg.value,
     seed: form.seed.value,
     method: methodSel ? methodSel.value : "",
-    image_url: form.image_url ? form.image_url.value : "",
+    input_images: form.input_images ? form.input_images.value : "",
     perMethodModel,
   };
 }
@@ -271,7 +271,7 @@ function rebuildModelOptionsForMethod(method, preferredId) {
 }
 
 function updateFieldVisibility() {
-  const imageField = form.image_url && form.image_url.closest(".field");
+  const imageField = form.input_images && form.input_images.closest(".field");
   const denoiseField = document.getElementById("denoise-field");
   if (!imageField || !methodSel || !denoiseField) return;
   const method = methodSel.value;
@@ -482,14 +482,14 @@ async function loadModels() {
     }
 
     function updateImageFieldVisibility(methodId) {
-      const field = form.image_url && form.image_url.closest(".field");
+      const field = form.input_images && form.input_images.closest(".field");
       if (!field) return;
       const caps = methods[methodId];
       const hasImageUrlField =
         caps &&
         caps.fields &&
-        caps.fields.image_url &&
-        caps.fields.image_url.type === "text";
+        caps.fields.input_images &&
+        caps.fields.input_images.type === "image_url_array";
       field.style.display = hasImageUrlField ? "" : "none";
     }
 
@@ -505,8 +505,11 @@ async function loadModels() {
       if (f.steps != null) form.steps.value = f.steps;
       if (f.cfg != null) form.cfg.value = f.cfg;
       if (f.seed != null) form.seed.value = f.seed;
-      if (f.image_url != null && form.image_url)
-        form.image_url.value = f.image_url;
+      if (form.input_images) {
+        const savedInputImages =
+          typeof f.input_images === "string" ? f.input_images : "";
+        form.input_images.value = savedInputImages;
+      }
     }
 
     if (!loadModels._wiredEvents) {
@@ -692,7 +695,7 @@ function initTokenForm() {
   "cfg",
   "seed",
   "method",
-  "image_url",
+  "input_images",
 ].forEach((n) => form[n] && form[n].addEventListener("input", saveFormValues));
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -718,9 +721,9 @@ form.addEventListener("submit", async (e) => {
     method: methodSel ? methodSel.value : undefined,
   };
 
-  const imageUrl = form.image_url ? form.image_url.value.trim() : "";
+  const imageUrl = form.input_images ? form.input_images.value.trim() : "";
   if (imageUrl) {
-    body.image_url = imageUrl;
+    body.input_images = [imageUrl];
   }
 
   // Only send denoise for image2image
