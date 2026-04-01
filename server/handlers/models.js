@@ -12,6 +12,7 @@ const {
   isManagedComfyWorkflowSupported,
 } = require("../generator/workflows/_index.js");
 const { getModelDefaults } = require("../generator/workflows/_defaults.js");
+const { BASE_MODELS_RESPONSE } = require("../configs/models-api-config.js");
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -299,11 +300,45 @@ function getModelsPolicy() {
 
 function handleModels(_req, res, _ctx) {
   const models = getModels().filter((m) => isManagedComfyWorkflowSupported(m));
-  sendJson(res, 200, {
-    ok: true,
-    policy: getModelsPolicy(),
-    models: models.map(modelToPublicJson),
-  });
+
+  const payload = JSON.parse(JSON.stringify(BASE_MODELS_RESPONSE));
+  payload.policy = getModelsPolicy();
+  payload.models = models.map(modelToPublicJson);
+
+  const methods = payload.methods || {};
+
+  for (const m of models) {
+    const modelMethods = deriveModelMethods(m);
+    for (const methodId of modelMethods) {
+      if (!methods[methodId]) {
+        methods[methodId] = {
+          id: methodId,
+          async: false,
+          name: methodId,
+          description: "Image generation method.",
+          intent: "image_generate",
+          fields: {
+            model: {
+              label: "Model",
+              type: "select",
+              required: true,
+              options: [],
+            },
+          },
+        };
+      }
+
+      const optionLabel = `${m.family}: ${m.name}`;
+      methods[methodId].fields.model.options.push({
+        label: optionLabel,
+        value: m.modelId,
+      });
+    }
+  }
+
+  payload.methods = methods;
+
+  sendJson(res, 200, payload);
 }
 
 module.exports = {

@@ -4,8 +4,8 @@ const fs = require("fs");
 const path = require("path");
 
 const { sendJson, readJson, TEXT2IMG_CREDITS } = require("../lib.js");
-const { getModels } = require("./models.js");
 const { enqueueText2ImgJob, getJob } = require("../jobs/scheduler.js");
+const { BASE_PROVIDER_CAPABILITIES } = require("../configs/provider-api-config.js");
 
 // Shared API key for simple bearer auth.
 // For now we allow a hardcoded default; in production this should be set via env.
@@ -92,51 +92,9 @@ function ensureAuthorized(req, res) {
 function handleApiGet(req, res) {
   if (!ensureAuthorized(req, res)) return;
 
-  const now = new Date().toISOString();
-  const models = getModels();
-  const allowedSd15 = getAllowedSd15Set();
-  const allowedSdxl = getAllowedSdxlSet();
-  // Provider API exposes all models that have a managed Comfy workflow (managedWorkflowId),
-  // but only a filtered set for sd15 and sdxl.
-  const filteredModels = models.filter(
-    (m) =>
-      Boolean(m.managedWorkflowId) &&
-      (m.family !== "sd15" || allowedSd15.has(m.name)) &&
-      (m.family !== "sdxl" || allowedSdxl.has(m.name)),
-  );
-  const modelOptions = filteredModels.map((m) => ({
-    label: `${m.family}: ${m.name}`,
-    value: m.modelId,
-  }));
-
-  const payload = {
-    status: "operational",
-    last_check_at: now,
-    methods: {
-      text2img: {
-        id: "text2img",
-        default: true,
-        async: true,
-        name: "Text To Image",
-        description: "Generate an image from text.",
-        intent: "image_generate",
-        credits: TEXT2IMG_CREDITS,
-        fields: {
-          model: {
-            label: "Model",
-            type: "select",
-            required: true,
-            options: modelOptions,
-          },
-          prompt: {
-            label: "Prompt",
-            type: "text",
-            required: true,
-          },
-        },
-      },
-    },
-  };
+  const payload = JSON.parse(JSON.stringify(BASE_PROVIDER_CAPABILITIES));
+  payload.status = "operational";
+  payload.last_check_at = new Date().toISOString();
   sendJson(res, 200, payload);
 }
 

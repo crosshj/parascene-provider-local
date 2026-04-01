@@ -89,6 +89,8 @@ const STORAGE_KEY = "local-image-generator.form.v2";
 let modelRegistry = {};
 // Remember last-selected model per method (e.g. text2img, image2image).
 let perMethodModel = {};
+// Capabilities document from GET /api/models (methods + fields).
+let capabilitiesMethods = null;
 /** @type {{ ok?: boolean, policy?: object, models?: object[] } | null} */
 let lastModelsPayload = null;
 let savedValues = null;
@@ -165,6 +167,30 @@ function restoreSavedValues() {
 function updateFamilyBadge() {
   const entry = modelRegistry[modelSel.value];
   badge.textContent = entry ? entry.family : "";
+}
+
+// ── Capabilities loading (GET /api/models) ──────────────
+
+async function loadCapabilities() {
+  if (capabilitiesMethods) return capabilitiesMethods;
+  const res = await apiFetch("/api/models", { method: "GET" });
+  const data = await res.json();
+  if (!data || data.ok === false) {
+    throw new Error("Bad /api/models response");
+  }
+  lastModelsPayload = data;
+  modelRegistry = {};
+  if (Array.isArray(data.models)) {
+    for (const m of data.models) {
+      if (m && typeof m.modelId === "string") {
+        modelRegistry[m.modelId] = m;
+      }
+    }
+  }
+  const methods =
+    data && data.methods && typeof data.methods === "object" ? data.methods : {};
+  capabilitiesMethods = methods;
+  return methods;
 }
 
 function modelSupportsMethod(entry, method) {
@@ -344,63 +370,11 @@ function formatGenerateHttpError(status, bodyText) {
 
 // ── Model loading ─────────────────────────────────────
 
-function applyModelsFromPayload(data) {
-  if (!data || !data.ok || !Array.isArray(data.models)) return;
-
-  lastModelsPayload = data;
-  modelRegistry = {};
-  for (const m of data.models) {
-    modelRegistry[m.modelId] = m;
-  }
-
-  const allMethods = getAllMethodsFromModels(data.models);
-  if (methodSel) {
-    methodSel.innerHTML = "";
-    for (const m of allMethods) {
-      const opt = document.createElement("option");
-      opt.value = m;
-      opt.textContent = m;
-      methodSel.appendChild(opt);
-    }
-  }
-
-  const savedMethod =
-    savedValues && typeof savedValues.method === "string"
-      ? savedValues.method
-      : null;
-  const currentMethod =
-    (savedMethod && allMethods.includes(savedMethod)
-      ? savedMethod
-      : allMethods[0] || "text2img");
-
-  if (methodSel) methodSel.value = currentMethod;
-
-  const preferredModelId =
-    savedValues && typeof savedValues.model === "string"
-      ? savedValues.model
-      : null;
-  const pick = rebuildModelOptionsForMethod(
-    currentMethod,
-    preferredModelId,
-  );
-
-  if (pick && modelRegistry[pick]) {
-    perMethodModel[currentMethod] = pick;
-    applyModelDefaults();
-  } else {
-    updateFamilyBadge();
-  }
-
-  updateImageUrlVisibility();
-
-  saveFormValues();
-}
-
 async function loadModels() {
   try {
-    const res = await apiFetch("/api/models", { method: "GET" });
-    const data = await res.json();
-    if (!data.ok) throw new Error("Bad response");
+    const methods = await loadCapabilities();
+    const methodIds = Object.keys(methods);
+    if (!methodIds.length) throw new Error("No methods from /api");
 
     if (savedValues && savedValues.perMethodModel) {
       perMethodModel =
@@ -409,7 +383,83 @@ async function loadModels() {
           : {};
     }
 
-    applyModelsFromPayload(data);
+    const savedMethod =
+      savedValues && typeof savedValues.method === "string"
+        ? savedValues.method
+        : null;
+    const currentMethod =
+      savedMethod && methodIds.includes(savedMethod)
+        ? savedMethod
+        : methodIds[0];
+
+    if (methodSel) {
+      methodSel.innerHTML = "";
+      for (const id of methodIds) {
+        const opt = document.createElement("option");
+        opt.value = id;
+        opt.textContent = id;
+        methodSel.appendChild(opt);
+      }
+      methodSel.value = currentMethod;
+    }
+
+    function rebuildModelsForMethod(methodId, preferredModelId) {
+      const caps = methods[methodId];
+      const options = caps?.fields?.model?.options || [];
+      modelSel.innerHTML = "";
+      let firstValue = null;
+
+      for (const o of options) {
+        const opt = document.createElement("option");
+        opt.value = o.value;
+        opt.textContent = o.label || o.value;
+        modelSel.appendChild(opt);
+        if (!firstValue) firstValue = o.value;
+      }
+
+      let pick = null;
+      if (
+        preferredModelId &&
+        options.some((o) => o.value === preferredModelId)
+      ) {
+        pick = preferredModelId;
+      } else if (
+        perMethodModel[methodId] &&
+        options.some((o) => o.value === perMethodModel[methodId])
+      ) {
+        pick = perMethodModel[methodId];
+      } else if (firstValue) {
+        pick = firstValue;
+      }
+      if (pick) modelSel.value = pick;
+      return pick;
+    }
+
+    const preferredModelId =
+      savedValues && typeof savedValues.model === "string"
+        ? savedValues.model
+        : null;
+    const initialModel = rebuildModelsForMethod(
+      currentMethod,
+      preferredModelId,
+    );
+    if (initialModel) {
+      perMethodModel[currentMethod] = initialModel;
+    }
+
+    function updateImageFieldVisibility(methodId) {
+      const field = form.image_url && form.image_url.closest(".field");
+      if (!field) return;
+      const caps = methods[methodId];
+      const hasImageUrlField =
+        caps &&
+        caps.fields &&
+        caps.fields.image_url &&
+        caps.fields.image_url.type === "text";
+      field.style.display = hasImageUrlField ? "" : "none";
+    }
+
+    updateImageFieldVisibility(currentMethod);
 
     if (savedValues) {
       const f = savedValues;
@@ -425,23 +475,44 @@ async function loadModels() {
         form.image_url.value = f.image_url;
     }
 
-    updateImageUrlVisibility();
+    if (!loadModels._wiredEvents) {
+      if (methodSel) {
+        methodSel.addEventListener("change", () => {
+          const methodId = methodSel.value;
+          const pick = rebuildModelsForMethod(
+            methodId,
+            perMethodModel[methodId] || null,
+          );
+          if (pick) perMethodModel[methodId] = pick;
+          updateImageFieldVisibility(methodId);
+          saveFormValues();
+        });
+      }
 
+      modelSel.addEventListener("change", () => {
+        const methodId = methodSel ? methodSel.value : null;
+        if (methodId) {
+          perMethodModel[methodId] = modelSel.value;
+        }
+        saveFormValues();
+      });
+
+      loadModels._wiredEvents = true;
+    }
+
+    updateFamilyBadge();
     saveFormValues();
   } catch (e) {
     modelSel.innerHTML = '<option value="">Failed to load models</option>';
-    setStatusMessage("Error loading models: " + e.message, true);
+    setStatusMessage("Error loading capabilities: " + e.message, true);
   }
 }
 
 function applyModelDefaults() {
-  const entry = modelRegistry[modelSel.value];
-  if (!entry) return;
+  // With capabilities-driven loading, we no longer pull per-model numeric
+  // defaults from /api/models; keep this as a thin wrapper to update the badge
+  // and persist the selection.
   updateFamilyBadge();
-  form.width.value = entry.defaults.width;
-  form.height.value = entry.defaults.height;
-  form.steps.value = entry.defaults.steps;
-  form.cfg.value = entry.defaults.cfg;
   saveFormValues();
 }
 
@@ -513,8 +584,6 @@ function initTokenForm() {
 }
 
 // ── Events ────────────────────────────────────────────
-
-modelSel.addEventListener("change", applyModelDefaults);
 
 [
   "prompt",
