@@ -254,15 +254,6 @@ const BASE_PROVIDER_CAPABILITIES = {
           type: "text",
           required: true,
         },
-        seed: {
-          label: "Seed",
-          type: "number",
-          required: false,
-          min: 0,
-          step: 1,
-          description:
-            "Optional deterministic seed. If not provided, a random seed is used.",
-        },
         input_images: {
           label: "Input Images",
           type: "image_url_array",
@@ -277,6 +268,15 @@ const BASE_PROVIDER_CAPABILITIES = {
           step: 0.01,
           description:
             "Strength of denoising. If not provided, SDXL models default to 0.65.",
+        },
+        seed: {
+          label: "Seed",
+          type: "number",
+          required: false,
+          min: 0,
+          step: 1,
+          description:
+            "Optional deterministic seed. If not provided, a random seed is used.",
         },
       },
     },
