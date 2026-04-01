@@ -10,7 +10,7 @@ const BASE_PROVIDER_CAPABILITIES = {
       name: "Text To Image",
       description: "Generate an image from text.",
       intent: "image_generate",
-      credits: 0.5,
+      credits: 0.1,
       fields: {
         model: {
           label: "Model",
@@ -188,7 +188,7 @@ const BASE_PROVIDER_CAPABILITIES = {
       name: "Image To Image",
       description: "Generate an image from an input image and text.",
       intent: "image_mutate",
-      credits: 0.5,
+      credits: 0.1,
       fields: {
         model: {
           label: "Model",
