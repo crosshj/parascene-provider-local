@@ -10,7 +10,6 @@ const {
   ensureManagedComfyReady,
 } = require("./managed-instance.js");
 const { buildWorkflowByFamily } = require("../workflows/_index.js");
-const { downloadImagesToComfyInput } = require("./image-input.js");
 
 function _url(pathname) {
   return `http://${COMFY_HOST}:${COMFY_PORT}${pathname}`;
@@ -83,16 +82,6 @@ function makeOutputFilename(seed) {
 async function runComfyGeneration(input, outDir) {
   const started = Date.now();
   await ensureManagedComfyReady();
-
-  // If input.image_urls is an array, download and replace with filenames
-  if (Array.isArray(input.image_urls)) {
-    input.image_filenames = await downloadImagesToComfyInput(input.image_urls);
-    // For image2image, set inputImageFilename for workflow
-    if (input.image_filenames.length > 0) {
-      input.inputImageFilename = input.image_filenames[0];
-    }
-    // delete input.image_urls;
-  }
 
   const workflow = buildWorkflowByFamily(input);
   const queued = await requestJson("/prompt", {

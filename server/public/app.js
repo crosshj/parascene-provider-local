@@ -451,30 +451,30 @@ async function loadModels() {
       perMethodModel[currentMethod] = initialModel;
       // Apply defaults for initial model
       const entry = modelRegistry[initialModel];
-      if (entry) {
+      if (entry?.defaults) {
         let changed = false;
-        if (entry.width != null) {
-          form.width.value = entry.width;
+        if (entry.defaults.width != null) {
+          form.width.value = entry.defaults.width;
           changed = true;
         }
-        if (entry.height != null) {
-          form.height.value = entry.height;
+        if (entry.defaults.height != null) {
+          form.height.value = entry.defaults.height;
           changed = true;
         }
-        if (entry.steps != null) {
-          form.steps.value = entry.steps;
+        if (entry.defaults.steps != null) {
+          form.steps.value = entry.defaults.steps;
           changed = true;
         }
-        if (entry.cfg != null) {
-          form.cfg.value = entry.cfg;
+        if (entry.defaults.cfg != null) {
+          form.cfg.value = entry.defaults.cfg;
           changed = true;
         }
         if (changed) {
           console.log("Applied model defaults (initial):", {
-            width: entry.width,
-            height: entry.height,
-            steps: entry.steps,
-            cfg: entry.cfg,
+            width: entry.defaults.width,
+            height: entry.defaults.height,
+            steps: entry.defaults.steps,
+            cfg: entry.defaults.cfg,
             model: entry.modelId,
           });
         }
@@ -522,30 +522,30 @@ async function loadModels() {
           // Apply defaults if model changed
           if (pick && pick !== prevModel) {
             const entry = modelRegistry[pick];
-            if (entry) {
+            if (entry?.defaults) {
               let changed = false;
-              if (entry.width != null) {
-                form.width.value = entry.width;
+              if (entry.defaults.width != null) {
+                form.width.value = entry.defaults.width;
                 changed = true;
               }
-              if (entry.height != null) {
-                form.height.value = entry.height;
+              if (entry.defaults.height != null) {
+                form.height.value = entry.defaults.height;
                 changed = true;
               }
-              if (entry.steps != null) {
-                form.steps.value = entry.steps;
+              if (entry.defaults.steps != null) {
+                form.steps.value = entry.defaults.steps;
                 changed = true;
               }
-              if (entry.cfg != null) {
-                form.cfg.value = entry.cfg;
+              if (entry.defaults.cfg != null) {
+                form.cfg.value = entry.defaults.cfg;
                 changed = true;
               }
               if (changed) {
                 console.log("Applied model defaults (method switch):", {
-                  width: entry.width,
-                  height: entry.height,
-                  steps: entry.steps,
-                  cfg: entry.cfg,
+                  width: entry.defaults.width,
+                  height: entry.defaults.height,
+                  steps: entry.defaults.steps,
+                  cfg: entry.defaults.cfg,
                   model: entry.modelId,
                 });
               }

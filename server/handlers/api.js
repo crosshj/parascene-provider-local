@@ -4,7 +4,8 @@ const fs = require("fs");
 const path = require("path");
 
 const { sendJson, readJson, TEXT2IMG_CREDITS } = require("../lib.js");
-const { enqueueText2ImgJob, getJob } = require("../jobs/scheduler.js");
+const { enqueueGenerationJob, getJob } = require("../jobs/scheduler.js");
+const { buildComfyArgs } = require("../comfy-args.js");
 const {
   BASE_PROVIDER_CAPABILITIES,
 } = require("../configs/provider-api-config.js");
@@ -17,58 +18,58 @@ const PARASCENE_API_KEY =
 // In-memory job store for stub (non-text2img) jobs only.
 const stubJobs = new Map();
 
-const DEFAULT_ALLOWED_SD15 = [
-  "cyberrealistic_v20",
-  "deliberate_v11",
-  "realisticVisionV60B1_v60B1VAE",
-  "dreamShaper_8_pruned",
-  "revAnimated_v122",
-  "rpg_v5",
-  "toonAme_version20",
-  "lofi_V2pre",
-  "qgo10b_qgo10b",
-  "liberty_main",
-];
+// const DEFAULT_ALLOWED_SD15 = [
+//   "cyberrealistic_v20",
+//   "deliberate_v11",
+//   "realisticVisionV60B1_v60B1VAE",
+//   "dreamShaper_8_pruned",
+//   "revAnimated_v122",
+//   "rpg_v5",
+//   "toonAme_version20",
+//   "lofi_V2pre",
+//   "qgo10b_qgo10b",
+//   "liberty_main",
+// ];
 
-// Kept as reference for future provider filtering tweaks.
-const DEFAULT_ALLOWED_SDXL = [
-  "cyberrealisticPony_v130",
-  "dreamshaperXL_turboDpmppSDE",
-  "illustriousXL20_v20",
-  "juggernautXL_v7Rundiffusion",
-  "juggernautXL_v9Rdphoto2Lightning",
-  "ponyRealism_V23",
-  "protovisionXLHighFidelity3D_releaseV660Bakedvae",
-  "realcartoonXL_v6",
-  "realDream_sdxlLightning1",
-  "sd_xl_base_1.0",
-  "sd_xl_turbo_1.0_fp16",
-  "zavychromaxl_v40",
-];
+// // Kept as reference for future provider filtering tweaks.
+// const DEFAULT_ALLOWED_SDXL = [
+//   "cyberrealisticPony_v130",
+//   "dreamshaperXL_turboDpmppSDE",
+//   "illustriousXL20_v20",
+//   "juggernautXL_v7Rundiffusion",
+//   "juggernautXL_v9Rdphoto2Lightning",
+//   "ponyRealism_V23",
+//   "protovisionXLHighFidelity3D_releaseV660Bakedvae",
+//   "realcartoonXL_v6",
+//   "realDream_sdxlLightning1",
+//   "sd_xl_base_1.0",
+//   "sd_xl_turbo_1.0_fp16",
+//   "zavychromaxl_v40",
+// ];
 
-function getAllowedSdxlSet() {
-  const raw = process.env.API_ALLOWED_SDXL_MODELS;
-  const names =
-    typeof raw === "string" && raw.trim()
-      ? raw
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean)
-      : DEFAULT_ALLOWED_SDXL;
-  return new Set(names);
-}
+// function getAllowedSdxlSet() {
+//   const raw = process.env.API_ALLOWED_SDXL_MODELS;
+//   const names =
+//     typeof raw === "string" && raw.trim()
+//       ? raw
+//           .split(",")
+//           .map((s) => s.trim())
+//           .filter(Boolean)
+//       : DEFAULT_ALLOWED_SDXL;
+//   return new Set(names);
+// }
 
-function getAllowedSd15Set() {
-  const raw = process.env.API_ALLOWED_SD15_MODELS;
-  const names =
-    typeof raw === "string" && raw.trim()
-      ? raw
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean)
-      : DEFAULT_ALLOWED_SD15;
-  return new Set(names);
-}
+// function getAllowedSd15Set() {
+//   const raw = process.env.API_ALLOWED_SD15_MODELS;
+//   const names =
+//     typeof raw === "string" && raw.trim()
+//       ? raw
+//           .split(",")
+//           .map((s) => s.trim())
+//           .filter(Boolean)
+//       : DEFAULT_ALLOWED_SD15;
+//   return new Set(names);
+// }
 
 function getBearerToken(req) {
   const header = req.headers["authorization"] || req.headers["Authorization"];
@@ -225,7 +226,14 @@ async function handleApiPost(req, res, ctx = {}) {
     if (!ctx.outputDir) {
       return sendJson(res, 503, { error: "OUTPUT_DIR not configured" });
     }
-    const job = enqueueText2ImgJob(args, ctx.outputDir);
+    let comfyArgs;
+    try {
+      // Merge top-level method into args so buildComfyArgs can determine the workflow
+      comfyArgs = await buildComfyArgs({ ...args, method }, ctx.outputDir);
+    } catch (err) {
+      return sendJson(res, 400, { error: err.message });
+    }
+    const job = enqueueGenerationJob(comfyArgs, ctx.outputDir);
     if (job.error) {
       return sendJson(res, 400, { error: job.error });
     }

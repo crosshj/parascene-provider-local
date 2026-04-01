@@ -3,12 +3,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const { sanitizePromptText } = require("../handlers/generate.js");
-const { resolveModel } = require("../handlers/models.js");
-const {
-  runComfyGeneration,
-  isManagedComfyWorkflowSupported,
-} = require("../generator/comfy/index.js");
+const { runComfyGeneration } = require("../generator/comfy/index.js");
 
 const { TEXT2IMG_CREDITS } = require("../lib.js");
 
@@ -139,32 +134,8 @@ async function _processLoop() {
       }
 
       try {
-        // TODO: runComfyGeneration should be able to interpret the job object directly,
-        // instead of requiring this explicit mapping here.
-        const comfyInput = {
-          family: job.modelEntry.family,
-          managedWorkflowId: job.modelEntry.managedWorkflowId,
-          modelFile: job.modelEntry.file,
-          modelPath: job.modelEntry.fullPath,
-          comfyCheckpointGroup: job.modelEntry.comfyCheckpointGroup,
-          diffusionModelComfyName: job.modelEntry.diffusionModelComfyName,
-          loadKind: job.modelEntry.loadKind,
-          seed: job.payload.seed || job.seed,
-          prompt: sanitizePromptText(job.payload.prompt || ""),
-          negative_prompt: job.payload.negative_prompt,
-          negativePrompt: sanitizePromptText(job.payload.negative_prompt || ""),
-          model: job.payload.model,
-          width: job.payload.width,
-          height: job.payload.height,
-          steps: job.payload.steps,
-          cfg: job.payload.cfg,
-          // Add denoise if present
-          ...(job.payload.denoise !== undefined
-            ? { denoise: job.payload.denoise }
-            : {}),
-        };
-
-        const result = await runComfyGeneration(comfyInput, job.outputDir);
+        // Pass the full payload as built by the API handler (supports all workflows)
+        const result = await runComfyGeneration(job.payload, job.outputDir);
         const current = jobs.get(job.id);
         if (!current) {
           // Job removed externally; skip.
@@ -211,53 +182,41 @@ function generateJobId() {
   return `job_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function enqueueText2ImgJob(args, outputDir) {
-  const { buildComfyArgs } = require("../comfy-args.js");
-  let comfy;
-  try {
-    comfy = require("../comfy-args.js").buildComfyArgs;
-    // buildComfyArgs returns a promise
-  } catch (err) {
-    return { error: err.message };
-  }
-  return comfy(args, outputDir)
-    .then(({ payload, entry, method }) => {
-      const id = generateJobId();
-      const job = {
-        id,
-        method,
-        args,
-        family: entry.family,
-        modelId: entry.modelId,
-        modelName: entry.modelName || args.model,
-        status: "pending",
-        created_at: new Date().toISOString(),
-        result: null,
-        error: null,
-        imageWidth: payload.width ?? 1024,
-        imageHeight: payload.height ?? 1024,
-        credits: TEXT2IMG_CREDITS,
-        seed: payload.seed,
-        modelEntry: {
-          modelId: entry.modelId,
-          file: entry.file,
-          family: entry.family,
-          fullPath: entry.fullPath,
-          loadKind: entry.loadKind,
-          managedWorkflowId: entry.managedWorkflowId,
-          comfyCheckpointGroup: entry.comfyCheckpointGroup,
-          diffusionModelComfyName: entry.diffusionModelComfyName,
-        },
-        payload,
-        outputDir,
-      };
-      jobs.set(id, job);
-      pendingOrder.push(id);
-      _writeState();
-      _schedule();
-      return job;
-    })
-    .catch((err) => ({ error: err.message }));
+function enqueueGenerationJob({ payload, entry, method }, outputDir) {
+  const id = generateJobId();
+  const job = {
+    id,
+    method,
+    args: payload, // store the built payload as args for reference
+    family: entry.family,
+    modelId: entry.modelId,
+    modelName: entry.modelName,
+    status: "pending",
+    created_at: new Date().toISOString(),
+    result: null,
+    error: null,
+    imageWidth: payload.width ?? 1024,
+    imageHeight: payload.height ?? 1024,
+    credits: TEXT2IMG_CREDITS,
+    seed: payload.seed,
+    modelEntry: {
+      modelId: entry.modelId,
+      file: entry.file,
+      family: entry.family,
+      fullPath: entry.fullPath,
+      loadKind: entry.loadKind,
+      managedWorkflowId: entry.managedWorkflowId,
+      comfyCheckpointGroup: entry.comfyCheckpointGroup,
+      diffusionModelComfyName: entry.diffusionModelComfyName,
+    },
+    payload,
+    outputDir,
+  };
+  jobs.set(id, job);
+  pendingOrder.push(id);
+  _writeState();
+  _schedule();
+  return job;
 }
 
 function getJob(jobId) {
@@ -292,7 +251,7 @@ function getSummary() {
 }
 
 module.exports = {
-  enqueueText2ImgJob,
+  enqueueGenerationJob,
   getJob,
   getSummary,
 };

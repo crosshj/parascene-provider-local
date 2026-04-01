@@ -3,7 +3,9 @@
 
 const { sanitizePromptText } = require("./handlers/generate.js");
 const { resolveModel } = require("./handlers/models.js");
-const { downloadImagesToComfyInput } = require("./generator/comfy/image-input.js");
+const {
+  downloadImagesToComfyInput,
+} = require("./generator/comfy/image-input.js");
 
 /**
  * Build the argument payload for Comfy jobs, given user args/body and outputDir.
@@ -18,18 +20,24 @@ async function buildComfyArgs(body, outputDir) {
   if (!modelName) throw new Error("Missing required field: model");
 
   const entry = resolveModel(modelName);
-  if (!entry) throw new Error(`Unknown model: "${modelName}". Check GET /api/models.`);
+  if (!entry)
+    throw new Error(`Unknown model: "${modelName}". Check GET /api/models.`);
 
   const method = String(body.method || "").trim() || "text2img";
   const negativePrompt = sanitizePromptText(body.negative_prompt || "");
-  const seed = Number.isInteger(body.seed) && body.seed >= 0 ? body.seed : Math.floor(Math.random() * 2_147_483_647) + 1;
+  const seed =
+    Number.isInteger(body.seed) && body.seed >= 0
+      ? body.seed
+      : Math.floor(Math.random() * 2_147_483_647) + 1;
 
   if (method === "image2image" && entry.family === "sdxl") {
     const imageUrl = String(body.image_url || "").trim();
-    if (!imageUrl) throw new Error("image2image requires image_url to be provided.");
+    if (!imageUrl)
+      throw new Error("image2image requires image_url to be provided.");
     const files = await downloadImagesToComfyInput([imageUrl]);
     const [filename] = files;
-    if (!filename) throw new Error("Failed to prepare input image for image2image.");
+    if (!filename)
+      throw new Error("Failed to prepare input image for image2image.");
     return {
       payload: {
         family: entry.family,
