@@ -270,7 +270,7 @@ function rebuildModelOptionsForMethod(method, preferredId) {
   return pick;
 }
 
-function updateImageUrlVisibility() {
+function updateFieldVisibility() {
   const imageField = form.image_url && form.image_url.closest(".field");
   const denoiseField = document.getElementById("denoise-field");
   if (!imageField || !methodSel || !denoiseField) return;
@@ -551,7 +551,7 @@ async function loadModels() {
               }
             }
           }
-          updateImageFieldVisibility(methodId);
+          updateFieldVisibility();
           saveFormValues();
         });
       }
