@@ -427,7 +427,11 @@ function initApp() {
     }
 
     // Only send image_url for image2image or image2video
-    if ((method === "image2image" || method === "image2video") && imageUrlInput && imageUrlInput.value.trim()) {
+    if (
+      (method === "image2image" || method === "image2video") &&
+      imageUrlInput &&
+      imageUrlInput.value.trim()
+    ) {
       body.image_url = imageUrlInput.value.trim();
     }
 
@@ -523,7 +527,8 @@ function initApp() {
     const method = methodSel.value;
     // Show image-url-field for image2image or image2video
     if (imageUrlField) {
-      imageUrlField.style.display = (method === "image2image" || method === "image2video") ? "" : "none";
+      imageUrlField.style.display =
+        method === "image2image" || method === "image2video" ? "" : "none";
     }
     // Show denoise-field for image2image
     const denoiseField = document.getElementById("denoise-field");
