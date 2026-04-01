@@ -3,12 +3,17 @@
 const fs = require("fs");
 const path = require("path");
 
-const { sendJson, readJson, TEXT2IMG_CREDITS } = require("../lib.js");
-const { enqueueGenerationJob, getJob } = require("../jobs/scheduler.js");
-const { buildComfyArgs } = require("../comfy-args.js");
+const { sendJson, readJson } = require("../lib/http.js");
+const { enqueueGenerationJob, getJob } = require("../lib/scheduler.js");
+const { buildComfyArgs } = require("../lib/comfy-args.js");
 const {
   BASE_PROVIDER_CAPABILITIES,
 } = require("../configs/provider-api-config.js");
+
+function resolveMethodCredits(method) {
+  const value = BASE_PROVIDER_CAPABILITIES?.methods?.[method]?.credits;
+  return typeof value === "number" ? value : 0;
+}
 
 // Shared API key for simple bearer auth.
 // For now we allow a hardcoded default; in production this should be set via env.
@@ -198,7 +203,7 @@ async function handleApiPost(req, res, ctx = {}) {
           "X-Image-Color": "#000000",
           "X-Image-Width": String(job.imageWidth ?? job.result.width ?? ""),
           "X-Image-Height": String(job.imageHeight ?? job.result.height ?? ""),
-          "X-Credits": String(job.credits ?? TEXT2IMG_CREDITS),
+          "X-Credits": String(job.credits ?? resolveMethodCredits(job.method)),
         };
         if (job.result.seed != null)
           headers["X-Seed"] = String(job.result.seed);

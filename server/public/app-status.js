@@ -127,6 +127,15 @@ function fmtQueueShas(queue) {
     .join(" | ");
 }
 
+function fmtComfyDeviceNames(stats) {
+  const devices = Array.isArray(stats?.devices) ? stats.devices : [];
+  if (!devices.length) return "none";
+  return devices
+    .map((d) => d?.name || d?.type || "unknown")
+    .filter(Boolean)
+    .join(" | ");
+}
+
 function normalizePath(p) {
   return String(p || "")
     .replace(/\\/g, "/")
@@ -205,6 +214,24 @@ async function refresh() {
   set("wkState", wk.running === true ? "running" : "stopped (or not started)");
   set("wkPid", wk.pid != null ? wk.pid : "—");
 
+  const apiHealth = ah.data || {};
+  const comfy = apiHealth.comfy || {};
+  set("comfyState", comfy.running === true ? "running" : "unreachable");
+  set("comfyManaged", comfy.managed === true ? "yes" : "no");
+  set("comfyPid", comfy.pid != null ? comfy.pid : "—");
+  set("comfyHost", comfy.host || "—");
+  set("comfyPort", comfy.port != null ? comfy.port : "—");
+  set("comfyRoot", comfy.root || "—");
+  set(
+    "comfyStatsHttp",
+    comfy.system_stats_http_status != null ? comfy.system_stats_http_status : "—",
+  );
+  const comfyDevices = Array.isArray(comfy.system_stats?.devices)
+    ? comfy.system_stats.devices.length
+    : "—";
+  set("comfyDevices", comfyDevices);
+  set("comfyDeviceNames", fmtComfyDeviceNames(comfy.system_stats));
+
   const gpu = st.gpu || {};
   set("gpuState", gpu.status);
   set("gpuLastSuccess", fmtTime(gpu.lastSuccessAt));
@@ -262,7 +289,6 @@ async function refresh() {
     null;
   set("curCommitTime", fmtTime(commitTime));
 
-  const apiHealth = ah.data || {};
   set("apiHealth", `${ah.status} ${apiHealth.ok ? "OK" : "FAIL"}`);
   set("apiOutputDir", apiHealth.output_dir || "—");
   set("apiPublicDir", apiHealth.public_dir || "—");

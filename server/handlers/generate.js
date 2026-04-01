@@ -5,15 +5,13 @@
 
 const { randomInt } = require("crypto");
 
-const { readJson, sendJson } = require("../lib.js");
+const { readJson, sendJson } = require("../lib/http.js");
 const { resolveModel } = require("./models.js");
 const {
   runComfyGeneration,
   isManagedComfyWorkflowSupported,
-} = require("../generator/comfy/index.js");
-const {
-  downloadImagesToComfyInput,
-} = require("../generator/comfy/image-input.js");
+} = require("../generator/index.js");
+const { downloadImagesToComfyInput } = require("../generator/image-input.js");
 
 function sanitizePromptText(value) {
   if (value == null) return "";
@@ -49,7 +47,7 @@ function handleGenerate(req, res, ctx) {
   }
   readJson(req)
     .then(async (body) => {
-      const { buildComfyArgs } = require("../comfy-args.js");
+      const { buildComfyArgs } = require("../lib/comfy-args.js");
       let comfy;
       try {
         comfy = await buildComfyArgs(body, ctx.outputDir);

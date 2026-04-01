@@ -1,11 +1,9 @@
 // comfy-args.js
 // Centralized argument builder for Comfy jobs (text2img, image2image, etc.)
 
-const { sanitizePromptText } = require("./handlers/generate.js");
-const { resolveModel } = require("./handlers/models.js");
-const {
-  downloadImagesToComfyInput,
-} = require("./generator/comfy/image-input.js");
+const { sanitizePromptText } = require("../handlers/generate.js");
+const { resolveModel } = require("../handlers/models.js");
+const { downloadImagesToComfyInput } = require("../generator/image-input.js");
 
 /**
  * Build the argument payload for Comfy jobs, given user args/body and outputDir.

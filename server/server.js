@@ -1,4 +1,3 @@
-// server.js
 "use strict";
 
 const PORT = process.env.PORT;
@@ -8,48 +7,25 @@ if (!PORT || !HOST) {
   process.exit(1);
 }
 
-const fs = require("fs");
 const path = require("path");
-const { execSync } = require("child_process");
 
-const { createApp } = require("./lib.js");
+const { createApp } = require("./lib/http.js");
+const { getCacheVersion } = require("./lib/cache-version.js");
+const { ensureManagedComfyReady } = require("./generator/index.js");
+
+//handlers
 const { handleHealth } = require("./handlers/health.js");
 const { handleModels } = require("./handlers/models.js");
 const { handleApiGet, handleApiPost } = require("./handlers/api.js");
 const { handleGpu } = require("./handlers/gpu.js");
 const { handleGenerate } = require("./handlers/generate.js");
-const { ensureManagedComfyReady } = require("./generator/comfy/index.js");
 const { handleOutputImage } = require("./handlers/outputs.js");
 const { handlePublic } = require("./handlers/public.js");
-
-function getCacheVersion() {
-  const cwd = process.cwd();
-  const metaPath = path.join(cwd, "release-metadata.json");
-  try {
-    if (fs.existsSync(metaPath)) {
-      const meta = JSON.parse(fs.readFileSync(metaPath, "utf8"));
-      if (meta.releaseId) return meta.releaseId;
-      if (meta.resolvedSha) return meta.resolvedSha.slice(0, 12);
-    }
-  } catch (_) {
-    /* ignore */
-  }
-  try {
-    return execSync("git rev-parse --short HEAD", {
-      encoding: "utf8",
-      cwd: path.join(__dirname, ".."),
-    }).trim();
-  } catch (_) {
-    /* ignore */
-  }
-  const pkg = require(path.join(__dirname, "..", "package.json"));
-  return pkg.version || String(Date.now());
-}
 
 const ctx = {
   outputDir: process.env.OUTPUT_DIR || null,
   publicDir: path.join(__dirname, "public"),
-  cacheVersion: getCacheVersion(),
+  cacheVersion: getCacheVersion(__dirname),
 };
 
 const app = createApp(ctx);

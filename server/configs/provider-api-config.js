@@ -170,6 +170,15 @@ const BASE_PROVIDER_CAPABILITIES = {
           type: "text",
           required: true,
         },
+        seed: {
+          label: "Seed",
+          type: "number",
+          required: false,
+          min: 0,
+          step: 1,
+          description:
+            "Optional deterministic seed. If not provided, a random seed is used.",
+        },
       },
     },
     image2image: {
@@ -234,6 +243,15 @@ const BASE_PROVIDER_CAPABILITIES = {
           label: "Prompt",
           type: "text",
           required: true,
+        },
+        seed: {
+          label: "Seed",
+          type: "number",
+          required: false,
+          min: 0,
+          step: 1,
+          description:
+            "Optional deterministic seed. If not provided, a random seed is used.",
         },
         image_url: {
           label: "Image URL",

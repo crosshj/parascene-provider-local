@@ -11,7 +11,7 @@ These are notes of the intended changes discussed for making `app.html` method-f
   - Special-cased SDXL:
     - `managedWorkflowId === "text2image-sdxl-checkpoint" && family === "sdxl"` → `methods: ["text2img", "image2image"]`.
 
-- `server/generator/workflows/image2image/sdxl-checkpoint.js`
+- `server/workflows/image2image/sdxl-checkpoint.js`
   - New builder that:
     - Clones `image2image/sdxl-checkpoint.json`.
     - Sets `workflow["6"].inputs.text` to `prompt`.
@@ -19,11 +19,11 @@ These are notes of the intended changes discussed for making `app.html` method-f
     - Sets `workflow["31"].inputs.seed/steps/cfg` from overrides.
     - Sets `workflow["34"].inputs.image = inputImageFilename`.
 
-- `server/generator/workflows/_index.js`
+- `server/workflows/_index.js`
   - Registered:
     - `"image2image-sdxl-checkpoint": require("./image2image/sdxl-checkpoint.js")`.
 
-- `server/generator/comfy/image-input.js`
+- `server/generator/image-input.js`
   - `downloadImagesToComfyInput(urlArray)` downloads image URLs into Comfy’s `input` dir and returns filenames.
 
 - `server/handlers/generate.js`
@@ -156,7 +156,7 @@ Key goals:
 
    let modelRegistry = {};
    let capabilitiesMethods = null; // from GET /api
-   let perMethodModel = {};        // remember last model per method
+   let perMethodModel = {}; // remember last model per method
    ```
 
 2. **Extend `collectFormValues`**
@@ -185,7 +185,11 @@ Key goals:
 
    ```js
    savedValues = restoreSavedValues();
-   if (savedValues && savedValues.perMethodModel && typeof savedValues.perMethodModel === "object") {
+   if (
+     savedValues &&
+     savedValues.perMethodModel &&
+     typeof savedValues.perMethodModel === "object"
+   ) {
      perMethodModel = { ...savedValues.perMethodModel };
    }
    loadModels();
@@ -198,9 +202,10 @@ Key goals:
      if (capabilitiesMethods) return capabilitiesMethods;
      const res = await apiFetch("/api", { method: "GET" });
      const data = await res.json();
-     const methods = data && data.methods && typeof data.methods === "object"
-       ? data.methods
-       : {};
+     const methods =
+       data && data.methods && typeof data.methods === "object"
+         ? data.methods
+         : {};
      capabilitiesMethods = methods;
      return methods;
    }
@@ -222,9 +227,9 @@ Key goals:
            ? savedValues.method
            : null;
        const currentMethod =
-         (savedMethod && methodIds.includes(savedMethod)
+         savedMethod && methodIds.includes(savedMethod)
            ? savedMethod
-           : methodIds[0]);
+           : methodIds[0];
 
        if (methodSel) {
          methodSel.innerHTML = "";
@@ -252,10 +257,15 @@ Key goals:
          }
 
          let pick = null;
-         if (preferredModelId && options.some((o) => o.value === preferredModelId)) {
+         if (
+           preferredModelId &&
+           options.some((o) => o.value === preferredModelId)
+         ) {
            pick = preferredModelId;
-         } else if (perMethodModel[methodId] &&
-                    options.some((o) => o.value === perMethodModel[methodId])) {
+         } else if (
+           perMethodModel[methodId] &&
+           options.some((o) => o.value === perMethodModel[methodId])
+         ) {
            pick = perMethodModel[methodId];
          } else if (firstValue) {
            pick = firstValue;
@@ -268,7 +278,10 @@ Key goals:
          savedValues && typeof savedValues.model === "string"
            ? savedValues.model
            : null;
-       const initialModel = rebuildModelsForMethod(currentMethod, preferredModelId);
+       const initialModel = rebuildModelsForMethod(
+         currentMethod,
+         preferredModelId,
+       );
        if (initialModel) {
          perMethodModel[currentMethod] = initialModel;
        }
@@ -290,13 +303,15 @@ Key goals:
        if (savedValues) {
          const f = savedValues;
          if (f.prompt != null) form.prompt.value = f.prompt;
-         if (f.negative_prompt != null) form.negative_prompt.value = f.negative_prompt;
+         if (f.negative_prompt != null)
+           form.negative_prompt.value = f.negative_prompt;
          if (f.width != null) form.width.value = f.width;
          if (f.height != null) form.height.value = f.height;
          if (f.steps != null) form.steps.value = f.steps;
          if (f.cfg != null) form.cfg.value = f.cfg;
          if (f.seed != null) form.seed.value = f.seed;
-         if (f.image_url != null && form.image_url) form.image_url.value = f.image_url;
+         if (f.image_url != null && form.image_url)
+           form.image_url.value = f.image_url;
        }
 
        if (!loadModels._wiredEvents) {
@@ -326,7 +341,8 @@ Key goals:
 
        saveFormValues();
      } catch (e) {
-       modelSel.innerHTML = '<option value="">Failed to load methods/models</option>';
+       modelSel.innerHTML =
+         '<option value="">Failed to load methods/models</option>';
        setStatusMessage("Error loading capabilities: " + e.message, true);
      }
    }
@@ -379,16 +395,14 @@ To support that shape in the local provider without breaking `app.html`, `server
 - Detect wrapped vs flat bodies:
 
 ```js
-const isWrapped =
-  body && typeof body === "object" && body.args && body.method;
+const isWrapped = body && typeof body === "object" && body.args && body.method;
 
 const method = isWrapped
   ? String(body.method || "").trim() || "text2img"
   : String(body.method || "").trim() || "text2img";
 
-const args = isWrapped && body.args && typeof body.args === "object"
-  ? body.args
-  : body;
+const args =
+  isWrapped && body.args && typeof body.args === "object" ? body.args : body;
 ```
 
 - Then use `args.*` instead of `body.*` for:
@@ -456,5 +470,3 @@ if (method === "image2image" && entry.family !== "sdxl") {
 ```
 
 `GET /api` should be treated as the contract for which (method, model) pairs are expected to succeed; `POST /api/generate` should enforce the same rules.
-
-

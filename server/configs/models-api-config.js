@@ -2,9 +2,6 @@
 
 const BASE_MODELS_RESPONSE = {
   ok: true,
-  policy: {
-    defaultManagedComfyFamilies: [],
-  },
   models: [], // filled dynamically from disk scan, includes defaults
   methods: {
     text2img: {
@@ -25,6 +22,15 @@ const BASE_MODELS_RESPONSE = {
           type: "text",
           required: true,
         },
+        seed: {
+          label: "Seed",
+          type: "number",
+          required: false,
+          min: 0,
+          step: 1,
+          description:
+            "Optional deterministic seed. If not provided, a random seed is used.",
+        },
       },
     },
     image2image: {
@@ -44,6 +50,15 @@ const BASE_MODELS_RESPONSE = {
           label: "Prompt",
           type: "text",
           required: true,
+        },
+        seed: {
+          label: "Seed",
+          type: "number",
+          required: false,
+          min: 0,
+          step: 1,
+          description:
+            "Optional deterministic seed. If not provided, a random seed is used.",
         },
         image_url: {
           label: "Image URL",

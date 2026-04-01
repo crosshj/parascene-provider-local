@@ -2,7 +2,7 @@
 
 const { spawn } = require("child_process");
 
-const { sendJson } = require("../lib.js");
+const { sendJson } = require("../lib/http.js");
 
 const GPU_QUERY_CMD =
   "nvidia-smi --query-gpu=uuid,temperature.gpu,memory.used,utilization.gpu --format=csv,noheader,nounits";

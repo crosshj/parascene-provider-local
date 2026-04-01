@@ -195,6 +195,7 @@ function initApp() {
       prompt: form.prompt.value,
       model: modelSel.value,
       method: methodSel ? methodSel.value : "",
+      seed: form.seed ? form.seed.value : undefined,
       denoise: form.denoise ? form.denoise.value : undefined,
       image_url: imageUrlInput ? imageUrlInput.value : undefined,
       perMethodModel,
@@ -359,6 +360,8 @@ function initApp() {
       // Restore prompt, image_url, denoise
       if (savedValues && savedValues.prompt != null)
         form.prompt.value = savedValues.prompt;
+      if (savedValues && savedValues.seed != null && form.seed)
+        form.seed.value = savedValues.seed;
       if (savedValues && savedValues.image_url != null && imageUrlInput)
         imageUrlInput.value = savedValues.image_url;
       if (savedValues && savedValues.denoise != null && form.denoise)
@@ -408,6 +411,7 @@ function initApp() {
   // ── Events ────────────────────────────────────────────
 
   form.prompt.addEventListener("input", saveFormValues);
+  form.seed?.addEventListener("input", saveFormValues);
   form.model.addEventListener("change", () => {
     updateFamilyBadge();
     saveFormValues();
@@ -424,6 +428,18 @@ function initApp() {
       prompt: form.prompt.value.trim(),
       model: modelSel.value,
     };
+
+    const seedRaw = form.seed ? form.seed.value.trim() : "";
+    if (seedRaw) {
+      const seedVal = Number(seedRaw);
+      if (Number.isInteger(seedVal) && seedVal >= 0) {
+        body.seed = seedVal;
+      } else {
+        setPreviewIdle();
+        setStatusMessage("Error: Seed must be a non-negative integer", true);
+        return;
+      }
+    }
 
     // Only send denoise for image2image
     if (method === "image2image") {

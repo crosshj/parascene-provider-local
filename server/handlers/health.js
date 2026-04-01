@@ -1,12 +1,10 @@
 "use strict";
 
-const { sendJson } = require("../lib.js");
+const { sendJson } = require("../lib/http.js");
 const { getModels } = require("./models.js");
-const {
-  isManagedComfyWorkflowSupported,
-} = require("../generator/workflows/_index.js");
-const { getManagedComfyStatus } = require("../generator/comfy/index.js");
-const { getSummary: getJobSummary } = require("../jobs/scheduler.js");
+const { isManagedComfyWorkflowSupported } = require("../workflows/_index.js");
+const { getManagedComfyStatus } = require("../generator/index.js");
+const { getSummary: getJobSummary } = require("../lib/scheduler.js");
 
 function makeRelativeToService(p) {
   if (!p) return null;

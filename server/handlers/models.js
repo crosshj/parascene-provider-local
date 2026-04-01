@@ -7,11 +7,9 @@
 const fs = require("fs");
 const path = require("path");
 
-const { sendJson } = require("../lib.js");
-const {
-  isManagedComfyWorkflowSupported,
-} = require("../generator/workflows/_index.js");
-const { getModelDefaults } = require("../generator/workflows/_defaults.js");
+const { sendJson } = require("../lib/http.js");
+const { isManagedComfyWorkflowSupported } = require("../workflows/_index.js");
+const { getModelDefaults } = require("../workflows/_defaults.js");
 const { BASE_MODELS_RESPONSE } = require("../configs/models-api-config.js");
 
 // ---------------------------------------------------------------------------
@@ -24,7 +22,7 @@ const DIFFUSION_MODELS_SEGMENT = "diffusion_models";
 
 // Order matters — first match wins if a file appears in multiple dirs.
 // loadKind: how Comfy graphs expect weights to be loaded.
-// managedWorkflowId: which server/generator/workflows builder to use (null = excluded from API).
+// managedWorkflowId: which server/workflows builder to use (null = excluded from API).
 const MODEL_DIRS = [
   {
     rel: "diffusion_models\\qwen",
@@ -289,20 +287,15 @@ function deriveSupportsImageInput(m) {
   // For now, only image2image / image2video style workflows require an input
   // image. If we later add other methods that can optionally take images, we
   // can broaden this.
-  return methods.some((method) =>
-    method === "image2image" || method === "image2video",
+  return methods.some(
+    (method) => method === "image2image" || method === "image2video",
   );
-}
-
-function getModelsPolicy() {
-  return { defaultManagedComfyFamilies: [] };
 }
 
 function handleModels(_req, res, _ctx) {
   const models = getModels().filter((m) => isManagedComfyWorkflowSupported(m));
 
   const payload = JSON.parse(JSON.stringify(BASE_MODELS_RESPONSE));
-  payload.policy = getModelsPolicy();
   payload.models = models.map(modelToPublicJson);
 
   const methods = payload.methods || {};

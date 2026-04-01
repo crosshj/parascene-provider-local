@@ -3,7 +3,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const { sendJson } = require("../lib.js");
+const { sendJson } = require("../lib/http.js");
 
 function handleOutputImage(_req, res, ctx) {
   if (!ctx.outputDir) {

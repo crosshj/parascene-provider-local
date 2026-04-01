@@ -91,7 +91,7 @@ let modelRegistry = {};
 let perMethodModel = {};
 // Capabilities document from GET /api/models (methods + fields).
 let capabilitiesMethods = null;
-/** @type {{ ok?: boolean, policy?: object, models?: object[] } | null} */
+/** @type {{ ok?: boolean, models?: object[] } | null} */
 let lastModelsPayload = null;
 let savedValues = null;
 let lastErrorText = "";

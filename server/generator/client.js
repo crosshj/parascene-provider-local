@@ -9,7 +9,7 @@ const {
   COMFY_PORT,
   ensureManagedComfyReady,
 } = require("./managed-instance.js");
-const { buildWorkflowByFamily } = require("../../workflows/_index.js");
+const { buildWorkflowByFamily } = require("../workflows/_index.js");
 
 function _url(pathname) {
   return `http://${COMFY_HOST}:${COMFY_PORT}${pathname}`;

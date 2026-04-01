@@ -48,11 +48,11 @@ jest.mock("../server/handlers/models.js", () => ({
   handleModels: jest.fn(),
 }));
 
-jest.mock("../server/generator/comfy/image-input.js", () => ({
+jest.mock("../server/generator/image-input.js", () => ({
   downloadImagesToComfyInput: jest.fn(),
 }));
 
-jest.mock("../server/generator/comfy/index.js", () => ({
+jest.mock("../server/generator/index.js", () => ({
   runComfyGeneration: jest.fn(),
   isManagedComfyWorkflowSupported: jest.fn(() => true),
   ensureManagedComfyReady: jest.fn(),
@@ -62,10 +62,12 @@ jest.mock("../server/generator/comfy/index.js", () => ({
 // ── Imports (after mocks are set up) ────────────────────────────────────────
 
 const { resolveModel } = require("../server/handlers/models.js");
-const { downloadImagesToComfyInput } = require("../server/generator/comfy/image-input.js");
-const { runComfyGeneration } = require("../server/generator/comfy/index.js");
-const { buildComfyArgs } = require("../server/comfy-args.js");
-const { enqueueGenerationJob } = require("../server/jobs/scheduler.js");
+const {
+  downloadImagesToComfyInput,
+} = require("../server/generator/image-input.js");
+const { runComfyGeneration } = require("../server/generator/index.js");
+const { buildComfyArgs } = require("../server/lib/comfy-args.js");
+const { enqueueGenerationJob } = require("../server/lib/scheduler.js");
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -74,7 +76,14 @@ const IMAGE_URL = "http://example.com/input.png";
 const FAKE_FILENAME = "input_123_abc.png";
 
 function fakeSuccess() {
-  return { ok: true, file_name: "out.png", seed: 1, family: "sdxl", model: "x", elapsed_ms: 100 };
+  return {
+    ok: true,
+    file_name: "out.png",
+    seed: 1,
+    family: "sdxl",
+    model: "x",
+    elapsed_ms: 100,
+  };
 }
 
 // Minimal http request/response helpers for generate.js
@@ -98,9 +107,16 @@ function fakeRes() {
     statusCode: null,
     _headers: {},
     _body: null,
-    writeHead(code, headers) { this.statusCode = code; this._headers = headers; },
-    end(data) { this._body = data; },
-    write(data) { this._body = data; },
+    writeHead(code, headers) {
+      this.statusCode = code;
+      this._headers = headers;
+    },
+    end(data) {
+      this._body = data;
+    },
+    write(data) {
+      this._body = data;
+    },
   };
   return res;
 }
@@ -133,7 +149,13 @@ describe("generation flow — correct args reach runComfyGeneration", () => {
     it("image2image: uses image2image workflow, downloads image, sets inputImageFilename", async () => {
       resolveModel.mockReturnValue(FAKE_SDXL_I2I);
       const { payload, method } = await buildComfyArgs(
-        { prompt: "a dog", model: "fake_sdxl", method: "image2image", image_url: IMAGE_URL, denoise: 0.7 },
+        {
+          prompt: "a dog",
+          model: "fake_sdxl",
+          method: "image2image",
+          image_url: IMAGE_URL,
+          denoise: 0.7,
+        },
         OUTPUT_DIR,
       );
       expect(method).toBe("image2image");
@@ -146,7 +168,10 @@ describe("generation flow — correct args reach runComfyGeneration", () => {
     it("image2image: throws if image_url is missing", async () => {
       resolveModel.mockReturnValue(FAKE_SDXL_I2I);
       await expect(
-        buildComfyArgs({ prompt: "a dog", model: "fake_sdxl", method: "image2image" }, OUTPUT_DIR),
+        buildComfyArgs(
+          { prompt: "a dog", model: "fake_sdxl", method: "image2image" },
+          OUTPUT_DIR,
+        ),
       ).rejects.toThrow("image2image requires image_url");
     });
   });
@@ -158,7 +183,11 @@ describe("generation flow — correct args reach runComfyGeneration", () => {
 
     it("text2img: passes correct payload to runComfyGeneration", async () => {
       resolveModel.mockReturnValue(FAKE_SDXL_TEXT2IMG);
-      const req = fakeReq({ prompt: "a cat", model: "fake_sdxl", method: "text2img" });
+      const req = fakeReq({
+        prompt: "a cat",
+        model: "fake_sdxl",
+        method: "text2img",
+      });
       const res = fakeRes();
       await new Promise((resolve) => {
         res.end = resolve;
@@ -173,7 +202,13 @@ describe("generation flow — correct args reach runComfyGeneration", () => {
 
     it("image2image: passes correct payload with inputImageFilename to runComfyGeneration", async () => {
       resolveModel.mockReturnValue(FAKE_SDXL_I2I);
-      const req = fakeReq({ prompt: "a dog", model: "fake_sdxl", method: "image2image", image_url: IMAGE_URL, denoise: 0.6 });
+      const req = fakeReq({
+        prompt: "a dog",
+        model: "fake_sdxl",
+        method: "image2image",
+        image_url: IMAGE_URL,
+        denoise: 0.6,
+      });
       const res = fakeRes();
       await new Promise((resolve) => {
         res.end = resolve;
@@ -205,7 +240,13 @@ describe("generation flow — correct args reach runComfyGeneration", () => {
     it("image2image: enqueued job payload has inputImageFilename and correct workflow", async () => {
       resolveModel.mockReturnValue(FAKE_SDXL_I2I);
       const comfyArgs = await buildComfyArgs(
-        { prompt: "a dog", model: "fake_sdxl", method: "image2image", image_url: IMAGE_URL, denoise: 0.5 },
+        {
+          prompt: "a dog",
+          model: "fake_sdxl",
+          method: "image2image",
+          image_url: IMAGE_URL,
+          denoise: 0.5,
+        },
         OUTPUT_DIR,
       );
       const job = enqueueGenerationJob(comfyArgs, OUTPUT_DIR);

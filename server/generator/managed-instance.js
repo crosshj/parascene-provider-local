@@ -15,7 +15,7 @@ function getEnginePidFilePath() {
   if (dataRoot) {
     return path.join(dataRoot, "runtime", ".worker.pid");
   }
-  const repoRoot = path.dirname(path.dirname(path.dirname(__dirname)));
+  const repoRoot = path.dirname(path.dirname(__dirname));
   return path.join(repoRoot, "runtime", ".worker.pid");
 }
 
@@ -54,9 +54,7 @@ function killOrphanEngineFromPidFile() {
   try {
     process.kill(pid, 0);
   } catch {
-    console.log(
-      `[comfy] stale engine PID file (process ${pid} gone), removed`,
-    );
+    console.log(`[comfy] stale engine PID file (process ${pid} gone), removed`);
     clearEnginePid();
     return;
   }
@@ -80,23 +78,45 @@ function _url(pathname) {
   return `http://${COMFY_HOST}:${COMFY_PORT}${pathname}`;
 }
 
-async function _healthcheck() {
+async function _fetchJsonEndpoint(pathname) {
   const controller = new AbortController();
   const timer = setTimeout(
     () => controller.abort(),
     COMFY_HEALTHCHECK_TIMEOUT_MS,
   );
   try {
-    const res = await fetch(_url("/system_stats"), {
+    const res = await fetch(_url(pathname), {
       method: "GET",
       signal: controller.signal,
     });
-    return res.ok;
+    const data = await res.json().catch(() => null);
+    return {
+      ok: res.ok,
+      status: res.status,
+      data,
+    };
   } catch {
-    return false;
+    return {
+      ok: false,
+      status: null,
+      data: null,
+    };
   } finally {
     clearTimeout(timer);
   }
+}
+
+async function _fetchSystemStats() {
+  return _fetchJsonEndpoint("/system_stats");
+}
+
+async function _fetchQueue() {
+  return _fetchJsonEndpoint("/queue");
+}
+
+async function _healthcheck() {
+  const stats = await _fetchSystemStats();
+  return stats.ok;
 }
 
 function _resolvePython() {
@@ -209,14 +229,18 @@ async function ensureManagedComfyReady() {
 }
 
 async function getManagedComfyStatus() {
-  const healthy = await _healthcheck();
+  const [stats, queue] = await Promise.all([_fetchSystemStats(), _fetchQueue()]);
   return {
-    running: healthy,
+    running: stats.ok,
     managed: !!(_proc && _proc.exitCode === null),
     pid: _proc && _proc.exitCode === null ? (_proc.pid ?? null) : null,
     host: COMFY_HOST,
     port: COMFY_PORT,
     root: COMFY_ROOT,
+    system_stats: stats.data,
+    system_stats_http_status: stats.status,
+    queue: queue.data,
+    queue_http_status: queue.status,
   };
 }
 

@@ -15,11 +15,11 @@ Notes on registry, metadata, and checkpoint vs diffusion-model loading.
 
 - **diffusion_model** rows: e.g. `diffusion_models\z-image`, `diffusion_models\qwen` — UNet/transformer weights; `diffusionModelComfyName` is the Comfy picker string under `diffusion_models`.
 - **checkpoint** rows: under `checkpoints\…` — `comfyCheckpointGroup` is the folder segment for `CheckpointLoaderSimple` (e.g. `FLUX1`, `1.5`).
-- **managedWorkflowId** — which `server/generator/workflows/*.js` builder to run; required for every scanned row that appears in the API.
+- **managedWorkflowId** — which `server/workflows/*.js` builder to run; required for every scanned row that appears in the API.
 
 ## API
 
-- `GET /api/models` → each model: `modelId`, `name`, `file`, `family`, `loadKind`, `managedWorkflowId`, `comfyCheckpointGroup`, `diffusionModelComfyName`, `defaults` (still no `fullPath`). Policy payload may include `defaultManagedComfyFamilies` (often empty now that routing is Comfy-only).
+- `GET /api/models` → each model: `modelId`, `name`, `file`, `family`, `loadKind`, `managedWorkflowId`, `comfyCheckpointGroup`, `diffusionModelComfyName`, `defaults` (still no `fullPath`).
 - `GET /api` provider options use **`modelId`** as `value` (label still `family: name`). Options are filtered to models with a registered workflow plus optional allowlists for sd15/sdxl.
 - `POST /api/generate` / jobs: **`body.model` / `args.model` should be `modelId`** (legacy unique `name` / filename still resolves if unambiguous).
 
