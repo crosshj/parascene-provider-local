@@ -16,7 +16,7 @@ const CSP = [
   "script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com",
   "connect-src 'self' https://cloudflareinsights.com",
   "img-src 'self' data: blob:",
-  "style-src 'self'",
+  "style-src 'self' 'unsafe-inline'",
 ].join("; ");
 
 function setCorsHeaders(res, req) {

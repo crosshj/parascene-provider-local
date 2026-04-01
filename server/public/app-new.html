@@ -5,7 +5,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="light dark" />
-  <title>Image Generator (Provider API)</title>
+  <title>Provider API UI</title>
   <link rel="stylesheet" href="/app.css" />
 </head>
 
@@ -47,7 +47,7 @@
 
       <div id="app-root" class="app" hidden>
         <header class="app-header">
-          <h1>Image Generator</h1>
+          <h1>Provider API UI</h1>
           <p>Pick a model — capabilities come from GET /api.</p>
         </header>
 
@@ -79,6 +79,17 @@
                 <select id="model" name="model" required>
                   <option value="">Loading models…</option>
                 </select>
+              </div>
+
+              <div class="field" id="image-url-field" style="display:none">
+              <label for="image_url">Image URL</label>
+              <input
+                id="image_url"
+                name="image_url"
+                type="url"
+                placeholder="https://example.com/image.png"
+                autocomplete="off"
+              />
               </div>
 
               <div class="field" id="denoise-field" style="display:none">

@@ -154,6 +154,8 @@ function initApp() {
   const idleEl = document.getElementById("preview-idle");
   const imageEl = document.getElementById("image");
   const metaRowEl = document.getElementById("meta-row");
+  const imageUrlField = document.getElementById("image-url-field");
+  const imageUrlInput = document.getElementById("image_url");
 
   const STORAGE_KEY = "local-image-generator.form.v2";
   let savedValues = null;
@@ -194,6 +196,7 @@ function initApp() {
       model: modelSel.value,
       method: methodSel ? methodSel.value : "",
       denoise: form.denoise ? form.denoise.value : undefined,
+      image_url: imageUrlInput ? imageUrlInput.value : undefined,
       perMethodModel,
     };
   }
@@ -409,27 +412,24 @@ function initApp() {
     setPreviewLoading();
     metaRowEl.innerHTML = "";
 
+    const method = methodSel.value;
     const body = {
       prompt: form.prompt.value.trim(),
       model: modelSel.value,
     };
 
     // Only send denoise for image2image
-    if (methodSel && methodSel.value === "image2image") {
+    if (method === "image2image") {
       const denoiseVal = form.denoise && form.denoise.value.trim();
       if (denoiseVal !== "" && !isNaN(Number(denoiseVal))) {
         body.denoise = Number(denoiseVal);
       }
     }
-    // Show/hide denoise field based on method
-    function updateDenoiseField() {
-      const denoiseField = document.getElementById("denoise-field");
-      if (!denoiseField) return;
-      denoiseField.style.display =
-        methodSel.value === "image2image" ? "" : "none";
+
+    // Only send image_url for image2image or image2video
+    if ((method === "image2image" || method === "image2video") && imageUrlInput && imageUrlInput.value.trim()) {
+      body.image_url = imageUrlInput.value.trim();
     }
-    methodSel.addEventListener("change", updateDenoiseField);
-    updateDenoiseField();
 
     try {
       // Provider API: start job (POST /api with method + args, no job_id).
@@ -437,7 +437,7 @@ function initApp() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          method: "text2img",
+          method,
           args: body,
         }),
       });
@@ -454,7 +454,7 @@ function initApp() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            method: "text2img",
+            method,
             args: { job_id: jobId },
           }),
         });
@@ -518,11 +518,26 @@ function initApp() {
 
   copyErrorBtn?.addEventListener("click", copyLastError);
 
+  // ── Show/hide image-url-field and denoise-field based on method ──
+  function updateFieldVisibility() {
+    const method = methodSel.value;
+    // Show image-url-field for image2image or image2video
+    if (imageUrlField) {
+      imageUrlField.style.display = (method === "image2image" || method === "image2video") ? "" : "none";
+    }
+    // Show denoise-field for image2image
+    const denoiseField = document.getElementById("denoise-field");
+    if (denoiseField) {
+      denoiseField.style.display = method === "image2image" ? "" : "none";
+    }
+  }
+  methodSel.addEventListener("change", updateFieldVisibility);
   // ── Init ──────────────────────────────────────────────
 
   savedValues = restoreSavedValues();
   setPreviewIdle();
   loadCapabilitiesAndModels();
+  updateFieldVisibility();
 }
 
 // Boot sequence
