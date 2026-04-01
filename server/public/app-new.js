@@ -356,9 +356,16 @@ function initApp() {
         perMethodModel[initialMethod] = initialModel;
       }
 
-      // Restore prompt
+      // Restore prompt, image_url, denoise
       if (savedValues && savedValues.prompt != null)
         form.prompt.value = savedValues.prompt;
+      if (savedValues && savedValues.image_url != null && imageUrlInput)
+        imageUrlInput.value = savedValues.image_url;
+      if (savedValues && savedValues.denoise != null && form.denoise)
+        form.denoise.value = savedValues.denoise;
+
+      // Apply field visibility now that method is known
+      updateFieldVisibility();
 
       // Events
       methodSel.addEventListener("change", () => {
@@ -542,7 +549,6 @@ function initApp() {
   savedValues = restoreSavedValues();
   setPreviewIdle();
   loadCapabilitiesAndModels();
-  updateFieldVisibility();
 }
 
 // Boot sequence
