@@ -3,7 +3,6 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
-const fetch = require("node-fetch");
 
 // Directory where ComfyUI expects input images
 const COMFY_INPUT_DIR = "D:/comfy/ComfyUI/input";
@@ -56,13 +55,13 @@ async function downloadImagesToComfyInput(urlArray) {
       if (!res.ok) throw new Error(`Failed to fetch image: ${url}`);
       filename = `input_${now}_${hash}${ext}`;
       const outPath = path.join(COMFY_INPUT_DIR, filename);
-      const buffer = await res.buffer();
+      const arrayBuffer = await res.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
       fs.writeFileSync(outPath, buffer);
     }
     filenames.push(filename);
   }
   return filenames;
 }
-// ...existing code...
 
 module.exports = { downloadImagesToComfyInput, COMFY_INPUT_DIR };
