@@ -5,7 +5,9 @@ const path = require("path");
 
 const { sendJson, readJson, TEXT2IMG_CREDITS } = require("../lib.js");
 const { enqueueText2ImgJob, getJob } = require("../jobs/scheduler.js");
-const { BASE_PROVIDER_CAPABILITIES } = require("../configs/provider-api-config.js");
+const {
+  BASE_PROVIDER_CAPABILITIES,
+} = require("../configs/provider-api-config.js");
 
 // Shared API key for simple bearer auth.
 // For now we allow a hardcoded default; in production this should be set via env.
@@ -215,7 +217,7 @@ async function handleApiPost(req, res, ctx = {}) {
   }
 
   // Start: no args.job_id — create job and return 202 with job_id.
-  if (method === "text2img") {
+  if (method === "text2img" || method === "image2image") {
     if (!ctx.outputDir) {
       return sendJson(res, 503, { error: "OUTPUT_DIR not configured" });
     }
