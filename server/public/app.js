@@ -188,7 +188,9 @@ async function loadCapabilities() {
     }
   }
   const methods =
-    data && data.methods && typeof data.methods === "object" ? data.methods : {};
+    data && data.methods && typeof data.methods === "object"
+      ? data.methods
+      : {};
   capabilitiesMethods = methods;
   return methods;
 }
@@ -277,8 +279,7 @@ function updateImageUrlVisibility() {
     field.style.display = "none";
     return;
   }
-  const isImageMethod =
-    method === "image2image" || method === "image2video";
+  const isImageMethod = method === "image2image" || method === "image2video";
   const supports = isImageMethod && modelSupportsMethod(entry, method);
   field.style.display = supports ? "" : "none";
 }
@@ -496,11 +497,34 @@ async function loadModels() {
         }
         // Apply per-model defaults if available
         const entry = modelRegistry[modelSel.value];
+        console.log("Selected model entry:", entry);
         if (entry) {
-          if (entry.width != null) form.width.value = entry.width;
-          if (entry.height != null) form.height.value = entry.height;
-          if (entry.steps != null) form.steps.value = entry.steps;
-          if (entry.cfg != null) form.cfg.value = entry.cfg;
+          let changed = false;
+          if (entry.width != null) {
+            form.width.value = entry.width;
+            changed = true;
+          }
+          if (entry.height != null) {
+            form.height.value = entry.height;
+            changed = true;
+          }
+          if (entry.steps != null) {
+            form.steps.value = entry.steps;
+            changed = true;
+          }
+          if (entry.cfg != null) {
+            form.cfg.value = entry.cfg;
+            changed = true;
+          }
+          if (changed) {
+            console.log("Applied model defaults:", {
+              width: entry.width,
+              height: entry.height,
+              steps: entry.steps,
+              cfg: entry.cfg,
+              model: entry.modelId,
+            });
+          }
         }
         saveFormValues();
       });
