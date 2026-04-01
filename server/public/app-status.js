@@ -49,19 +49,15 @@ async function apiFetch(path, options = {}) {
   }
 
   init.headers = headers;
-
-  const res = await fetch(path, init);
-  if (res.status === 401) {
-    throw new Error(
-      "Unauthorized: token or access credentials invalid or missing.",
-    );
-  }
-  return res;
+  return fetch(path, init);
 }
 
 const $ = (id) => document.getElementById(id);
-const set = (id, v) =>
-  ($(id).textContent = v == null || v === "" ? "—" : String(v));
+const set = (id, v) => {
+  const el = $(id);
+  if (!el) return;
+  el.textContent = v == null || v === "" ? "—" : String(v);
+};
 
 function fmtTime(iso) {
   if (!iso) return "—";
@@ -239,10 +235,6 @@ async function refresh() {
   set("corePid", st.parentPid);
   set("coreCwd", st.workingDirectory || "—");
 
-  const wk = ah.data && ah.data.worker ? ah.data.worker : {};
-  set("wkState", wk.running === true ? "running" : "stopped (or not started)");
-  set("wkPid", wk.pid != null ? wk.pid : "—");
-
   const apiHealth = ah.data || {};
   const comfy = apiHealth.comfy || {};
   const system = comfy.system_stats?.system || {};
@@ -395,14 +387,14 @@ async function refresh() {
   );
 
   const coreGood = h.ok && s.ok;
-  const workerGood = wk.running === true;
+  const workerGood = comfy.running === true;
   const gpuGood = classifyState(gpu.status) === "ok";
   const apiGood = ah.ok && ah.data?.ok !== false;
   const updaterBad = classifyState(up.state) === "bad" || !!up.lastFailedJob;
   const jobsBad =
     typeof jobs.queueLength === "number" &&
     jobs.queueLength > 0 &&
-    classifyState(wk.running === true ? "running" : "stopped") === "bad";
+    classifyState(comfy.running === true ? "running" : "stopped") === "bad";
 
   if (!coreGood || updaterBad || !apiGood || jobsBad) setPill("NOT HEALTHY", "bad");
   else if (!workerGood || !gpuGood) setPill("DEGRADED", "warn");
