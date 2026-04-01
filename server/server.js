@@ -16,11 +16,11 @@ const { ensureManagedComfyReady } = require("./generator/index.js");
 //handlers
 const { handleHealth } = require("./handlers/health.js");
 const { handleModels } = require("./handlers/models.js");
-const { handleApiGet, handleApiPost } = require("./handlers/api.js");
 const { handleGpu } = require("./handlers/gpu.js");
-const { handleGenerate } = require("./handlers/generate.js");
 const { handleOutputImage } = require("./handlers/outputs.js");
 const { handlePublic } = require("./handlers/public.js");
+const { handleGenerate } = require("./handlers/generate.js");
+const { handleApiGet, handleApiPost } = require("./handlers/api.js");
 
 const ctx = {
   outputDir: process.env.OUTPUT_DIR || null,

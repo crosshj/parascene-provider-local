@@ -215,11 +215,12 @@ async function getJson(url) {
 }
 
 async function refresh() {
-  const [h, s, ah] = await Promise.all([
-    getJson("/healthz"),
-    getJson("/status"),
-    getJson("/api/health"),
-  ]);
+  try {
+    const [h, s, ah] = await Promise.all([
+      getJson("/healthz"),
+      getJson("/status"),
+      getJson("/api/health"),
+    ]);
 
   set("lastRefresh", new Date().toLocaleTimeString());
 
@@ -258,11 +259,7 @@ async function refresh() {
   );
 
   set("comfyState", comfy.running === true ? "running" : "unreachable");
-  set("comfyManaged", comfy.managed === true ? "yes" : "no");
   set("comfyPid", comfy.pid != null ? comfy.pid : "—");
-  set("comfyHost", comfy.host || "—");
-  set("comfyPort", comfy.port != null ? comfy.port : "—");
-  set("comfyRoot", comfy.root || "—");
   set(
     "comfyStatsHttp",
     comfy.system_stats_http_status != null ? comfy.system_stats_http_status : "—",
@@ -396,9 +393,15 @@ async function refresh() {
     jobs.queueLength > 0 &&
     classifyState(comfy.running === true ? "running" : "stopped") === "bad";
 
-  if (!coreGood || updaterBad || !apiGood || jobsBad) setPill("NOT HEALTHY", "bad");
-  else if (!workerGood || !gpuGood) setPill("DEGRADED", "warn");
-  else setPill("HEALTHY", "ok");
+    if (!coreGood || updaterBad || !apiGood || jobsBad)
+      setPill("NOT HEALTHY", "bad");
+    else if (!workerGood || !gpuGood) setPill("DEGRADED", "warn");
+    else setPill("HEALTHY", "ok");
+  } catch (err) {
+    console.error("status refresh failed", err);
+    setPill("REFRESH ERROR", "bad");
+    set("apiHealth", `ERR ${err?.message || "refresh failed"}`);
+  }
 }
 
 let timer = null;

@@ -51,7 +51,10 @@ function handlePublic(_req, res, ctx) {
         "Cache-Control": "no-cache",
       });
     } else {
-      res.writeHead(200, { "Content-Type": mime });
+      res.writeHead(200, {
+        "Content-Type": mime,
+        "Cache-Control": "no-cache",
+      });
     }
     res.end(body);
   });
