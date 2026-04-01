@@ -175,7 +175,7 @@ async function handleApiPost(req, res, ctx = {}) {
         result: job.result,
       });
     }
-    // Succeeded + text2img: return image binary (Content-Type: image/png) and metadata headers.
+    // Succeeded, return image binary (Content-Type: image/png) and metadata headers.
     if (
       (job.method === "text2img" || job.method === "image2image") &&
       job.result?.file_name &&

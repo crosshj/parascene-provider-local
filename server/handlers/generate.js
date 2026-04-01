@@ -48,107 +48,30 @@ function handleGenerate(req, res, ctx) {
     return sendJson(res, 503, { error: "OUTPUT_DIR not configured" });
   }
   readJson(req)
-    .then((body) => {
-      const prompt = sanitizePromptText(body.prompt);
-      if (!prompt) {
-        return sendJson(res, 400, { error: "Missing required field: prompt" });
+    .then(async (body) => {
+      const { buildComfyArgs } = require("../comfy-args.js");
+      let comfy;
+      try {
+        comfy = await buildComfyArgs(body, ctx.outputDir);
+      } catch (err) {
+        return sendJson(res, 400, { error: err.message });
       }
-
-      const modelName = String(body.model || "").trim();
-      if (!modelName) {
-        return sendJson(res, 400, { error: "Missing required field: model" });
-      }
-
-      const entry = resolveModel(modelName);
-      if (!entry) {
-        return sendJson(res, 400, {
-          error: `Unknown model: "${modelName}". Check GET /api/models.`,
+      const { payload } = comfy;
+      const result = await runComfyGeneration(payload, ctx.outputDir);
+      if (!result?.ok || !result.file_name) {
+        return sendJson(res, 500, {
+          error: result?.error ?? "Generator did not return an image.",
         });
       }
-
-      if (!isManagedComfyWorkflowSupported(entry)) {
-        return sendJson(res, 400, {
-          error:
-            "This model has no registered Comfy workflow. Pick another model or add a workflow in server/generator/workflows.",
-        });
-      }
-
-      const negative_prompt = sanitizePromptText(body.negative_prompt || "");
-      const method = String(body.method || "").trim() || "text2img";
-
-      const seed =
-        Number.isInteger(body.seed) && body.seed >= 0
-          ? body.seed
-          : randomInt(1, 2_147_483_647);
-
-      // Helper to actually invoke the comfy client once we've resolved
-      // which workflow id and extra overrides to use.
-      function runWithWorkflow(managedWorkflowId, extraOverrides = {}) {
-        return runComfyGeneration(
-          {
-            family: entry.family,
-            managedWorkflowId,
-            modelFile: entry.file,
-            modelPath: entry.fullPath,
-            comfyCheckpointGroup: entry.comfyCheckpointGroup,
-            diffusionModelComfyName: entry.diffusionModelComfyName,
-            loadKind: entry.loadKind,
-            prompt,
-            negativePrompt: negative_prompt,
-            seed,
-            width: body.width,
-            height: body.height,
-            steps: body.steps,
-            cfg: body.cfg,
-            ...extraOverrides,
-          },
-          ctx.outputDir,
-        );
-      }
-
-      let generationPromise;
-
-      if (method === "image2image" && entry.family === "sdxl") {
-        const imageUrl = String(body.image_url || "").trim();
-        if (!imageUrl) {
-          return sendJson(res, 400, {
-            error: "image2image requires image_url to be provided.",
-          });
-        }
-
-        generationPromise = downloadImagesToComfyInput([imageUrl]).then(
-          (files) => {
-            const [filename] = files;
-            if (!filename) {
-              throw new Error("Failed to prepare input image for image2image.");
-            }
-            return runWithWorkflow("image2image-sdxl-checkpoint", {
-              inputImageFilename: filename,
-            });
-          },
-        );
-      } else {
-        // Default: text2img (or anything else not yet specialized) sticks to
-        // the model's registered managedWorkflowId.
-        generationPromise = runWithWorkflow(entry.managedWorkflowId);
-      }
-
-      return generationPromise.then((result) => {
-        if (!result?.ok || !result.file_name) {
-          return sendJson(res, 500, {
-            error: result?.error ?? "Generator did not return an image.",
-          });
-        }
-        sendJson(res, 200, {
-          ok: true,
-          file_name: result.file_name,
-          image_url: `/outputs/${result.file_name}`,
-          seed: result.seed,
-          family: result.family,
-          model: result.model,
-          elapsed_ms: result.elapsed_ms,
-          backend: "comfy",
-        });
+      sendJson(res, 200, {
+        ok: true,
+        file_name: result.file_name,
+        image_url: `/outputs/${result.file_name}`,
+        seed: result.seed,
+        family: result.family,
+        model: result.model,
+        elapsed_ms: result.elapsed_ms,
+        backend: "comfy",
       });
     })
     .catch((err) =>

@@ -212,89 +212,52 @@ function generateJobId() {
 }
 
 function enqueueText2ImgJob(args, outputDir) {
-  const prompt = sanitizePromptText(args.prompt);
-  if (!prompt) {
-    return { error: "Missing or invalid prompt" };
+  const { buildComfyArgs } = require("../comfy-args.js");
+  let comfy;
+  try {
+    comfy = require("../comfy-args.js").buildComfyArgs;
+    // buildComfyArgs returns a promise
+  } catch (err) {
+    return { error: err.message };
   }
-  const modelName = String(args.model || "").trim();
-  if (!modelName) {
-    return { error: "Missing required field: model" };
-  }
-  const entry = resolveModel(modelName);
-  if (!entry) {
-    return {
-      error: `Unknown model: "${modelName}". Check GET /api or GET /api/models.`,
-    };
-  }
-
-  if (!isManagedComfyWorkflowSupported(entry)) {
-    return {
-      error:
-        "This model has no registered Comfy workflow. Choose another model from GET /api.",
-    };
-  }
-
-  const defaults = entry.defaults || {};
-  const payload = {
-    prompt,
-    prompt_2: "",
-    negative_prompt: sanitizePromptText(args.negative_prompt || ""),
-    model: entry.fullPath,
-    family: entry.family,
-    width: defaults.width ?? 1024,
-    height: defaults.height ?? 1024,
-    steps: defaults.steps ?? 20,
-    cfg: defaults.cfg ?? 7,
-  };
-  // Pass through image_url/image_urls for image2image
-  if (args.image_url) {
-    // Comfy expects image_urls as an array
-    payload.image_urls = Array.isArray(args.image_url)
-      ? args.image_url
-      : [args.image_url];
-  } else if (args.image_urls) {
-    payload.image_urls = Array.isArray(args.image_urls)
-      ? args.image_urls
-      : [args.image_urls];
-  }
-
-  const id = generateJobId();
-  const seed = Math.floor(Math.random() * 2_147_483_647) + 1;
-  const job = {
-    id,
-    method: "text2img",
-    args,
-    family: entry.family,
-    modelId: entry.modelId,
-    modelName,
-    status: "pending",
-    created_at: new Date().toISOString(),
-    result: null,
-    error: null,
-    imageWidth: defaults.width ?? 1024,
-    imageHeight: defaults.height ?? 1024,
-    credits: TEXT2IMG_CREDITS,
-    seed,
-    modelEntry: {
-      modelId: entry.modelId,
-      file: entry.file,
-      family: entry.family,
-      fullPath: entry.fullPath,
-      loadKind: entry.loadKind,
-      managedWorkflowId: entry.managedWorkflowId,
-      comfyCheckpointGroup: entry.comfyCheckpointGroup,
-      diffusionModelComfyName: entry.diffusionModelComfyName,
-    },
-    payload,
-    outputDir,
-  };
-
-  jobs.set(id, job);
-  pendingOrder.push(id);
-  _writeState();
-  _schedule();
-
-  return job;
+  return comfy(args, outputDir)
+    .then(({ payload, entry, method }) => {
+      const id = generateJobId();
+      const job = {
+        id,
+        method,
+        args,
+        family: entry.family,
+        modelId: entry.modelId,
+        modelName: entry.modelName || args.model,
+        status: "pending",
+        created_at: new Date().toISOString(),
+        result: null,
+        error: null,
+        imageWidth: payload.width ?? 1024,
+        imageHeight: payload.height ?? 1024,
+        credits: TEXT2IMG_CREDITS,
+        seed: payload.seed,
+        modelEntry: {
+          modelId: entry.modelId,
+          file: entry.file,
+          family: entry.family,
+          fullPath: entry.fullPath,
+          loadKind: entry.loadKind,
+          managedWorkflowId: entry.managedWorkflowId,
+          comfyCheckpointGroup: entry.comfyCheckpointGroup,
+          diffusionModelComfyName: entry.diffusionModelComfyName,
+        },
+        payload,
+        outputDir,
+      };
+      jobs.set(id, job);
+      pendingOrder.push(id);
+      _writeState();
+      _schedule();
+      return job;
+    })
+    .catch((err) => ({ error: err.message }));
 }
 
 function getJob(jobId) {
