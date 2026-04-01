@@ -494,6 +494,14 @@ async function loadModels() {
         if (methodId) {
           perMethodModel[methodId] = modelSel.value;
         }
+        // Apply per-model defaults if available
+        const entry = modelRegistry[modelSel.value];
+        if (entry) {
+          if (entry.width != null) form.width.value = entry.width;
+          if (entry.height != null) form.height.value = entry.height;
+          if (entry.steps != null) form.steps.value = entry.steps;
+          if (entry.cfg != null) form.cfg.value = entry.cfg;
+        }
         saveFormValues();
       });
 
