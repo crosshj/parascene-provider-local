@@ -446,6 +446,36 @@ async function loadModels() {
     );
     if (initialModel) {
       perMethodModel[currentMethod] = initialModel;
+      // Apply defaults for initial model
+      const entry = modelRegistry[initialModel];
+      if (entry) {
+        let changed = false;
+        if (entry.width != null) {
+          form.width.value = entry.width;
+          changed = true;
+        }
+        if (entry.height != null) {
+          form.height.value = entry.height;
+          changed = true;
+        }
+        if (entry.steps != null) {
+          form.steps.value = entry.steps;
+          changed = true;
+        }
+        if (entry.cfg != null) {
+          form.cfg.value = entry.cfg;
+          changed = true;
+        }
+        if (changed) {
+          console.log("Applied model defaults (initial):", {
+            width: entry.width,
+            height: entry.height,
+            steps: entry.steps,
+            cfg: entry.cfg,
+            model: entry.modelId,
+          });
+        }
+      }
     }
 
     function updateImageFieldVisibility(methodId) {
@@ -480,11 +510,44 @@ async function loadModels() {
       if (methodSel) {
         methodSel.addEventListener("change", () => {
           const methodId = methodSel.value;
+          const prevModel = modelSel.value;
           const pick = rebuildModelsForMethod(
             methodId,
             perMethodModel[methodId] || null,
           );
           if (pick) perMethodModel[methodId] = pick;
+          // Apply defaults if model changed
+          if (pick && pick !== prevModel) {
+            const entry = modelRegistry[pick];
+            if (entry) {
+              let changed = false;
+              if (entry.width != null) {
+                form.width.value = entry.width;
+                changed = true;
+              }
+              if (entry.height != null) {
+                form.height.value = entry.height;
+                changed = true;
+              }
+              if (entry.steps != null) {
+                form.steps.value = entry.steps;
+                changed = true;
+              }
+              if (entry.cfg != null) {
+                form.cfg.value = entry.cfg;
+                changed = true;
+              }
+              if (changed) {
+                console.log("Applied model defaults (method switch):", {
+                  width: entry.width,
+                  height: entry.height,
+                  steps: entry.steps,
+                  cfg: entry.cfg,
+                  model: entry.modelId,
+                });
+              }
+            }
+          }
           updateImageFieldVisibility(methodId);
           saveFormValues();
         });
