@@ -68,6 +68,10 @@ const BASE_PROVIDER_CAPABILITIES = {
                 "diffusion_models/flux/STOIQONewrealityFLUXSD35_f1DAlphaTwo.safetensors",
             },
             {
+              label: "pony: cyberrealisticPony_v130",
+              value: "checkpoints/pony/cyberrealisticPony_v130.safetensors",
+            },
+            {
               label: "qwen: qwen_image_edit_fp8_e4m3fn",
               value:
                 "diffusion_models/qwen/qwen_image_edit_fp8_e4m3fn.safetensors",
@@ -174,6 +178,7 @@ const BASE_PROVIDER_CAPABILITIES = {
           label: "Seed",
           type: "number",
           required: false,
+          hidden: true,
           min: 0,
           step: 1,
           description:
@@ -275,6 +280,7 @@ const BASE_PROVIDER_CAPABILITIES = {
           required: false,
           min: 0,
           step: 1,
+          hidden: true,
           description:
             "Optional deterministic seed. If not provided, a random seed is used.",
         },

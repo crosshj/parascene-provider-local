@@ -2,24 +2,24 @@
   "6": {
     "class_type": "CLIPTextEncode",
     "inputs": {
-      "clip": ["30", 1],
+      "clip": ["47", 0],
       "text": ""
     }
   },
   "30": {
     "class_type": "CheckpointLoaderSimple",
     "inputs": {
-      "ckpt_name": "pony\u005cponyDiffusionV6XL_v6StartWithThisOne.safetensors"
+      "ckpt_name": "pony\\cyberrealisticPony_v130.safetensors"
     }
   },
   "31": {
     "class_type": "KSampler",
     "inputs": {
       "seed": 1119851866655636,
-      "steps": 28,
-      "cfg": 7,
-      "sampler_name": "dpmpp_2m",
-      "scheduler": "karras",
+      "steps": 30,
+      "cfg": 6,
+      "sampler_name": "euler",
+      "scheduler": "simple",
       "denoise": 1,
       "model": ["30", 0],
       "positive": ["6", 0],
@@ -30,8 +30,8 @@
   "27": {
     "class_type": "EmptyLatentImage",
     "inputs": {
-      "width": 512,
-      "height": 512,
+      "width": 1024,
+      "height": 1024,
       "batch_size": 1
     }
   },
@@ -53,6 +53,13 @@
     "class_type": "CLIPTextEncode",
     "inputs": {
       "text": "",
+      "clip": ["47", 0]
+    }
+  },
+  "47": {
+    "class_type": "CLIPSetLastLayer",
+    "inputs": {
+      "stop_at_clip_layer": -2,
       "clip": ["30", 1]
     }
   }
