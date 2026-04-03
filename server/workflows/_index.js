@@ -1,6 +1,7 @@
 "use strict";
 
 const WORKFLOWS = {
+  // Text-to-image workflows
   "text2image-flux-checkpoint": require("./text2image/flux-checkpoint.js"),
   "text2image-flux-diffusion": require("./text2image/flux-diffusion.js"),
   "text2image-sd15-checkpoint": require("./text2image/sd15-checkpoint.js"),
@@ -9,8 +10,11 @@ const WORKFLOWS = {
   "text2image-qwen-checkpoint": require("./text2image/qwen-checkpoint.js"),
   "text2image-sdxl-checkpoint": require("./text2image/sdxl-checkpoint.js"),
   "text2image-zimage-diffusion": require("./text2image/zimage-diffusion.js"),
+  // Text-to-video workflows
+
   // Image-to-image workflows
   "image2image-sdxl-checkpoint": require("./image2image/sdxl-checkpoint.js"),
+  // Image-to-video workflows
 };
 
 function buildWorkflowByFamily(input) {
