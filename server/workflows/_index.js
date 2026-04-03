@@ -4,6 +4,7 @@ const WORKFLOWS = {
   "text2image-flux-checkpoint": require("./text2image/flux-checkpoint.js"),
   "text2image-flux-diffusion": require("./text2image/flux-diffusion.js"),
   "text2image-sd15-checkpoint": require("./text2image/sd15-checkpoint.js"),
+  "text2image-pony-checkpoint": require("./text2image/pony-checkpoint.js"),
   "text2image-qwen-diffusion": require("./text2image/qwen-diffusion.js"),
   "text2image-qwen-checkpoint": require("./text2image/qwen-checkpoint.js"),
   "text2image-sdxl-checkpoint": require("./text2image/sdxl-checkpoint.js"),
@@ -28,13 +29,13 @@ function buildWorkflowByFamily(input) {
   return workflow(input);
 }
 
-function isManagedComfyWorkflowSupported(entry) {
+function hasWorkflow(entry) {
   const id = entry && entry.managedWorkflowId;
   return Boolean(id && WORKFLOWS[id]);
 }
 
 module.exports = {
   buildWorkflowByFamily,
-  isManagedComfyWorkflowSupported,
+  hasWorkflow,
   WORKFLOWS,
 };

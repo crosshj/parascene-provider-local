@@ -6,9 +6,9 @@
  *
  * Asserts that the correct arguments reach runComfyGeneration for all four
  * generation entry points:
- *   - text2img  via generate.js  (app.html sync path)
+ *   - text2image via generate.js  (app.html sync path)
  *   - image2image via generate.js
- *   - text2img  via api.js       (app-new.html async/scheduler path)
+ *   - text2image via api.js       (app-new.html async/scheduler path)
  *   - image2image via api.js
  *
  * Only side-effectful boundaries are mocked:
@@ -20,7 +20,7 @@
 
 // ── Fake model entries ──────────────────────────────────────────────────────
 
-const FAKE_SDXL_TEXT2IMG = {
+const FAKE_SDXL_TEXT2IMAGE = {
   modelId: "fake-sdxl-t2i",
   name: "fake_sdxl",
   file: "fake_sdxl.safetensors",
@@ -34,7 +34,7 @@ const FAKE_SDXL_TEXT2IMG = {
 };
 
 const FAKE_SDXL_I2I = {
-  ...FAKE_SDXL_TEXT2IMG,
+  ...FAKE_SDXL_TEXT2IMAGE,
   modelId: "fake-sdxl-i2i",
   managedWorkflowId: "image2image-sdxl-checkpoint",
 };
@@ -42,10 +42,9 @@ const FAKE_SDXL_I2I = {
 // ── Mocks ───────────────────────────────────────────────────────────────────
 // jest.mock paths must be string literals (Jest hoists them before var init).
 
-jest.mock("../server/handlers/models.js", () => ({
+jest.mock("../server/lib/model-registry.js", () => ({
   resolveModel: jest.fn(),
   getModels: jest.fn(() => []),
-  handleModels: jest.fn(),
 }));
 
 jest.mock("../server/generator/image-input.js", () => ({
@@ -54,14 +53,14 @@ jest.mock("../server/generator/image-input.js", () => ({
 
 jest.mock("../server/generator/index.js", () => ({
   runComfyGeneration: jest.fn(),
-  isManagedComfyWorkflowSupported: jest.fn(() => true),
+  hasWorkflow: jest.fn(() => true),
   ensureManagedComfyReady: jest.fn(),
   getManagedComfyStatus: jest.fn(),
 }));
 
 // ── Imports (after mocks are set up) ────────────────────────────────────────
 
-const { resolveModel } = require("../server/handlers/models.js");
+const { resolveModel } = require("../server/lib/model-registry.js");
 const {
   downloadImagesToComfyInput,
 } = require("../server/generator/image-input.js");
@@ -133,13 +132,13 @@ describe("generation flow — correct args reach runComfyGeneration", () => {
   // ── buildComfyArgs unit ────────────────────────────────────────────────
 
   describe("buildComfyArgs", () => {
-    it("text2img: uses model managedWorkflowId, no imageFilename", async () => {
-      resolveModel.mockReturnValue(FAKE_SDXL_TEXT2IMG);
+    it("text2image: uses model managedWorkflowId, no imageFilename", async () => {
+      resolveModel.mockReturnValue(FAKE_SDXL_TEXT2IMAGE);
       const { payload, method } = await buildComfyArgs(
-        { prompt: "a cat", model: "fake_sdxl", method: "text2img" },
+        { prompt: "a cat", model: "fake_sdxl", method: "text2image" },
         OUTPUT_DIR,
       );
-      expect(method).toBe("text2img");
+      expect(method).toBe("text2image");
       expect(payload.managedWorkflowId).toBe("text2image-sdxl-checkpoint");
       expect(payload.prompt).toBe("a cat");
       expect(payload.inputImageFilename).toBeUndefined();
@@ -181,12 +180,12 @@ describe("generation flow — correct args reach runComfyGeneration", () => {
   describe("generate.js handleGenerate", () => {
     const { handleGenerate } = require("../server/handlers/generate.js");
 
-    it("text2img: passes correct payload to runComfyGeneration", async () => {
-      resolveModel.mockReturnValue(FAKE_SDXL_TEXT2IMG);
+    it("text2image: passes correct payload to runComfyGeneration", async () => {
+      resolveModel.mockReturnValue(FAKE_SDXL_TEXT2IMAGE);
       const req = fakeReq({
         prompt: "a cat",
         model: "fake_sdxl",
-        method: "text2img",
+        method: "text2image",
       });
       const res = fakeRes();
       await new Promise((resolve) => {
@@ -225,14 +224,14 @@ describe("generation flow — correct args reach runComfyGeneration", () => {
   // ── api.js + scheduler (app-new.html async path) ──────────────────────
 
   describe("api.js → enqueueGenerationJob → scheduler", () => {
-    it("text2img: enqueued job payload has correct managedWorkflowId", async () => {
-      resolveModel.mockReturnValue(FAKE_SDXL_TEXT2IMG);
+    it("text2image: enqueued job payload has correct managedWorkflowId", async () => {
+      resolveModel.mockReturnValue(FAKE_SDXL_TEXT2IMAGE);
       const comfyArgs = await buildComfyArgs(
-        { prompt: "a cat", model: "fake_sdxl", method: "text2img" },
+        { prompt: "a cat", model: "fake_sdxl", method: "text2image" },
         OUTPUT_DIR,
       );
       const job = enqueueGenerationJob(comfyArgs, OUTPUT_DIR);
-      expect(job.method).toBe("text2img");
+      expect(job.method).toBe("text2image");
       expect(job.payload.managedWorkflowId).toBe("text2image-sdxl-checkpoint");
       expect(job.payload.inputImageFilename).toBeUndefined();
     });

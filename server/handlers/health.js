@@ -1,8 +1,8 @@
 "use strict";
 
 const { sendJson } = require("../lib/http.js");
-const { getModels } = require("./models.js");
-const { isManagedComfyWorkflowSupported } = require("../workflows/_index.js");
+const { getModels } = require("../lib/model-registry.js");
+const { hasWorkflow } = require("../workflows/_index.js");
 const { getManagedComfyStatus } = require("../generator/index.js");
 const { getSummary: getJobSummary } = require("../lib/scheduler.js");
 
@@ -44,8 +44,7 @@ function handleHealth(_req, res, ctx) {
       const outputDirAbs = ctx.outputDir ?? null;
       const publicDirAbs = ctx.publicDir ?? null;
       const payloadBase = {
-        models: getModels().filter((m) => isManagedComfyWorkflowSupported(m))
-          .length,
+        models: getModels().filter((m) => hasWorkflow(m)).length,
         output_dir: outputDirAbs ? makeRelativeToService(outputDirAbs) : null,
         output_dir_abs: outputDirAbs,
         public_dir: publicDirAbs ? makeRelativeToService(publicDirAbs) : null,

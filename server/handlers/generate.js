@@ -6,11 +6,8 @@
 const { randomInt } = require("crypto");
 
 const { readJson, sendJson } = require("../lib/http.js");
-const { resolveModel } = require("./models.js");
-const {
-  runComfyGeneration,
-  isManagedComfyWorkflowSupported,
-} = require("../generator/index.js");
+const { resolveModel } = require("../lib/model-registry.js");
+const { runComfyGeneration, hasWorkflow } = require("../generator/index.js");
 const { downloadImagesToComfyInput } = require("../generator/image-input.js");
 
 function sanitizePromptText(value) {

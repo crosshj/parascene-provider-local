@@ -1,22 +1,20 @@
 // comfy-args.js
-// Centralized argument builder for Comfy jobs (text2img, image2image, etc.)
+// Centralized argument builder for Comfy jobs (text2image, image2image, etc.)
 
 const { sanitizePromptText } = require("../handlers/generate.js");
-const { resolveModel } = require("../handlers/models.js");
+const { resolveModel } = require("../lib/model-registry.js");
 const { downloadImagesToComfyInput } = require("../generator/image-input.js");
 
 function normalizeInputImages(body) {
   if (Array.isArray(body.input_images)) {
-    return body.input_images
-      .map((v) => String(v || "").trim())
-      .filter(Boolean);
+    return body.input_images.map((v) => String(v || "").trim()).filter(Boolean);
   }
   return [];
 }
 
 /**
  * Build the argument payload for Comfy jobs, given user args/body and outputDir.
- * Handles both text2img and image2image (SDXL) flows.
+ * Handles both text2image and image2image (SDXL) flows.
  * Returns a Promise that resolves to { payload, entry, method }.
  */
 async function buildComfyArgs(body, outputDir) {
@@ -30,7 +28,7 @@ async function buildComfyArgs(body, outputDir) {
   if (!entry)
     throw new Error(`Unknown model: "${modelName}". Check GET /api/models.`);
 
-  const method = String(body.method || "").trim() || "text2img";
+  const method = String(body.method || "").trim() || "text2image";
   const negativePrompt = sanitizePromptText(body.negative_prompt || "");
   const seed =
     Number.isInteger(body.seed) && body.seed >= 0
@@ -70,7 +68,7 @@ async function buildComfyArgs(body, outputDir) {
     };
   }
 
-  // Default: text2img or other
+  // Default: text2image or other
   return {
     payload: {
       family: entry.family,

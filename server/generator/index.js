@@ -1,7 +1,7 @@
 "use strict";
 
 const { runComfyGeneration } = require("./client.js");
-const { isManagedComfyWorkflowSupported } = require("../workflows/_index.js");
+const { hasWorkflow } = require("../workflows/_index.js");
 const {
   getManagedComfyStatus,
   ensureManagedComfyReady,
@@ -9,7 +9,7 @@ const {
 
 module.exports = {
   runComfyGeneration,
-  isManagedComfyWorkflowSupported,
+  hasWorkflow,
   ensureManagedComfyReady,
   getManagedComfyStatus,
 };

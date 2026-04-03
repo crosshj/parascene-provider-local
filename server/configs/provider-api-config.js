@@ -3,8 +3,8 @@
 const BASE_PROVIDER_CAPABILITIES = {
   status: "operational",
   methods: {
-    text2img: {
-      id: "text2img",
+    text2image: {
+      id: "text2image",
       default: true,
       async: true,
       name: "Text To Image",

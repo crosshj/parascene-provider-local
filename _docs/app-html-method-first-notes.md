@@ -9,7 +9,7 @@ These are notes of the intended changes discussed for making `app.html` method-f
     - `methods: deriveModelMethods(m)` on each model JSON.
     - `supportsImageInput: deriveSupportsImageInput(m)`.
   - Special-cased SDXL:
-    - `managedWorkflowId === "text2image-sdxl-checkpoint" && family === "sdxl"` → `methods: ["text2img", "image2image"]`.
+    - `managedWorkflowId === "text2image-sdxl-checkpoint" && family === "sdxl"` → `methods: ["text2image", "image2image"]`.
 
 - `server/workflows/image2image/sdxl-checkpoint.js`
   - New builder that:
@@ -27,10 +27,10 @@ These are notes of the intended changes discussed for making `app.html` method-f
   - `downloadImagesToComfyInput(urlArray)` downloads image URLs into Comfy’s `input` dir and returns filenames.
 
 - `server/handlers/generate.js`
-  - Now accepts both text2img and image2image via `method` and `image_url`:
+  - Now accepts both text2image and image2image via `method` and `image_url`:
 
   ```js
-  const method = String(body.method || "").trim() || "text2img";
+  const method = String(body.method || "").trim() || "text2image";
   const seed = /* from body.seed or randomInt */;
 
   function runWithWorkflow(managedWorkflowId, extraOverrides = {}) {
@@ -79,7 +79,7 @@ These are notes of the intended changes discussed for making `app.html` method-f
 
 - `server/handlers/api.js` (`handleApiGet`)
   - Capabilities `GET /api` now exposes:
-    - `methods.text2img` (unchanged, but model options filtered).
+    - `methods.text2image` (unchanged, but model options filtered).
     - New `methods.image2image` with:
 
   ```js
@@ -92,7 +92,7 @@ These are notes of the intended changes discussed for making `app.html` method-f
   }));
 
   methods: {
-    text2img: { /* existing fields */ },
+    text2image: { /* existing fields */ },
     image2image: {
       id: "image2image",
       default: false,
@@ -100,7 +100,7 @@ These are notes of the intended changes discussed for making `app.html` method-f
       name: "Image To Image",
       description: "Generate an image from an input image and text.",
       intent: "image_generate",
-      credits: TEXT2IMG_CREDITS,
+      credits: TEXT2IMAGE_CREDITS,
       fields: {
         model: {
           label: "Model",
@@ -142,7 +142,7 @@ Key goals:
     model,
     width, height, steps, cfg,
     seed?,
-    method,      // "text2img" | "image2image"
+    method,      // "text2image" | "image2image"
     image_url?,  // for image2image
   }
   ```
@@ -382,7 +382,7 @@ App-new uses a wrapped payload of the form:
 
 ```json
 {
-  "method": "text2img",
+  "method": "text2image",
   "args": {
     "model": "diffusion_models/flux/flux1-dev.safetensors",
     "prompt": "1 banana in the middle of 2 avocados"
@@ -398,8 +398,8 @@ To support that shape in the local provider without breaking `app.html`, `server
 const isWrapped = body && typeof body === "object" && body.args && body.method;
 
 const method = isWrapped
-  ? String(body.method || "").trim() || "text2img"
-  : String(body.method || "").trim() || "text2img";
+  ? String(body.method || "").trim() || "text2image"
+  : String(body.method || "").trim() || "text2image";
 
 const args =
   isWrapped && body.args && typeof body.args === "object" ? body.args : body;
@@ -419,7 +419,7 @@ This preserves backward compatibility (flat shape from `app.html`) while allowin
 Right now:
 
 - `GET /api` (in `server/handlers/api.js`) returns a **filtered** capabilities document for the provider API UI, with:
-  - `methods.text2img` (with filtered `model` options).
+  - `methods.text2image` (with filtered `model` options).
   - `methods.image2image` (with filtered `model` options and an `image_url` field).
 - `GET /api/models` returns an **unfiltered** model list with added `methods` and `supportsImageInput`.
 
@@ -437,7 +437,7 @@ The app-new capabilities doc can also carry per-method defaults, e.g.:
 
 ```json
 methods: {
-  "text2img": {
+  "text2image": {
     fields: {
       width: { default: 1024 },
       height: { default: 1024 },

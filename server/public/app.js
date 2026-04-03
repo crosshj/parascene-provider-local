@@ -87,7 +87,7 @@ const metaRowEl = document.getElementById("meta-row");
 const STORAGE_KEY = "local-image-generator.form.v2";
 
 let modelRegistry = {};
-// Remember last-selected model per method (e.g. text2img, image2image).
+// Remember last-selected model per method (e.g. text2image, image2image).
 let perMethodModel = {};
 // Capabilities document from GET /api/models (methods + fields).
 let capabilitiesMethods = null;
@@ -199,19 +199,19 @@ function modelSupportsMethod(entry, method) {
   const methods =
     Array.isArray(entry.methods) && entry.methods.length > 0
       ? entry.methods
-      : ["text2img"];
+      : ["text2image"];
   return methods.includes(method);
 }
 
 function getAllMethodsFromModels(models) {
-  const order = ["text2img", "image2image", "text2video", "image2video"];
+  const order = ["text2image", "image2image", "text2video", "image2video"];
   const seen = new Set();
   const out = [];
   for (const m of models) {
     const methods =
       Array.isArray(m.methods) && m.methods.length > 0
         ? m.methods
-        : ["text2img"];
+        : ["text2image"];
     for (const meth of methods) {
       if (!seen.has(meth)) {
         seen.add(meth);

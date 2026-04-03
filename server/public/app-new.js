@@ -308,8 +308,8 @@ function initApp() {
         methodIds.includes(savedValues.method)
       ) {
         initialMethod = savedValues.method;
-      } else if (methodIds.includes("text2img")) {
-        initialMethod = "text2img";
+      } else if (methodIds.includes("text2image")) {
+        initialMethod = "text2image";
       }
       methodSel.value = initialMethod;
 

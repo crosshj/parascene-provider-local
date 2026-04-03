@@ -20,7 +20,7 @@ function resolveMethodCredits(method) {
 const PARASCENE_API_KEY =
   process.env.PARASCENE_API_KEY || "parascene-local-dev-token";
 
-// In-memory job store for stub (non-text2img) jobs only.
+// In-memory job store for stub (non-text2image) jobs only.
 const stubJobs = new Map();
 
 // const DEFAULT_ALLOWED_SD15 = [
@@ -107,7 +107,7 @@ function handleApiGet(req, res) {
 }
 
 /**
- * Create a stub job (e.g. echo) for non–text2img methods. Used for testing the poll flow.
+ * Create a stub job (e.g. echo) for non–text2image methods. Used for testing the poll flow.
  */
 function createStubJob({ method, args }) {
   const jobId = `job_${Date.now().toString(36)}_${Math.random()
@@ -183,7 +183,7 @@ async function handleApiPost(req, res, ctx = {}) {
     }
     // Succeeded, return image binary (Content-Type: image/png) and metadata headers.
     if (
-      (job.method === "text2img" || job.method === "image2image") &&
+      (job.method === "text2image" || job.method === "image2image") &&
       job.result?.file_name &&
       ctx.outputDir
     ) {
@@ -227,7 +227,7 @@ async function handleApiPost(req, res, ctx = {}) {
   }
 
   // Start: no args.job_id — create job and return 202 with job_id.
-  if (method === "text2img" || method === "image2image") {
+  if (method === "text2image" || method === "image2image") {
     if (!ctx.outputDir) {
       return sendJson(res, 503, { error: "OUTPUT_DIR not configured" });
     }

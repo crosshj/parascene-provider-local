@@ -4,8 +4,8 @@ const BASE_MODELS_RESPONSE = {
   ok: true,
   models: [], // filled dynamically from disk scan, includes defaults
   methods: {
-    text2img: {
-      id: "text2img",
+    text2image: {
+      id: "text2image",
       async: false,
       name: "Text To Image",
       description: "Generate an image from text.",
