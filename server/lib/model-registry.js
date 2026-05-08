@@ -19,6 +19,14 @@ const {
 // Internal helpers
 // ---------------------------------------------------------------------------
 
+/** MODEL_DIRS uses Windows-style rel paths; normalize so scans work on macOS/Linux. */
+function joinModelsBaseRel(modelsBase, rel) {
+  const segments = String(rel || "")
+    .split(/[/\\]+/)
+    .filter(Boolean);
+  return path.join(modelsBase, ...segments);
+}
+
 function inferFamily(dirFamily, filename) {
   if (dirFamily) return dirFamily;
   const stem = path.basename(filename, ".safetensors").toLowerCase();
@@ -84,7 +92,7 @@ function scanModels() {
   const models = [];
 
   for (const spec of MODEL_DIRS) {
-    const dir = path.join(MODELS_BASE, spec.rel);
+    const dir = joinModelsBaseRel(MODELS_BASE, spec.rel);
     const files = collectSafetensorsRecursively(dir);
     for (const fullPath of files) {
       if (seen.has(fullPath)) continue;
