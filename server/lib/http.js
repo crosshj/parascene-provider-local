@@ -13,6 +13,8 @@ const CSP = [
   "script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com",
   "connect-src 'self' https://cloudflareinsights.com",
   "img-src 'self' data: blob:",
+  // <video src="blob:..."> falls back to default-src when omitted; blob must be allowed like img-src.
+  "media-src 'self' blob:",
   "style-src 'self' 'unsafe-inline'",
 ].join("; ");
 

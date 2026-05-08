@@ -164,8 +164,9 @@ function initApp() {
     if (!previewVideoEl) {
       previewVideoEl = document.createElement("video");
       previewVideoEl.setAttribute("controls", "");
+      previewVideoEl.setAttribute("playsinline", "");
+      previewVideoEl.muted = true;
       previewVideoEl.style.display = "none";
-      previewVideoEl.style.maxWidth = "100%";
       previewWrap.appendChild(previewVideoEl);
     }
     return previewVideoEl;
@@ -567,7 +568,9 @@ function initApp() {
         }
 
         if (pollRes.status === 200) {
-          const contentType = pollRes.headers.get("Content-Type") || "";
+          const contentType = (
+            pollRes.headers.get("Content-Type") || ""
+          ).split(";")[0].trim();
           if (contentType.includes("image/png")) {
             const blob = await pollRes.blob();
             const url = URL.createObjectURL(blob);
@@ -586,9 +589,13 @@ function initApp() {
             };
             renderMeta(meta);
             setStatusMessage("Done.");
-          } else if (contentType.startsWith("video/")) {
+          } else if (contentType.toLowerCase().startsWith("video/")) {
             const blob = await pollRes.blob();
-            const url = URL.createObjectURL(blob);
+            const typedBlob =
+              blob.type && blob.type.startsWith("video/")
+                ? blob
+                : new Blob([await blob.arrayBuffer()], { type: contentType });
+            const url = URL.createObjectURL(typedBlob);
             setPreviewVideo(url);
             const meta = {
               family: badge.textContent ?? "—",
