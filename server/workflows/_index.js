@@ -10,11 +10,15 @@ const WORKFLOWS = {
   "text2image-qwen-checkpoint": require("./text2image/qwen-checkpoint.js"),
   "text2image-sdxl-checkpoint": require("./text2image/sdxl-checkpoint.js"),
   "text2image-zimage-diffusion": require("./text2image/zimage-diffusion.js"),
+
   // Text-to-video workflows
 
   // Image-to-image workflows
   "image2image-sdxl-checkpoint": require("./image2image/sdxl-checkpoint.js"),
+
   // Image-to-video workflows
+  "image2video-wan2_2_14B": require("./image2video/wan2_2_14B.js"),
+  "image2video-ltx2_3": require("./image2video/ltx2_3.js"),
 };
 
 function buildWorkflowByFamily(input) {

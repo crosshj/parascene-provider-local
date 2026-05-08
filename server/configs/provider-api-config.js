@@ -286,6 +286,56 @@ const BASE_PROVIDER_CAPABILITIES = {
         },
       },
     },
+    // `model` values are short aliases (see configs/api-model-aliases.js → IMAGE2VIDEO_* keys).
+    image2video: {
+      id: "image2video",
+      default: false,
+      async: true,
+      name: "Image To Video",
+      description:
+        "Generate a video from a start image and prompt (local Comfy workflows).",
+      intent: "video_generate",
+      credits: 10,
+      fields: {
+        model: {
+          label: "Model",
+          type: "select",
+          required: true,
+          options: [
+            {
+              label: "Wan — image-to-video",
+              value: "wan_i2v",
+              hint: "Wan 2.2 i2v stack on Comfy (weights under diffusion_models/wan/i2v).",
+            },
+            {
+              label: "LTX — image-to-video",
+              value: "ltx_i2v",
+              hint: "LTX 2.3 i2v checkpoint (weights under checkpoints/ltx/i2v).",
+            },
+          ],
+        },
+        prompt: {
+          label: "Prompt",
+          type: "text",
+          required: true,
+        },
+        input_images: {
+          label: "Input Images",
+          type: "image_url_array",
+          required: true,
+        },
+        seed: {
+          label: "Seed",
+          type: "number",
+          required: false,
+          hidden: true,
+          min: 0,
+          step: 1,
+          description:
+            "Optional deterministic seed. If not provided, a random seed is used.",
+        },
+      },
+    },
   },
 };
 

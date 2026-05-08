@@ -157,11 +157,13 @@ async function _processLoop() {
             model: result.model,
             elapsed_ms: result.elapsed_ms,
             backend: "comfy",
+            media_kind: result.media_kind,
           };
         } else {
           current.status = "failed";
           current.completed_at = new Date().toISOString();
-          current.error = result?.error ?? "Generator did not return an image.";
+          current.error =
+            result?.error ?? "Generator did not return an output file.";
           current.result = { ok: false, error: current.error };
         }
         jobs.set(job.id, current);

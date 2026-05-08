@@ -47,6 +47,7 @@ function parseOutputImage(historyData, promptId) {
     const img = value.images[0];
     if (img && img.filename) {
       return {
+        kind: "image",
         filename: String(img.filename),
         subfolder: String(img.subfolder || ""),
         type: String(img.type || "output"),
@@ -57,26 +58,83 @@ function parseOutputImage(historyData, promptId) {
   throw new Error("Comfy history does not contain generated images.");
 }
 
-async function pollHistoryForImage(promptId, timeoutMs = 600_000) {
+function tryParseVideoRef(outSlot) {
+  if (!outSlot || typeof outSlot !== "object") return null;
+  const lists = ["videos", "gifs"];
+  for (const key of lists) {
+    const arr = outSlot[key];
+    if (!Array.isArray(arr) || arr.length === 0) continue;
+    const first = arr[0];
+    if (first && first.filename) {
+      return {
+        kind: "video",
+        filename: String(first.filename),
+        subfolder: String(first.subfolder || ""),
+        type: String(first.type || "output"),
+      };
+    }
+  }
+  return null;
+}
+
+function parseOutputVideo(historyData, promptId) {
+  const root = historyData && historyData[promptId];
+  if (!root || !root.outputs || typeof root.outputs !== "object") {
+    throw new Error("Comfy history response missing outputs.");
+  }
+
+  for (const value of Object.values(root.outputs)) {
+    const ref = tryParseVideoRef(value);
+    if (ref) return ref;
+  }
+
+  throw new Error("Comfy history does not contain generated videos.");
+}
+
+async function pollHistoryForOutput(promptId, wantsVideo, timeoutMs = 600_000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const data = await requestJson(`/history/${encodeURIComponent(promptId)}`, {
       method: "GET",
     });
     try {
+      if (wantsVideo) {
+        return parseOutputVideo(data, promptId);
+      }
       return parseOutputImage(data, promptId);
     } catch {
-      // Keep polling while generation is still running.
+      // Still running or wrong parser pass.
+    }
+    if (!wantsVideo) {
+      try {
+        return parseOutputVideo(data, promptId);
+      } catch {
+        // Fall through — image workflow may not emit video yet.
+      }
     }
     await new Promise((resolve) => setTimeout(resolve, 1_000));
   }
   throw new Error("Timed out waiting for Comfy history output.");
 }
 
-function makeOutputFilename(seed) {
+function defaultExtensionForKind(kind) {
+  return kind === "video" ? ".mp4" : ".png";
+}
+
+function extensionFromComfyFilename(filename) {
+  const ext = path.extname(String(filename || "")).toLowerCase();
+  if (ext && ext.length > 1) return ext;
+  return null;
+}
+
+function makeOutputFilename(seed, kind, sourceFilename) {
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const rand = crypto.randomBytes(3).toString("hex");
-  return `img-${stamp}-${seed}-${rand}.png`;
+  const ext =
+    extensionFromComfyFilename(sourceFilename) ||
+    defaultExtensionForKind(kind);
+  const prefix = kind === "video" ? "vid" : "img";
+  return `${prefix}-${stamp}-${seed}-${rand}${ext}`;
 }
 
 async function runComfyGeneration(input, outDir) {
@@ -95,18 +153,31 @@ async function runComfyGeneration(input, outDir) {
     throw new Error("Comfy did not return prompt_id.");
   }
 
-  const imageRef = await pollHistoryForImage(String(promptId));
+  const wantsVideo =
+    input.expectVideo === true ||
+    (typeof input.managedWorkflowId === "string" &&
+      input.managedWorkflowId.startsWith("image2video"));
+
+  const mediaRef = await pollHistoryForOutput(
+    String(promptId),
+    wantsVideo,
+    600_000,
+  );
   const query = new URLSearchParams({
-    filename: imageRef.filename,
-    subfolder: imageRef.subfolder,
-    type: imageRef.type,
+    filename: mediaRef.filename,
+    subfolder: mediaRef.subfolder,
+    type: mediaRef.type,
   });
-  const imageBuffer = await requestBuffer(`/view?${query.toString()}`);
+  const fileBuffer = await requestBuffer(`/view?${query.toString()}`);
 
   fs.mkdirSync(outDir, { recursive: true });
-  const fileName = makeOutputFilename(input.seed);
+  const fileName = makeOutputFilename(
+    input.seed,
+    mediaRef.kind || (wantsVideo ? "video" : "image"),
+    mediaRef.filename,
+  );
   const outPath = path.join(outDir, fileName);
-  fs.writeFileSync(outPath, imageBuffer);
+  fs.writeFileSync(outPath, fileBuffer);
 
   return {
     ok: true,
@@ -116,6 +187,7 @@ async function runComfyGeneration(input, outDir) {
     model: input.modelPath,
     seed: input.seed,
     elapsed_ms: Date.now() - started,
+    media_kind: mediaRef.kind || (wantsVideo ? "video" : "image"),
   };
 }
 

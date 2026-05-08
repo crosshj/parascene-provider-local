@@ -15,6 +15,21 @@ function resolveMethodCredits(method) {
   return typeof value === "number" ? value : 0;
 }
 
+function contentTypeForArtifactFilename(fileName) {
+  const ext = path.extname(String(fileName || "")).toLowerCase();
+  if (ext === ".mp4") return "video/mp4";
+  if (ext === ".webm") return "video/webm";
+  if (ext === ".mov") return "video/quicktime";
+  if (ext === ".gif") return "image/gif";
+  return "application/octet-stream";
+}
+
+function isVideoArtifactJob(job) {
+  if (job.result?.media_kind === "video") return true;
+  const ct = contentTypeForArtifactFilename(job.result?.file_name || "");
+  return ct.startsWith("video/");
+}
+
 // Shared API key for simple bearer auth.
 // For now we allow a hardcoded default; in production this should be set via env.
 const PARASCENE_API_KEY =
@@ -181,41 +196,59 @@ async function handleApiPost(req, res, ctx = {}) {
         result: job.result,
       });
     }
-    // Succeeded, return image binary (Content-Type: image/png) and metadata headers.
-    if (
-      (job.method === "text2image" || job.method === "image2image") &&
-      job.result?.file_name &&
-      ctx.outputDir
-    ) {
+    // Succeeded: stream artifact (infer video vs image so method/registry stays consistent).
+    if (job.result?.file_name && ctx.outputDir) {
       const filePath = path.join(ctx.outputDir, job.result.file_name);
-      return fs.readFile(filePath, (err, data) => {
-        if (err) {
-          return sendJson(res, 500, {
-            async: true,
-            error: "Image file missing",
-            job_id: job.id,
-          });
-        }
-        const headers = {
-          "Content-Type": "image/png",
-          "Content-Length": String(data.length),
-          "Cache-Control": "no-cache",
-          "X-Image-Color": "#000000",
-          "X-Image-Width": String(job.imageWidth ?? job.result.width ?? ""),
-          "X-Image-Height": String(job.imageHeight ?? job.result.height ?? ""),
-          "X-Credits": String(job.credits ?? resolveMethodCredits(job.method)),
-        };
-        if (job.result.seed != null)
-          headers["X-Seed"] = String(job.result.seed);
-        if (job.result.elapsed_ms != null)
-          headers["X-Elapsed-Ms"] = String(job.result.elapsed_ms);
-        if (job.result.family != null)
-          headers["X-Family"] = String(job.result.family);
-        if (job.result.model != null)
-          headers["X-Model"] = String(path.basename(job.result.model));
-        res.writeHead(200, headers);
-        res.end(data);
-      });
+      if (isVideoArtifactJob(job)) {
+        return fs.readFile(filePath, (err, data) => {
+          if (err) {
+            return sendJson(res, 500, {
+              async: true,
+              error: "Video file missing",
+              job_id: job.id,
+            });
+          }
+          const ct = contentTypeForArtifactFilename(job.result.file_name);
+          const headers = {
+            "Content-Type": ct,
+            "Content-Length": String(data.length),
+            "Cache-Control": "no-cache",
+            "X-Credits": String(job.credits ?? resolveMethodCredits(job.method)),
+          };
+          res.writeHead(200, headers);
+          res.end(data);
+        });
+      }
+      if (job.method === "text2image" || job.method === "image2image") {
+        return fs.readFile(filePath, (err, data) => {
+          if (err) {
+            return sendJson(res, 500, {
+              async: true,
+              error: "Image file missing",
+              job_id: job.id,
+            });
+          }
+          const headers = {
+            "Content-Type": "image/png",
+            "Content-Length": String(data.length),
+            "Cache-Control": "no-cache",
+            "X-Image-Color": "#000000",
+            "X-Image-Width": String(job.imageWidth ?? job.result.width ?? ""),
+            "X-Image-Height": String(job.imageHeight ?? job.result.height ?? ""),
+            "X-Credits": String(job.credits ?? resolveMethodCredits(job.method)),
+          };
+          if (job.result.seed != null)
+            headers["X-Seed"] = String(job.result.seed);
+          if (job.result.elapsed_ms != null)
+            headers["X-Elapsed-Ms"] = String(job.result.elapsed_ms);
+          if (job.result.family != null)
+            headers["X-Family"] = String(job.result.family);
+          if (job.result.model != null)
+            headers["X-Model"] = String(path.basename(job.result.model));
+          res.writeHead(200, headers);
+          res.end(data);
+        });
+      }
     }
     // Fallback: succeeded but not image (e.g. stub method) — return JSON.
     return sendJson(res, 200, {
@@ -227,7 +260,11 @@ async function handleApiPost(req, res, ctx = {}) {
   }
 
   // Start: no args.job_id — create job and return 202 with job_id.
-  if (method === "text2image" || method === "image2image") {
+  if (
+    method === "text2image" ||
+    method === "image2image" ||
+    method === "image2video"
+  ) {
     if (!ctx.outputDir) {
       return sendJson(res, 503, { error: "OUTPUT_DIR not configured" });
     }

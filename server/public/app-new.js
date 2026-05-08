@@ -157,6 +157,41 @@ function initApp() {
   const imageUrlField = document.getElementById("image-url-field");
   const imageUrlInput = document.getElementById("input_images");
 
+  /** @type {HTMLVideoElement | null} */
+  let previewVideoEl = null;
+
+  function getPreviewVideoEl() {
+    if (!previewVideoEl) {
+      previewVideoEl = document.createElement("video");
+      previewVideoEl.setAttribute("controls", "");
+      previewVideoEl.style.display = "none";
+      previewVideoEl.style.maxWidth = "100%";
+      previewWrap.appendChild(previewVideoEl);
+    }
+    return previewVideoEl;
+  }
+
+  function revokePreviewObjectUrls() {
+    try {
+      if (imageEl.src && imageEl.src.startsWith("blob:")) {
+        URL.revokeObjectURL(imageEl.src);
+      }
+    } catch {
+      /* ignore */
+    }
+    try {
+      if (
+        previewVideoEl &&
+        previewVideoEl.src &&
+        previewVideoEl.src.startsWith("blob:")
+      ) {
+        URL.revokeObjectURL(previewVideoEl.src);
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
   const STORAGE_KEY = "local-image-generator.form.v2";
   let savedValues = null;
   let lastErrorText = "";
@@ -226,20 +261,49 @@ function initApp() {
   function setPreviewIdle() {
     previewWrap.classList.remove("is-loading");
     imageEl.style.display = "none";
+    if (previewVideoEl) {
+      previewVideoEl.pause?.();
+      previewVideoEl.style.display = "none";
+      previewVideoEl.removeAttribute("src");
+    }
     idleEl.classList.remove("hidden");
   }
 
   function setPreviewLoading() {
     previewWrap.classList.add("is-loading");
     imageEl.style.display = "none";
+    if (previewVideoEl) {
+      previewVideoEl.style.display = "none";
+      previewVideoEl.removeAttribute("src");
+    }
     idleEl.classList.add("hidden");
   }
 
   function setPreviewImage(src) {
+    revokePreviewObjectUrls();
     previewWrap.classList.remove("is-loading");
     idleEl.classList.add("hidden");
+    if (previewVideoEl) {
+      previewVideoEl.style.display = "none";
+      previewVideoEl.removeAttribute("src");
+    }
     imageEl.src = src;
     imageEl.style.display = "block";
+  }
+
+  function setPreviewVideo(src) {
+    revokePreviewObjectUrls();
+    previewWrap.classList.remove("is-loading");
+    idleEl.classList.add("hidden");
+    imageEl.style.display = "none";
+    const v = getPreviewVideoEl();
+    v.src = src;
+    v.style.display = "block";
+    try {
+      v.play?.();
+    } catch {
+      /* autoplay may be blocked */
+    }
   }
 
   function renderMeta(data) {
@@ -424,6 +488,7 @@ function initApp() {
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
+    revokePreviewObjectUrls();
     setStatusMessage("Generating…");
     setPreviewLoading();
     metaRowEl.innerHTML = "";
@@ -517,6 +582,20 @@ function initApp() {
                   ?.trim() ??
                 "—",
               seed: pollRes.headers.get("X-Seed") ?? "—",
+              elapsed_ms: pollRes.headers.get("X-Elapsed-Ms") ?? "—",
+            };
+            renderMeta(meta);
+            setStatusMessage("Done.");
+          } else if (contentType.startsWith("video/")) {
+            const blob = await pollRes.blob();
+            const url = URL.createObjectURL(blob);
+            setPreviewVideo(url);
+            const meta = {
+              family: badge.textContent ?? "—",
+              model:
+                modelSel.selectedOptions[0]?.textContent?.split(":")[1]?.trim() ??
+                "—",
+              seed: body.seed != null ? String(body.seed) : "—",
               elapsed_ms: pollRes.headers.get("X-Elapsed-Ms") ?? "—",
             };
             renderMeta(meta);

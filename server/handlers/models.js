@@ -41,12 +41,15 @@ function handleModels(_req, res, _ctx) {
   for (const m of models) {
     const methodId = getMethodFromWorkflowId(m.managedWorkflowId);
     if (!methods[methodId]) {
+      const isVideo = methodId === "image2video";
       methods[methodId] = {
         id: methodId,
-        async: false,
+        async: isVideo,
         name: methodId,
-        description: "Image generation method.",
-        intent: "image_generate",
+        description: isVideo
+          ? "Video generation method."
+          : "Image generation method.",
+        intent: isVideo ? "video_generate" : "image_generate",
         fields: {
           model: {
             label: "Model",
