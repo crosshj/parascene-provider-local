@@ -295,7 +295,7 @@ const BASE_PROVIDER_CAPABILITIES = {
       description:
         "Generate a video from a start image and prompt (local Comfy workflows).",
       intent: "video_generate",
-      credits: 10,
+      credits: 1,
       fields: {
         model: {
           label: "Model",
