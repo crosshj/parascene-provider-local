@@ -35,6 +35,21 @@ async function requestBuffer(pathname) {
   return Buffer.from(ab);
 }
 
+const VIDEO_FILE_EXTENSIONS = new Set([
+  ".mp4",
+  ".webm",
+  ".mov",
+  ".mkv",
+  ".avi",
+  ".m4v",
+  ".gif",
+]);
+
+function filenameLooksLikeVideo(name) {
+  const ext = path.extname(String(name || "")).toLowerCase();
+  return VIDEO_FILE_EXTENSIONS.has(ext);
+}
+
 function parseOutputImage(historyData, promptId) {
   const root = historyData && historyData[promptId];
   if (!root || !root.outputs || typeof root.outputs !== "object") {
@@ -72,6 +87,25 @@ function tryParseVideoRef(outSlot) {
         subfolder: String(first.subfolder || ""),
         type: String(first.type || "output"),
       };
+    }
+  }
+  // ComfyUI SaveVideo / PreviewVideo uses ui.PreviewVideo, whose as_dict() is
+  // { images: [<SavedResult>...], animated: (True,) } — not "videos"/"gifs".
+  const imgs = outSlot.images;
+  if (Array.isArray(imgs)) {
+    for (const item of imgs) {
+      if (
+        item &&
+        item.filename &&
+        filenameLooksLikeVideo(item.filename)
+      ) {
+        return {
+          kind: "video",
+          filename: String(item.filename),
+          subfolder: String(item.subfolder || ""),
+          type: String(item.type || "output"),
+        };
+      }
     }
   }
   return null;
