@@ -88,21 +88,28 @@ function disambiguateStemNames(models) {
 // ---------------------------------------------------------------------------
 
 function scanModels() {
+  const modelsBaseResolved = path.resolve(MODELS_BASE);
   const seen = new Set();
   const models = [];
 
   for (const spec of MODEL_DIRS) {
-    const dir = joinModelsBaseRel(MODELS_BASE, spec.rel);
+    const dir = joinModelsBaseRel(modelsBaseResolved, spec.rel);
+    if (!fs.existsSync(dir)) {
+      console.warn(
+        `[model-registry] Skip scan (directory missing): ${dir}\n  MODELS_BASE=${modelsBaseResolved}\n  MODEL_DIRS rel=${JSON.stringify(spec.rel)}`,
+      );
+      continue;
+    }
     const files = collectSafetensorsRecursively(dir);
     for (const fullPath of files) {
       if (seen.has(fullPath)) continue;
       seen.add(fullPath);
       const file = path.basename(fullPath);
       const family = inferFamily(spec.family, file);
-      const modelId = toPosixModelId(MODELS_BASE, fullPath);
+      const modelId = toPosixModelId(modelsBaseResolved, fullPath);
       const diffusionName =
         spec.loadKind === "diffusion_model"
-          ? diffusionModelComfyName(MODELS_BASE, fullPath)
+          ? diffusionModelComfyName(modelsBaseResolved, fullPath)
           : null;
 
       models.push({
@@ -135,6 +142,9 @@ function scanModels() {
 let _cache = null;
 
 function getModels() {
+  if (process.env.PARASCENE_REFRESH_MODEL_CACHE === "1") {
+    return scanModels();
+  }
   if (!_cache) _cache = scanModels();
   return _cache;
 }
@@ -149,6 +159,9 @@ function resolveModel(query) {
 
   const byId = list.find((m) => m.modelId === q);
   if (byId) return byId;
+  const qLower = q.toLowerCase();
+  const byIdCi = list.find((m) => m.modelId.toLowerCase() === qLower);
+  if (byIdCi) return byIdCi;
 
   const matches = list.filter(
     (m) =>

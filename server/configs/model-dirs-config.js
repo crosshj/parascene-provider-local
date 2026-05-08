@@ -64,21 +64,7 @@ const MODEL_DIRS = [
     managedWorkflowId: "text2image-sdxl-checkpoint",
     comfyCheckpointGroup: "xl",
   },
-  // Narrow dirs: only place files intended for these graphs (see TODO.md).
-  {
-    rel: "diffusion_models\\wan\\i2v",
-    family: "wan-i2v",
-    loadKind: "diffusion_model",
-    managedWorkflowId: "image2video-wan2_2_14B",
-    comfyCheckpointGroup: null,
-  },
-  {
-    rel: "checkpoints\\ltx\\i2v",
-    family: "ltx-i2v",
-    loadKind: "checkpoint",
-    managedWorkflowId: "image2video-ltx2_3",
-    comfyCheckpointGroup: "ltx",
-  },
+  // image2video: preset-only (configs/api-model-aliases.js), no MODEL_DIRS scan.
 ];
 
 const FILENAME_OVERRIDES = [

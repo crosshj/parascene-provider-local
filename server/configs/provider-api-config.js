@@ -286,7 +286,7 @@ const BASE_PROVIDER_CAPABILITIES = {
         },
       },
     },
-    // `model` values are short aliases (see configs/api-model-aliases.js → IMAGE2VIDEO_* keys).
+    // `model` values are preset keys (configs/api-model-aliases.js); not tied to MODEL_DIRS scan.
     image2video: {
       id: "image2video",
       default: false,
