@@ -12,6 +12,13 @@ function toPositiveInt(value, fallback) {
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
 }
 
+function toNumber(value, fallback) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+const DEFAULT_DURATION_SECONDS = 15;
+
 function cloneBaseWorkflow() {
   return JSON.parse(JSON.stringify(WORKFLOW_TEMPLATE));
 }
@@ -20,7 +27,8 @@ function cloneBaseWorkflow() {
  * LTX 2.3 image-to-video workflow (template ltx2_3.json).
  *
  * Overrides: prompt, negativePrompt, seed, inputImageFilename,
- * width, height, checkpointBasename (checkpoint loader ckpt_name fields).
+ * width, height, fps, length/framesNumber, durationSeconds,
+ * checkpointBasename (checkpoint loader ckpt_name fields).
  */
 function LtxImage2VideoWorkflow(overrides = {}) {
   const workflow = cloneBaseWorkflow();
@@ -65,6 +73,30 @@ function LtxImage2VideoWorkflow(overrides = {}) {
       overrides.height,
       workflow["267:258"].inputs.value,
     );
+  }
+
+  const defaultFps = workflow["267:260"]?.inputs?.value;
+  const fps =
+    overrides.fps !== undefined
+      ? toPositiveInt(overrides.fps, defaultFps)
+      : defaultFps;
+  if (fps !== undefined && workflow["267:260"]?.inputs) {
+    workflow["267:260"].inputs.value = fps;
+  }
+
+  const explicitLength =
+    overrides.length ?? overrides.framesNumber ?? overrides.frames;
+  const lengthFrames =
+    explicitLength !== undefined
+      ? toPositiveInt(explicitLength, workflow["267:225"]?.inputs?.value)
+      : Math.max(
+          1,
+          Math.round(
+            toNumber(overrides.durationSeconds, DEFAULT_DURATION_SECONDS) * fps,
+          ),
+        );
+  if (lengthFrames !== undefined && workflow["267:225"]?.inputs) {
+    workflow["267:225"].inputs.value = lengthFrames;
   }
 
   const ckpt =
