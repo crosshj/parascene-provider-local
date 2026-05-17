@@ -38,15 +38,6 @@
       "title": "Load VAE"
     }
   },
-  "279": {
-    "inputs": {
-      "images": ["277", 0]
-    },
-    "class_type": "PreviewImage",
-    "_meta": {
-      "title": "Preview Image"
-    }
-  },
   "280": {
     "inputs": {
       "noise_seed": 42
