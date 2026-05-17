@@ -18,6 +18,20 @@ let pendingOrder = []; // array of job_ids, pending only
 let currentModelKey = null; // `${family}:${modelName}`
 let processing = false;
 
+function _logJobFailure(job, message, err = null) {
+  const details = {
+    job_id: job?.id,
+    method: job?.method,
+    family: job?.family,
+    model: job?.modelName || job?.modelId || null,
+  };
+  if (err && err.stack) {
+    console.error(`[jobs] ${message}`, details, err.stack);
+    return;
+  }
+  console.error(`[jobs] ${message}`, details);
+}
+
 function resolveMethodCredits(method) {
   const value = BASE_PROVIDER_CAPABILITIES?.methods?.[method]?.credits;
   return typeof value === "number" ? value : 0;
@@ -165,6 +179,7 @@ async function _processLoop() {
           current.error =
             result?.error ?? "Generator did not return an output file.";
           current.result = { ok: false, error: current.error };
+          _logJobFailure(job, `Generation failed: ${current.error}`);
         }
         jobs.set(job.id, current);
       } catch (err) {
@@ -175,6 +190,7 @@ async function _processLoop() {
           current.error = err.message ?? "Generation failed.";
           current.result = { ok: false, error: current.error };
           jobs.set(job.id, current);
+          _logJobFailure(job, `Generation exception: ${current.error}`, err);
         }
       } finally {
         pendingOrder = pendingOrder.filter((id) => id !== job.id);

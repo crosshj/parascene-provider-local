@@ -15,8 +15,28 @@ function _url(pathname) {
   return `http://${COMFY_HOST}:${COMFY_PORT}${pathname}`;
 }
 
+function _formatFetchError(pathname, err) {
+  const base = err && err.message ? err.message : String(err || "unknown error");
+  const cause = err && err.cause ? err.cause : null;
+  const causeCode =
+    cause && typeof cause === "object" && cause.code ? String(cause.code) : "";
+  const causeMsg =
+    cause && typeof cause === "object" && cause.message
+      ? String(cause.message)
+      : "";
+  const extras = [causeCode, causeMsg].filter(Boolean).join(" ").trim();
+  return extras
+    ? `Comfy API ${pathname} network error: ${base} (${extras})`
+    : `Comfy API ${pathname} network error: ${base}`;
+}
+
 async function requestJson(pathname, options = {}) {
-  const res = await fetch(_url(pathname), options);
+  let res;
+  try {
+    res = await fetch(_url(pathname), options);
+  } catch (err) {
+    throw new Error(_formatFetchError(pathname, err));
+  }
   const data = await res.json().catch(() => null);
   if (!res.ok) {
     throw new Error(
@@ -27,7 +47,12 @@ async function requestJson(pathname, options = {}) {
 }
 
 async function requestBuffer(pathname) {
-  const res = await fetch(_url(pathname), { method: "GET" });
+  let res;
+  try {
+    res = await fetch(_url(pathname), { method: "GET" });
+  } catch (err) {
+    throw new Error(_formatFetchError(pathname, err));
+  }
   if (!res.ok) {
     throw new Error(`Comfy view request failed with HTTP ${res.status}`);
   }
