@@ -17,7 +17,7 @@ function toNumber(value, fallback) {
   return Number.isFinite(n) ? n : fallback;
 }
 
-const DEFAULT_DURATION_SECONDS = 15;
+const DEFAULT_DURATION_SECONDS = 9;
 
 function cloneBaseWorkflow() {
   return JSON.parse(JSON.stringify(WORKFLOW_TEMPLATE));
