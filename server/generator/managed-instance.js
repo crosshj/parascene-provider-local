@@ -73,9 +73,57 @@ if (!process.env.DATA_ROOT) {
 
 let _proc = null;
 let _startingPromise = null;
+let _lastSpawnError = null;
+let _lastExit = null;
+const _recentComfyLogs = [];
+const RECENT_COMFY_LOG_LIMIT = 200;
 
 function _url(pathname) {
   return `http://${COMFY_HOST}:${COMFY_PORT}${pathname}`;
+}
+
+function _rememberComfyLog(stream, chunk) {
+  const text = String(chunk || "").replace(/\r/g, "");
+  const lines = text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const now = new Date().toISOString();
+  for (const line of lines) {
+    _recentComfyLogs.push({ at: now, stream, line });
+  }
+  if (_recentComfyLogs.length > RECENT_COMFY_LOG_LIMIT) {
+    _recentComfyLogs.splice(0, _recentComfyLogs.length - RECENT_COMFY_LOG_LIMIT);
+  }
+}
+
+function _tailComfyLogs(limit = 25, stream = null) {
+  const source = stream
+    ? _recentComfyLogs.filter((item) => item.stream === stream)
+    : _recentComfyLogs;
+  return source
+    .slice(Math.max(0, source.length - limit))
+    .map((item) => `[${item.at}] [${item.stream}] ${item.line}`);
+}
+
+function _makeStartupDiagnostics(reason) {
+  return {
+    reason,
+    host: COMFY_HOST,
+    port: COMFY_PORT,
+    root: COMFY_ROOT,
+    managedPid: _proc?.pid ?? null,
+    managedExitCode: _proc?.exitCode ?? null,
+    managedSignalCode: _proc?.signalCode ?? null,
+    lastSpawnError: _lastSpawnError
+      ? {
+          message: _lastSpawnError.message,
+          code: _lastSpawnError.code || null,
+        }
+      : null,
+    lastExit: _lastExit,
+    recentStderr: _tailComfyLogs(20, "stderr"),
+  };
 }
 
 async function _fetchJsonEndpoint(pathname) {
@@ -125,37 +173,81 @@ function _resolvePython() {
   return "python";
 }
 
-function _spawnComfy() {
-  // Kill any process listening on COMFY_PORT (Windows only)
-  if (process.platform === "win32") {
-    try {
-      const netstatOut = execSync(
-        `netstat -aon | findstr :${COMFY_PORT}.*LISTENING`,
-        { encoding: "utf8" },
-      );
-      const lines = netstatOut.split("\n");
-      const pids = new Set();
-      for (const line of lines) {
-        const parts = line.trim().split(/\s+/);
-        if (parts.length >= 5) {
-          const pid = parts[4];
-          if (pid && !isNaN(Number(pid))) {
-            pids.add(pid);
-          }
+function _killListenersOnComfyPort() {
+  if (process.platform !== "win32") return;
+  try {
+    const netstatOut = execSync(
+      `netstat -aon | findstr :${COMFY_PORT}.*LISTENING`,
+      { encoding: "utf8" },
+    );
+    const lines = netstatOut.split("\n");
+    const pids = new Set();
+    for (const line of lines) {
+      const parts = line.trim().split(/\s+/);
+      if (parts.length >= 5) {
+        const pid = parts[4];
+        if (pid && !isNaN(Number(pid))) {
+          pids.add(pid);
         }
       }
-      for (const pid of pids) {
-        try {
-          console.log(`Killing PID ${pid} on port ${COMFY_PORT}...`);
-          execSync(`taskkill /F /PID ${pid}`);
-        } catch {
-          // Ignore errors if process already exited
-        }
-      }
-    } catch {
-      // No process found or netstat failed, ignore
     }
+    for (const pid of pids) {
+      try {
+        console.log(`Killing PID ${pid} on port ${COMFY_PORT}...`);
+        execSync(`taskkill /F /PID ${pid}`);
+      } catch {
+        // Ignore errors if process already exited
+      }
+    }
+  } catch {
+    // No process found or netstat failed, ignore
   }
+}
+
+function _clearManagedProcRef() {
+  _proc = null;
+  clearEnginePid();
+}
+
+function _stopManagedComfyProcess() {
+  if (!_proc) return;
+  try {
+    _proc.kill("SIGTERM");
+  } catch {
+    // Ignore shutdown failures.
+  }
+  _clearManagedProcRef();
+}
+
+async function _waitForHealthy(timeoutMs = 90_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (await _healthcheck()) {
+      return { running: true, managed: true, pid: _proc?.pid ?? null };
+    }
+    if (_proc && _proc.exitCode != null) {
+      const diagnostics = _makeStartupDiagnostics(
+        "managed process exited before healthcheck passed",
+      );
+      console.error("[comfy] startup failed", diagnostics);
+      throw new Error(
+        `Comfy failed during startup (exit=${_proc.exitCode}, signal=${_proc.signalCode ?? "n/a"}).`,
+      );
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1_000));
+  }
+  const diagnostics = _makeStartupDiagnostics(
+    "timed out waiting for healthy /system_stats",
+  );
+  console.error("[comfy] startup timeout", diagnostics);
+  throw new Error(
+    `Timed out waiting for managed Comfy to become healthy on ${COMFY_HOST}:${COMFY_PORT}.`,
+  );
+}
+
+function _spawnComfy() {
+  // Kill any process listening on COMFY_PORT before starting our managed instance.
+  _killListenersOnComfyPort();
   if (!fs.existsSync(COMFY_ROOT)) {
     throw new Error(`Comfy root not found at ${COMFY_ROOT}`);
   }
@@ -183,18 +275,36 @@ function _spawnComfy() {
     },
   );
 
+  _lastSpawnError = null;
+  _lastExit = null;
+
   child.stdout.on("data", (chunk) => {
+    _rememberComfyLog("stdout", chunk);
     process.stdout.write(`[comfy] ${chunk.toString()}`);
   });
   child.stderr.on("data", (chunk) => {
+    _rememberComfyLog("stderr", chunk);
     process.stderr.write(`[comfy] ${chunk.toString()}`);
   });
-  child.on("exit", (code) => {
+  child.on("error", (err) => {
+    _lastSpawnError = err;
+    console.error("[comfy] managed process spawn/runtime error", {
+      message: err?.message || String(err),
+      code: err?.code || null,
+      stack: err?.stack || null,
+    });
+  });
+  child.on("exit", (code, signal) => {
+    _lastExit = {
+      at: new Date().toISOString(),
+      code: code ?? null,
+      signal: signal ?? null,
+    };
     if (_proc === child) {
       _proc = null;
       clearEnginePid();
     }
-    console.warn(`[comfy] process exited (code=${code})`);
+    console.warn(`[comfy] process exited (code=${code}, signal=${signal ?? "n/a"})`);
   });
 
   _proc = child;
@@ -204,28 +314,41 @@ function _spawnComfy() {
 }
 
 async function ensureManagedComfyReady() {
-  if (await _healthcheck()) return { running: true, managed: false, pid: null };
+  if (await _healthcheck()) {
+    const managed = !!(_proc && _proc.exitCode === null);
+    return { running: true, managed, pid: managed ? (_proc.pid ?? null) : null };
+  }
   if (_proc && _proc.exitCode === null) {
-    return { running: false, managed: true, pid: _proc.pid ?? null };
+    console.warn("[comfy] managed instance unhealthy; recycling");
+    _stopManagedComfyProcess();
+    _killListenersOnComfyPort();
   }
 
   if (!_startingPromise) {
     _startingPromise = (async () => {
       _spawnComfy();
-      const deadline = Date.now() + 90_000;
-      while (Date.now() < deadline) {
-        if (await _healthcheck()) {
-          return { running: true, managed: true, pid: _proc?.pid ?? null };
-        }
-        await new Promise((resolve) => setTimeout(resolve, 1_000));
-      }
-      throw new Error("Timed out waiting for managed Comfy to become healthy.");
+      return _waitForHealthy(90_000);
     })().finally(() => {
       _startingPromise = null;
     });
   }
 
   return _startingPromise;
+}
+
+async function recycleManagedComfy(reason = "unspecified") {
+  if (_startingPromise) {
+    try {
+      await _startingPromise;
+    } catch {
+      // Ignore in-progress startup failure and force recycle below.
+    }
+  }
+  console.warn(`[comfy] recycling managed instance: ${reason}`);
+  _stopManagedComfyProcess();
+  _killListenersOnComfyPort();
+  _spawnComfy();
+  return _waitForHealthy(90_000);
 }
 
 async function getManagedComfyStatus() {
@@ -248,14 +371,7 @@ async function getManagedComfyStatus() {
 }
 
 function stopManagedComfy() {
-  if (!_proc) return;
-  try {
-    _proc.kill("SIGTERM");
-  } catch {
-    // Ignore shutdown failures.
-  }
-  _proc = null;
-  clearEnginePid();
+  _stopManagedComfyProcess();
 }
 
 process.on("exit", stopManagedComfy);
@@ -270,6 +386,7 @@ module.exports = {
   COMFY_HOST,
   COMFY_PORT,
   ensureManagedComfyReady,
+  recycleManagedComfy,
   getManagedComfyStatus,
   getEnginePidFilePath,
 };

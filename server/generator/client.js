@@ -8,6 +8,7 @@ const {
   COMFY_HOST,
   COMFY_PORT,
   ensureManagedComfyReady,
+  recycleManagedComfy,
 } = require("./managed-instance.js");
 const { buildWorkflowByFamily } = require("../workflows/_index.js");
 
@@ -30,10 +31,32 @@ function _formatFetchError(pathname, err) {
     : `Comfy API ${pathname} network error: ${base}`;
 }
 
+function _isConnectionRefusedError(err) {
+  const msg = String(err && err.message ? err.message : "");
+  if (msg.toUpperCase().includes("ECONNREFUSED")) return true;
+  const cause = err && err.cause ? err.cause : null;
+  const code =
+    cause && typeof cause === "object" && cause.code ? String(cause.code) : "";
+  return code.toUpperCase() === "ECONNREFUSED";
+}
+
+async function _fetchWithRecovery(pathname, options = {}) {
+  try {
+    return await fetch(_url(pathname), options);
+  } catch (err) {
+    if (!_isConnectionRefusedError(err)) throw err;
+    console.warn(
+      `[comfy] ECONNREFUSED on ${pathname}; recycling managed process and retrying once`,
+    );
+    await recycleManagedComfy(`connection refused on ${pathname}`);
+    return fetch(_url(pathname), options);
+  }
+}
+
 async function requestJson(pathname, options = {}) {
   let res;
   try {
-    res = await fetch(_url(pathname), options);
+    res = await _fetchWithRecovery(pathname, options);
   } catch (err) {
     throw new Error(_formatFetchError(pathname, err));
   }
@@ -49,7 +72,7 @@ async function requestJson(pathname, options = {}) {
 async function requestBuffer(pathname) {
   let res;
   try {
-    res = await fetch(_url(pathname), { method: "GET" });
+    res = await _fetchWithRecovery(pathname, { method: "GET" });
   } catch (err) {
     throw new Error(_formatFetchError(pathname, err));
   }
