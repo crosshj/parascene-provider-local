@@ -1,5 +1,7 @@
 "use strict";
 
+const { aspectRatioFieldDef } = require("../lib/aspect-ratio.js");
+
 const BASE_PROVIDER_CAPABILITIES = {
   status: "operational",
   methods: {
@@ -174,6 +176,7 @@ const BASE_PROVIDER_CAPABILITIES = {
           type: "text",
           required: true,
         },
+        aspect_ratio: aspectRatioFieldDef(),
         seed: {
           label: "Seed",
           type: "number",
@@ -274,6 +277,7 @@ const BASE_PROVIDER_CAPABILITIES = {
           description:
             "Strength of denoising. If not provided, SDXL models default to 0.65.",
         },
+        aspect_ratio: aspectRatioFieldDef(),
         seed: {
           label: "Seed",
           type: "number",
@@ -324,6 +328,7 @@ const BASE_PROVIDER_CAPABILITIES = {
           type: "image_url_array",
           required: true,
         },
+        aspect_ratio: aspectRatioFieldDef(),
         seed: {
           label: "Seed",
           type: "number",

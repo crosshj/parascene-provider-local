@@ -75,6 +75,22 @@ function SDXLImageToImageWorkflow(overrides = {}) {
       workflow["34"].inputs.image = String(overrides.inputImageFilename);
     }
 
+    // ResizeAndPadImage node "36"
+    if (workflow["36"]?.inputs) {
+      if (overrides.width !== undefined) {
+        workflow["36"].inputs.target_width = toPositiveInt(
+          overrides.width,
+          workflow["36"].inputs.target_width,
+        );
+      }
+      if (overrides.height !== undefined) {
+        workflow["36"].inputs.target_height = toPositiveInt(
+          overrides.height,
+          workflow["36"].inputs.target_height,
+        );
+      }
+    }
+
     return workflow;
   } catch (err) {
     console.error(

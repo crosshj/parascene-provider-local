@@ -100,6 +100,18 @@ function getBearerToken(req) {
   return parts[1] || null;
 }
 
+function applyMethodFieldDefaults(method, args) {
+  const methodDef = BASE_PROVIDER_CAPABILITIES?.methods?.[method];
+  if (!methodDef?.fields) return args;
+  const out = { ...args };
+  for (const [fieldName, fieldDef] of Object.entries(methodDef.fields)) {
+    if (!(fieldName in out) && fieldDef.default !== undefined) {
+      out[fieldName] = fieldDef.default;
+    }
+  }
+  return out;
+}
+
 function ensureAuthorized(req, res) {
   const token = getBearerToken(req);
   if (!token || token !== PARASCENE_API_KEY) {
@@ -270,8 +282,11 @@ async function handleApiPost(req, res, ctx = {}) {
     }
     let comfyArgs;
     try {
-      // Merge top-level method into args so buildComfyArgs can determine the workflow
-      comfyArgs = await buildComfyArgs({ ...args, method }, ctx.outputDir);
+      const resolvedArgs = applyMethodFieldDefaults(method, args);
+      comfyArgs = await buildComfyArgs(
+        { ...resolvedArgs, method },
+        ctx.outputDir,
+      );
     } catch (err) {
       return sendJson(res, 400, { error: err.message });
     }
@@ -297,4 +312,5 @@ async function handleApiPost(req, res, ctx = {}) {
 module.exports = {
   handleApiGet,
   handleApiPost,
+  applyMethodFieldDefaults,
 };

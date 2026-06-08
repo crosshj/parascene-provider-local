@@ -3,18 +3,35 @@
 
 const { sanitizePromptText } = require("../handlers/generate.js");
 const { resolveModel } = require("../lib/model-registry.js");
-const { downloadImagesToComfyInput } = require("../generator/image-input.js");
+const {
+  downloadImagesToComfyInput,
+  COMFY_INPUT_DIR,
+} = require("../generator/image-input.js");
 const {
   getImage2videoPreset,
   buildSyntheticImage2videoRegistryEntry,
   IMAGE2VIDEO_MODEL_PRESETS,
 } = require("../configs/api-model-aliases.js");
+const { _loadTemplateDefaults } = require("../workflows/_defaults.js");
+const {
+  resolveGenerationDimensions,
+  resolveAspectRatioFromInputImage,
+} = require("../lib/aspect-ratio.js");
 
 function normalizeInputImages(body) {
   if (Array.isArray(body.input_images)) {
     return body.input_images.map((v) => String(v || "").trim()).filter(Boolean);
   }
   return [];
+}
+
+function getEntryDefaults(entry) {
+  if (entry?.defaults && Number.isFinite(entry.defaults.width)) {
+    return entry.defaults;
+  }
+  const fromTemplate = _loadTemplateDefaults(entry?.managedWorkflowId);
+  if (fromTemplate) return fromTemplate;
+  return { width: 1024, height: 1024, steps: 20, cfg: 7 };
 }
 
 /**
@@ -43,6 +60,10 @@ async function buildComfyArgs(body, outputDir) {
       );
     }
     const entry = buildSyntheticImage2videoRegistryEntry(presetKey, preset);
+    const defaults = _loadTemplateDefaults(preset.managedWorkflowId) || {
+      width: 1024,
+      height: 1024,
+    };
     const inputImages = normalizeInputImages(body);
     if (!inputImages.length) {
       throw new Error("image2video requires input_images to be provided.");
@@ -51,6 +72,16 @@ async function buildComfyArgs(body, outputDir) {
     const [filename] = files;
     if (!filename)
       throw new Error("Failed to prepare input image for image2video.");
+
+    const { width, height } = await resolveAspectRatioFromInputImage({
+      body,
+      inputFilename: filename,
+      inputDir: COMFY_INPUT_DIR,
+      baseWidth: defaults.width,
+      baseHeight: defaults.height,
+      requireExactPixels: true,
+    });
+
     return {
       payload: {
         family: preset.family,
@@ -64,8 +95,8 @@ async function buildComfyArgs(body, outputDir) {
         prompt,
         negativePrompt,
         seed,
-        width: body.width,
-        height: body.height,
+        width,
+        height,
         steps: body.steps,
         cfg: body.cfg,
         fps: body.fps,
@@ -85,6 +116,8 @@ async function buildComfyArgs(body, outputDir) {
     throw new Error(`Unknown model: "${modelName}". Check GET /api/models.`);
   }
 
+  const defaults = getEntryDefaults(entry);
+
   if (method === "image2image" && entry.family === "sdxl") {
     const inputImages = normalizeInputImages(body);
     if (!inputImages.length) {
@@ -94,6 +127,16 @@ async function buildComfyArgs(body, outputDir) {
     const [filename] = files;
     if (!filename)
       throw new Error("Failed to prepare input image for image2image.");
+
+    const { width, height } = await resolveAspectRatioFromInputImage({
+      body,
+      inputFilename: filename,
+      inputDir: COMFY_INPUT_DIR,
+      baseWidth: defaults.width,
+      baseHeight: defaults.height,
+      requireExactPixels: false,
+    });
+
     return {
       payload: {
         family: entry.family,
@@ -106,8 +149,8 @@ async function buildComfyArgs(body, outputDir) {
         prompt,
         negativePrompt,
         seed,
-        width: body.width,
-        height: body.height,
+        width,
+        height,
         steps: body.steps,
         cfg: body.cfg,
         denoise: body.denoise,
@@ -125,6 +168,8 @@ async function buildComfyArgs(body, outputDir) {
     throw new Error('Selected model requires method "image2video".');
   }
 
+  const { width, height } = resolveGenerationDimensions(body, defaults);
+
   // Default: text2image or other
   return {
     payload: {
@@ -138,8 +183,8 @@ async function buildComfyArgs(body, outputDir) {
       prompt,
       negativePrompt,
       seed,
-      width: body.width,
-      height: body.height,
+      width,
+      height,
       steps: body.steps,
       cfg: body.cfg,
       denoise: body.denoise,

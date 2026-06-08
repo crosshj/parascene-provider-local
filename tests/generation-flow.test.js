@@ -49,6 +49,7 @@ jest.mock("../server/lib/model-registry.js", () => ({
 
 jest.mock("../server/generator/image-input.js", () => ({
   downloadImagesToComfyInput: jest.fn(),
+  COMFY_INPUT_DIR: "/fake/comfy/input",
 }));
 
 jest.mock("../server/generator/index.js", () => ({
@@ -145,6 +146,21 @@ describe("generation flow — correct args reach runComfyGeneration", () => {
       expect(downloadImagesToComfyInput).not.toHaveBeenCalled();
     });
 
+    it("text2image: maps aspect_ratio 16:9 to workflow dimensions", async () => {
+      resolveModel.mockReturnValue(FAKE_SDXL_TEXT2IMAGE);
+      const { payload } = await buildComfyArgs(
+        {
+          prompt: "a cat",
+          model: "fake_sdxl",
+          method: "text2image",
+          aspect_ratio: "16:9",
+        },
+        OUTPUT_DIR,
+      );
+      expect(payload.width).toBe(1344);
+      expect(payload.height).toBe(768);
+    });
+
     it("image2image: uses image2image workflow, downloads image, sets inputImageFilename", async () => {
       resolveModel.mockReturnValue(FAKE_SDXL_I2I);
       const { payload, method } = await buildComfyArgs(
@@ -154,6 +170,7 @@ describe("generation flow — correct args reach runComfyGeneration", () => {
           method: "image2image",
           input_images: [IMAGE_URL],
           denoise: 0.7,
+          aspect_ratio: "9:16",
         },
         OUTPUT_DIR,
       );
@@ -161,6 +178,8 @@ describe("generation flow — correct args reach runComfyGeneration", () => {
       expect(payload.managedWorkflowId).toBe("image2image-sdxl-checkpoint");
       expect(payload.inputImageFilename).toBe(FAKE_FILENAME);
       expect(payload.denoise).toBe(0.7);
+      expect(payload.width).toBe(768);
+      expect(payload.height).toBe(1344);
       expect(downloadImagesToComfyInput).toHaveBeenCalledWith([IMAGE_URL]);
     });
 
@@ -172,6 +191,24 @@ describe("generation flow — correct args reach runComfyGeneration", () => {
           OUTPUT_DIR,
         ),
       ).rejects.toThrow("image2image requires input_images");
+    });
+
+    it("image2video: maps aspect_ratio to workflow dimensions", async () => {
+      const { payload, method, entry } = await buildComfyArgs(
+        {
+          prompt: "camera pan",
+          model: "wan_i2v",
+          method: "image2video",
+          input_images: [IMAGE_URL],
+          aspect_ratio: "16:9",
+        },
+        OUTPUT_DIR,
+      );
+      expect(method).toBe("image2video");
+      expect(entry.managedWorkflowId).toBe("image2video-wan2_2_14B");
+      expect(payload.width).toBe(1344);
+      expect(payload.height).toBe(768);
+      expect(payload.expectVideo).toBe(true);
     });
   });
 
@@ -207,6 +244,7 @@ describe("generation flow — correct args reach runComfyGeneration", () => {
         method: "image2image",
         input_images: [IMAGE_URL],
         denoise: 0.6,
+        aspect_ratio: "1:1",
       });
       const res = fakeRes();
       await new Promise((resolve) => {
@@ -245,6 +283,7 @@ describe("generation flow — correct args reach runComfyGeneration", () => {
           method: "image2image",
           input_images: [IMAGE_URL],
           denoise: 0.5,
+          aspect_ratio: "1:1",
         },
         OUTPUT_DIR,
       );
@@ -253,6 +292,27 @@ describe("generation flow — correct args reach runComfyGeneration", () => {
       expect(job.payload.managedWorkflowId).toBe("image2image-sdxl-checkpoint");
       expect(job.payload.inputImageFilename).toBe(FAKE_FILENAME);
       expect(job.payload.denoise).toBe(0.5);
+      expect(job.payload.width).toBe(1024);
+      expect(job.payload.height).toBe(1024);
     });
+  });
+});
+
+describe("api.js field defaults", () => {
+  const { applyMethodFieldDefaults } = require("../server/handlers/api.js");
+
+  it("applies aspect_ratio default 1:1 for text2image jobs", async () => {
+    resolveModel.mockReturnValue(FAKE_SDXL_TEXT2IMAGE);
+    const args = applyMethodFieldDefaults("text2image", {
+      model: "fake_sdxl",
+      prompt: "hello",
+    });
+    expect(args.aspect_ratio).toBe("1:1");
+    const { payload } = await buildComfyArgs(
+      { ...args, method: "text2image" },
+      OUTPUT_DIR,
+    );
+    expect(payload.width).toBe(1024);
+    expect(payload.height).toBe(1024);
   });
 });

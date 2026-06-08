@@ -156,6 +156,8 @@ function initApp() {
   const metaRowEl = document.getElementById("meta-row");
   const imageUrlField = document.getElementById("image-url-field");
   const imageUrlInput = document.getElementById("input_images");
+  const aspectRatioField = document.getElementById("aspect-ratio-field");
+  const aspectRatioSel = document.getElementById("aspect_ratio");
 
   /** @type {HTMLVideoElement | null} */
   let previewVideoEl = null;
@@ -234,6 +236,7 @@ function initApp() {
       seed: form.seed ? form.seed.value : undefined,
       denoise: form.denoise ? form.denoise.value : undefined,
       input_images: imageUrlInput ? imageUrlInput.value : undefined,
+      aspect_ratio: aspectRatioSel ? aspectRatioSel.value : undefined,
       perMethodModel,
     };
   }
@@ -378,6 +381,35 @@ function initApp() {
       }
       methodSel.value = initialMethod;
 
+      function rebuildAspectRatioForMethod(methodId, preferredRatio) {
+        if (!aspectRatioSel) return;
+        const methodDef = methods[methodId];
+        const field = methodDef?.fields?.aspect_ratio;
+        const options = field?.options || [];
+        aspectRatioSel.innerHTML = "";
+        if (!options.length) {
+          if (aspectRatioField) aspectRatioField.style.display = "none";
+          return;
+        }
+        if (aspectRatioField) aspectRatioField.style.display = "";
+        for (const o of options) {
+          const opt = document.createElement("option");
+          opt.value = o.value;
+          opt.textContent = o.label || o.value;
+          aspectRatioSel.appendChild(opt);
+        }
+        const defaultValue =
+          typeof field?.default === "string" ? field.default : options[0]?.value;
+        let pick = defaultValue || "";
+        if (
+          preferredRatio &&
+          options.some((o) => o.value === preferredRatio)
+        ) {
+          pick = preferredRatio;
+        }
+        if (pick) aspectRatioSel.value = pick;
+      }
+
       function rebuildModelsForMethod(methodId, preferredModelId) {
         const methodDef = methods[methodId];
         const modelField = methodDef?.fields?.model;
@@ -422,6 +454,13 @@ function initApp() {
         perMethodModel[initialMethod] = initialModel;
       }
 
+      rebuildAspectRatioForMethod(
+        initialMethod,
+        savedValues && typeof savedValues.aspect_ratio === "string"
+          ? savedValues.aspect_ratio
+          : null,
+      );
+
       // Restore prompt, input_images, denoise
       if (savedValues && savedValues.prompt != null)
         form.prompt.value = savedValues.prompt;
@@ -443,15 +482,15 @@ function initApp() {
       // Events
       methodSel.addEventListener("change", () => {
         const methodId = methodSel.value;
-        const prevModel = modelSel.value;
         const pick = rebuildModelsForMethod(
           methodId,
           perMethodModel[methodId] || null,
         );
         if (pick) perMethodModel[methodId] = pick;
-        // Save method/model selection
+        rebuildAspectRatioForMethod(methodId, null);
         saveFormValues();
         updateFamilyBadge();
+        updateFieldVisibility();
       });
 
       modelSel.addEventListener("change", () => {
@@ -482,6 +521,7 @@ function initApp() {
 
   form.prompt.addEventListener("input", saveFormValues);
   form.seed?.addEventListener("input", saveFormValues);
+  aspectRatioSel?.addEventListener("change", saveFormValues);
   form.model.addEventListener("change", () => {
     updateFamilyBadge();
     saveFormValues();
@@ -527,6 +567,10 @@ function initApp() {
       imageUrlInput.value.trim()
     ) {
       body.input_images = [imageUrlInput.value.trim()];
+    }
+
+    if (aspectRatioSel && aspectRatioSel.value) {
+      body.aspect_ratio = aspectRatioSel.value;
     }
 
     try {
