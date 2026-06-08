@@ -51,6 +51,12 @@ function LtxAudio2VideoWorkflow(overrides = {}) {
     workflow["340:305"].inputs.value = switchToTextToVideo;
   }
 
+  // Audio-only path: bypass TextGenerateLTX2Prompt (which requires LoadImage) and
+  // encode the user prompt directly, matching ltx2_3_t2v behavior.
+  if (switchToTextToVideo && workflow["340:306"]?.inputs) {
+    workflow["340:306"].inputs.text = ["340:319", 0];
+  }
+
   if (
     !switchToTextToVideo &&
     overrides.inputImageFilename &&

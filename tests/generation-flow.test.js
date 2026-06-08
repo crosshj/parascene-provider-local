@@ -350,6 +350,30 @@ describe("generation flow — correct args reach runComfyGeneration", () => {
       expect(downloadImagesToComfyInput).toHaveBeenCalledWith([IMAGE_URL]);
     });
 
+    it("audio2video workflow: audio-only routes prompt directly and skips LoadImage chain", () => {
+      const LtxAudio2VideoWorkflow = require("../server/workflows/imageAudio2video/video_ltx2_3_ia2v.js");
+      const wf = LtxAudio2VideoWorkflow({
+        useStartingImage: true,
+        prompt: "dance to the beat",
+        inputAudioFilename: "track.mp3",
+      });
+      expect(wf["340:305"].inputs.value).toBe(true);
+      expect(wf["340:306"].inputs.text).toEqual(["340:319", 0]);
+      expect(wf["276"].inputs.audio).toBe("track.mp3");
+    });
+
+    it("audio2video workflow: image mode keeps TextGenerateLTX2Prompt path", () => {
+      const LtxAudio2VideoWorkflow = require("../server/workflows/imageAudio2video/video_ltx2_3_ia2v.js");
+      const wf = LtxAudio2VideoWorkflow({
+        useStartingImage: false,
+        inputImageFilename: "start.png",
+        inputAudioFilename: "track.mp3",
+      });
+      expect(wf["340:305"].inputs.value).toBe(false);
+      expect(wf["340:306"].inputs.text).toEqual(["340:342", 0]);
+      expect(wf["269"].inputs.image).toBe("start.png");
+    });
+
     it("image2video: accepts a single image URL string", async () => {
       const { payload } = await buildComfyArgs(
         {
