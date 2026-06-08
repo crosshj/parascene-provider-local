@@ -9,8 +9,11 @@ const {
 } = require("../generator/image-input.js");
 const {
   getImage2videoPreset,
+  getImage2imagePreset,
   buildSyntheticImage2videoRegistryEntry,
+  buildSyntheticImage2imageRegistryEntry,
   IMAGE2VIDEO_MODEL_PRESETS,
+  IMAGE2IMAGE_MODEL_PRESETS,
 } = require("../configs/api-model-aliases.js");
 const { _loadTemplateDefaults } = require("../workflows/_defaults.js");
 const {
@@ -34,9 +37,23 @@ function getEntryDefaults(entry) {
   return { width: 1024, height: 1024, steps: 20, cfg: 7 };
 }
 
+async function prepareInputImageAspectRatio(body, filename, managedWorkflowId) {
+  const defaults = _loadTemplateDefaults(managedWorkflowId) || {
+    width: 1024,
+    height: 1024,
+  };
+  return resolveAspectRatioFromInputImage({
+    body,
+    inputFilename: filename,
+    inputDir: COMFY_INPUT_DIR,
+    baseWidth: defaults.width,
+    baseHeight: defaults.height,
+  });
+}
+
 /**
  * Build the argument payload for Comfy jobs, given user args/body and outputDir.
- * image2video uses preset keys from configs/api-model-aliases.js (no registry scan).
+ * image2video / image2image use preset keys from configs/api-model-aliases.js.
  */
 async function buildComfyArgs(body, outputDir) {
   const prompt = sanitizePromptText(body.prompt);
@@ -60,10 +77,6 @@ async function buildComfyArgs(body, outputDir) {
       );
     }
     const entry = buildSyntheticImage2videoRegistryEntry(presetKey, preset);
-    const defaults = _loadTemplateDefaults(preset.managedWorkflowId) || {
-      width: 1024,
-      height: 1024,
-    };
     const inputImages = normalizeInputImages(body);
     if (!inputImages.length) {
       throw new Error("image2video requires input_images to be provided.");
@@ -73,14 +86,8 @@ async function buildComfyArgs(body, outputDir) {
     if (!filename)
       throw new Error("Failed to prepare input image for image2video.");
 
-    const { width, height } = await resolveAspectRatioFromInputImage({
-      body,
-      inputFilename: filename,
-      inputDir: COMFY_INPUT_DIR,
-      baseWidth: defaults.width,
-      baseHeight: defaults.height,
-      requireExactPixels: true,
-    });
+    const { width, height, inputFilename } =
+      await prepareInputImageAspectRatio(body, filename, preset.managedWorkflowId);
 
     return {
       payload: {
@@ -100,7 +107,7 @@ async function buildComfyArgs(body, outputDir) {
         steps: body.steps,
         cfg: body.cfg,
         fps: body.fps,
-        inputImageFilename: filename,
+        inputImageFilename: inputFilename,
         expectVideo: true,
       },
       entry,
@@ -108,17 +115,10 @@ async function buildComfyArgs(body, outputDir) {
     };
   }
 
-  const modelName = String(body.model || "").trim();
-  if (!modelName) throw new Error("Missing required field: model");
+  if (method === "image2image") {
+    const modelKey = String(body.model || "").trim();
+    if (!modelKey) throw new Error("Missing required field: model");
 
-  const entry = resolveModel(modelName);
-  if (!entry) {
-    throw new Error(`Unknown model: "${modelName}". Check GET /api/models.`);
-  }
-
-  const defaults = getEntryDefaults(entry);
-
-  if (method === "image2image" && entry.family === "sdxl") {
     const inputImages = normalizeInputImages(body);
     if (!inputImages.length) {
       throw new Error("image2image requires input_images to be provided.");
@@ -128,14 +128,57 @@ async function buildComfyArgs(body, outputDir) {
     if (!filename)
       throw new Error("Failed to prepare input image for image2image.");
 
-    const { width, height } = await resolveAspectRatioFromInputImage({
-      body,
-      inputFilename: filename,
-      inputDir: COMFY_INPUT_DIR,
-      baseWidth: defaults.width,
-      baseHeight: defaults.height,
-      requireExactPixels: false,
-    });
+    const preset = getImage2imagePreset(modelKey);
+    if (preset) {
+      const entry = buildSyntheticImage2imageRegistryEntry(modelKey, preset);
+      const { width, height, inputFilename } =
+        await prepareInputImageAspectRatio(
+          body,
+          filename,
+          preset.managedWorkflowId,
+        );
+
+      return {
+        payload: {
+          family: preset.family,
+          managedWorkflowId: preset.managedWorkflowId,
+          modelFile: preset.modelFile,
+          modelPath: preset.modelPath,
+          comfyCheckpointGroup: preset.comfyCheckpointGroup,
+          diffusionModelComfyName: preset.diffusionModelComfyName,
+          loadKind: preset.loadKind,
+          prompt,
+          negativePrompt,
+          seed,
+          width,
+          height,
+          steps: body.steps,
+          cfg: body.cfg,
+          denoise: body.denoise,
+          inputImageFilename: inputFilename,
+        },
+        entry,
+        method,
+      };
+    }
+
+    const entry = resolveModel(modelKey);
+    if (!entry) {
+      throw new Error(`Unknown model: "${modelKey}". Check GET /api models.`);
+    }
+    if (entry.family !== "sdxl") {
+      throw new Error(
+        `image2image model "${modelKey}" is not supported. Use an SDXL checkpoint or a fixed edit preset.`,
+      );
+    }
+
+    const defaults = getEntryDefaults(entry);
+    const { width, height, inputFilename } =
+      await prepareInputImageAspectRatio(
+        body,
+        filename,
+        "image2image-sdxl-checkpoint",
+      );
 
     return {
       payload: {
@@ -154,11 +197,19 @@ async function buildComfyArgs(body, outputDir) {
         steps: body.steps,
         cfg: body.cfg,
         denoise: body.denoise,
-        inputImageFilename: filename,
+        inputImageFilename: inputFilename,
       },
       entry,
       method,
     };
+  }
+
+  const modelName = String(body.model || "").trim();
+  if (!modelName) throw new Error("Missing required field: model");
+
+  const entry = resolveModel(modelName);
+  if (!entry) {
+    throw new Error(`Unknown model: "${modelName}". Check GET /api/models.`);
   }
 
   if (
@@ -168,9 +219,9 @@ async function buildComfyArgs(body, outputDir) {
     throw new Error('Selected model requires method "image2video".');
   }
 
+  const defaults = getEntryDefaults(entry);
   const { width, height } = resolveGenerationDimensions(body, defaults);
 
-  // Default: text2image or other
   return {
     payload: {
       family: entry.family,

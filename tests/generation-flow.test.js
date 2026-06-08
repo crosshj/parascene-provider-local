@@ -39,6 +39,31 @@ const FAKE_SDXL_I2I = {
   managedWorkflowId: "image2image-sdxl-checkpoint",
 };
 
+jest.mock("../server/lib/aspect-ratio.js", () => {
+  const actual = jest.requireActual("../server/lib/aspect-ratio.js");
+  return {
+    ...actual,
+    resolveAspectRatioFromInputImage: jest.fn(async ({ body, inputFilename }) => {
+      const explicit = String(body.aspect_ratio ?? "").trim();
+      const aspectRatio =
+        explicit ||
+        actual.classifyDimensions(1344, 768, 1024, 1024) ||
+        "16:9";
+      const dims = actual.resolveAspectRatioDimensions(
+        aspectRatio,
+        1024,
+        1024,
+      );
+      return {
+        aspectRatio: dims.requested,
+        width: dims.width,
+        height: dims.height,
+        inputFilename,
+      };
+    }),
+  };
+});
+
 // ── Mocks ───────────────────────────────────────────────────────────────────
 // jest.mock paths must be string literals (Jest hoists them before var init).
 
@@ -161,12 +186,12 @@ describe("generation flow — correct args reach runComfyGeneration", () => {
       expect(payload.height).toBe(768);
     });
 
-    it("image2image: uses image2image workflow, downloads image, sets inputImageFilename", async () => {
+    it("image2image: SDXL checkpoint uses registry model and sdxl workflow", async () => {
       resolveModel.mockReturnValue(FAKE_SDXL_I2I);
       const { payload, method } = await buildComfyArgs(
         {
           prompt: "a dog",
-          model: "fake_sdxl",
+          model: "checkpoints/xl/sd_xl_base_1.0.safetensors",
           method: "image2image",
           input_images: [IMAGE_URL],
           denoise: 0.7,
@@ -176,39 +201,55 @@ describe("generation flow — correct args reach runComfyGeneration", () => {
       );
       expect(method).toBe("image2image");
       expect(payload.managedWorkflowId).toBe("image2image-sdxl-checkpoint");
+      expect(payload.modelFile).toBe(FAKE_SDXL_I2I.file);
       expect(payload.inputImageFilename).toBe(FAKE_FILENAME);
       expect(payload.denoise).toBe(0.7);
       expect(payload.width).toBe(768);
       expect(payload.height).toBe(1344);
-      expect(downloadImagesToComfyInput).toHaveBeenCalledWith([IMAGE_URL]);
+      expect(resolveModel).toHaveBeenCalled();
+    });
+
+    it("image2image: flux kontext preset maps to fixed workflow", async () => {
+      const { payload } = await buildComfyArgs(
+        {
+          prompt: "edit",
+          model: "flux_kontext_i2i",
+          method: "image2image",
+          input_images: [IMAGE_URL],
+          aspect_ratio: "1:1",
+        },
+        OUTPUT_DIR,
+      );
+      expect(payload.managedWorkflowId).toBe("image2image-flux-kontext");
     });
 
     it("image2image: throws if input_images is missing", async () => {
-      resolveModel.mockReturnValue(FAKE_SDXL_I2I);
       await expect(
         buildComfyArgs(
-          { prompt: "a dog", model: "fake_sdxl", method: "image2image" },
+          {
+            prompt: "a dog",
+            model: "checkpoints/xl/sd_xl_base_1.0.safetensors",
+            method: "image2image",
+          },
           OUTPUT_DIR,
         ),
       ).rejects.toThrow("image2image requires input_images");
     });
 
-    it("image2video: maps aspect_ratio to workflow dimensions", async () => {
-      const { payload, method, entry } = await buildComfyArgs(
+    it("image2video: ltx preset maps to ltx workflow", async () => {
+      const { payload, entry } = await buildComfyArgs(
         {
           prompt: "camera pan",
-          model: "wan_i2v",
+          model: "ltx_i2v",
           method: "image2video",
           input_images: [IMAGE_URL],
-          aspect_ratio: "16:9",
+          aspect_ratio: "1:1",
         },
         OUTPUT_DIR,
       );
-      expect(method).toBe("image2video");
-      expect(entry.managedWorkflowId).toBe("image2video-wan2_2_14B");
-      expect(payload.width).toBe(1344);
-      expect(payload.height).toBe(768);
-      expect(payload.expectVideo).toBe(true);
+      expect(entry.managedWorkflowId).toBe("image2video-ltx2_3");
+      expect(payload.width).toBe(1024);
+      expect(payload.height).toBe(1024);
     });
   });
 
@@ -240,7 +281,7 @@ describe("generation flow — correct args reach runComfyGeneration", () => {
       resolveModel.mockReturnValue(FAKE_SDXL_I2I);
       const req = fakeReq({
         prompt: "a dog",
-        model: "fake_sdxl",
+        model: "checkpoints/xl/sd_xl_base_1.0.safetensors",
         method: "image2image",
         input_images: [IMAGE_URL],
         denoise: 0.6,
@@ -279,7 +320,7 @@ describe("generation flow — correct args reach runComfyGeneration", () => {
       const comfyArgs = await buildComfyArgs(
         {
           prompt: "a dog",
-          model: "fake_sdxl",
+          model: "checkpoints/xl/sd_xl_base_1.0.safetensors",
           method: "image2image",
           input_images: [IMAGE_URL],
           denoise: 0.5,

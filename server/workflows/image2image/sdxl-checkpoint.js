@@ -34,6 +34,11 @@ function SDXLImageToImageWorkflow(overrides = {}) {
   try {
     const workflow = cloneBaseWorkflow();
 
+    if (overrides.modelFile && workflow["30"]?.inputs) {
+      const group = overrides.comfyCheckpointGroup || "xl";
+      workflow["30"].inputs.ckpt_name = group + "\\" + overrides.modelFile;
+    }
+
     // Prompt / negative prompt
     workflow["6"].inputs.text = overrides.prompt || "";
     if (workflow["33"] && workflow["33"].inputs) {

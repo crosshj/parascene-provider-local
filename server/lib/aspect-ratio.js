@@ -123,29 +123,6 @@ function detectAspectRatioFromDimensions(
 }
 
 /**
- * For image2video: input must match a preset pixel size exactly.
- */
-function assertExactSupportedDimensions(
-  width,
-  height,
-  baseWidth = 1024,
-  baseHeight = 1024,
-) {
-  const iw = Math.round(Number(width));
-  const ih = Math.round(Number(height));
-  const table = getDimensionsTable(baseWidth, baseHeight);
-  for (const ratio of ASPECT_RATIO_OPTIONS) {
-    const d = table[ratio];
-    if (d.width === iw && d.height === ih) {
-      return { ratio, width: iw, height: ih };
-    }
-  }
-  throw new Error(
-    `Input image dimensions ${iw}x${ih} do not match a supported size for image2video`,
-  );
-}
-
-/**
  * Resolve width/height from body: explicit dimensions beat aspect_ratio; else aspect_ratio; else omit.
  */
 function resolveGenerationDimensions(body, defaults = {}) {
@@ -201,7 +178,34 @@ async function getImageDimensionsFromPath(filePath) {
 }
 
 /**
- * Resolve aspect ratio + dimensions for image-input methods (i2i / i2v).
+ * Scale an input image down to the preset cap (exact target dimensions).
+ * Overwrites the file in place. No-op when already within cap.
+ */
+async function scaleDownInputImageIfNeeded(filePath, targetWidth, targetHeight) {
+  const { width: iw, height: ih } = await getImageDimensionsFromPath(filePath);
+  if (iw <= targetWidth && ih <= targetHeight) {
+    return false;
+  }
+  let sharp;
+  try {
+    sharp = require("sharp");
+  } catch {
+    throw new Error(
+      "Cannot scale input image: sharp is not installed. Run npm install sharp.",
+    );
+  }
+  const buffer = await sharp(filePath)
+    .resize(targetWidth, targetHeight, { fit: "fill" })
+    .toBuffer();
+  fs.writeFileSync(filePath, buffer);
+  return true;
+}
+
+/**
+ * Validate input image aspect ratio and enforce preset size cap for i2i / i2v.
+ * - Explicit aspect_ratio: reject when image ratio does not match.
+ * - Omitted aspect_ratio: detect ratio from image; reject when unsupported.
+ * - Oversized images are scaled down to the preset cap for the ratio.
  */
 async function resolveAspectRatioFromInputImage({
   body,
@@ -209,39 +213,48 @@ async function resolveAspectRatioFromInputImage({
   inputDir,
   baseWidth,
   baseHeight,
-  requireExactPixels = false,
 }) {
-  const defaults = { width: baseWidth, height: baseHeight };
-  const explicit = String(body.aspect_ratio ?? "").trim();
-
-  if (explicit) {
-    const dims = resolveAspectRatioDimensions(explicit, baseWidth, baseHeight);
-    return { aspectRatio: dims.requested, width: dims.width, height: dims.height };
-  }
-
   const filePath = path.join(inputDir, inputFilename);
   if (!fs.existsSync(filePath)) {
     throw new Error("Failed to read input image for aspect ratio validation.");
   }
+
   const { width: iw, height: ih } = await getImageDimensionsFromPath(filePath);
+  const explicit = String(body.aspect_ratio ?? "").trim();
+  let aspectRatio;
 
-  if (requireExactPixels) {
-    const match = assertExactSupportedDimensions(iw, ih, baseWidth, baseHeight);
-    return {
-      aspectRatio: match.ratio,
-      width: match.width,
-      height: match.height,
-    };
+  if (explicit) {
+    resolveAspectRatioDimensions(explicit, baseWidth, baseHeight);
+    const detected = classifyDimensions(iw, ih, baseWidth, baseHeight);
+    if (!detected || detected !== explicit) {
+      throw new Error(
+        `Input image aspect ratio does not match aspect_ratio "${explicit}". ${UNSUPPORTED_RATIO_MSG}`,
+      );
+    }
+    aspectRatio = explicit;
+  } else {
+    aspectRatio = classifyDimensions(iw, ih, baseWidth, baseHeight);
+    if (!aspectRatio) {
+      throw new Error(
+        `Input image aspect ratio is not supported. ${UNSUPPORTED_RATIO_MSG}`,
+      );
+    }
   }
 
-  const ratio = detectAspectRatioFromDimensions(iw, ih, baseWidth, baseHeight);
-  if (!ratio) {
-    throw new Error(
-      `Input image aspect ratio is not supported. ${UNSUPPORTED_RATIO_MSG}`,
-    );
-  }
-  const dims = resolveAspectRatioDimensions(ratio, baseWidth, baseHeight);
-  return { aspectRatio: ratio, width: dims.width, height: dims.height };
+  const { width: targetW, height: targetH } = resolveAspectRatioDimensions(
+    aspectRatio,
+    baseWidth,
+    baseHeight,
+  );
+
+  await scaleDownInputImageIfNeeded(filePath, targetW, targetH);
+
+  return {
+    aspectRatio,
+    width: targetW,
+    height: targetH,
+    inputFilename,
+  };
 }
 
 module.exports = {
@@ -253,8 +266,8 @@ module.exports = {
   resolveAspectRatioDimensions,
   classifyDimensions,
   detectAspectRatioFromDimensions,
-  assertExactSupportedDimensions,
   resolveGenerationDimensions,
   getImageDimensionsFromPath,
+  scaleDownInputImageIfNeeded,
   resolveAspectRatioFromInputImage,
 };

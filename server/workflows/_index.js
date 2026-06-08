@@ -13,8 +13,12 @@ const WORKFLOWS = {
 
   // Text-to-video workflows
 
-  // Image-to-image workflows
+  // Image-to-image workflows (fixed-model presets; weights baked into JSON)
   "image2image-sdxl-checkpoint": require("./image2image/sdxl-checkpoint.js"),
+  "image2image-flux-kontext": require("./image2image/flux-kontext.js"),
+  "image2image-qwen-edit-4step": require("./image2image/qwen-edit-4step.js"),
+  "image2image-qwen-rapid-aio": require("./image2image/qwen-rapid-aio.js"),
+  "image2image-omnigen2-edit": require("./image2image/omnigen2-edit.js"),
 
   // Image-to-video workflows
   "image2video-wan2_2_14B": require("./image2video/wan2_2_14B.js"),

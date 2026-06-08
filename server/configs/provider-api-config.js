@@ -204,6 +204,26 @@ const BASE_PROVIDER_CAPABILITIES = {
           required: true,
           options: [
             {
+              label: "Flux — Kontext edit",
+              value: "flux_kontext_i2i",
+              hint: "Flux Kontext reference-latent edit (fixed weights in workflow).",
+            },
+            {
+              label: "Qwen — Image Edit 4-step",
+              value: "qwen_edit_i2i",
+              hint: "Qwen Image Edit + Lightning LoRA (fixed workflow).",
+            },
+            {
+              label: "Qwen — Rapid AIO edit",
+              value: "qwen_rapid_i2i",
+              hint: "Qwen Rapid AIO edit-plus stack (fixed checkpoint).",
+            },
+            {
+              label: "OmniGen2 — image edit",
+              value: "omnigen2_edit_i2i",
+              hint: "OmniGen2 reference-latent edit (fixed workflow).",
+            },
+            {
               label: "sdxl: dreamshaperXL_turboDpmppSDE",
               value: "checkpoints/xl/dreamshaperXL_turboDpmppSDE.safetensors",
               hint: "Supports single image input. Low censorship.",
