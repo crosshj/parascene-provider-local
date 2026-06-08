@@ -77,6 +77,10 @@ jest.mock("../server/generator/image-input.js", () => ({
   COMFY_INPUT_DIR: "/fake/comfy/input",
 }));
 
+jest.mock("../server/generator/audio-input.js", () => ({
+  downloadAudioToComfyInput: jest.fn(),
+}));
+
 jest.mock("../server/generator/index.js", () => ({
   runComfyGeneration: jest.fn(),
   hasWorkflow: jest.fn(() => true),
@@ -90,6 +94,9 @@ const { resolveModel } = require("../server/lib/model-registry.js");
 const {
   downloadImagesToComfyInput,
 } = require("../server/generator/image-input.js");
+const {
+  downloadAudioToComfyInput,
+} = require("../server/generator/audio-input.js");
 const { runComfyGeneration } = require("../server/generator/index.js");
 const { buildComfyArgs } = require("../server/lib/comfy-args.js");
 const { enqueueGenerationJob } = require("../server/lib/scheduler.js");
@@ -98,7 +105,9 @@ const { enqueueGenerationJob } = require("../server/lib/scheduler.js");
 
 const OUTPUT_DIR = "/fake/output";
 const IMAGE_URL = "http://example.com/input.png";
+const AUDIO_URL = "http://example.com/input.mp3";
 const FAKE_FILENAME = "input_123_abc.png";
+const FAKE_AUDIO_FILENAME = "audio_123_def.mp3";
 
 function fakeSuccess() {
   return {
@@ -153,6 +162,7 @@ describe("generation flow — correct args reach runComfyGeneration", () => {
     jest.clearAllMocks();
     runComfyGeneration.mockResolvedValue(fakeSuccess());
     downloadImagesToComfyInput.mockResolvedValue([FAKE_FILENAME]);
+    downloadAudioToComfyInput.mockResolvedValue([FAKE_AUDIO_FILENAME]);
   });
 
   // ── buildComfyArgs unit ────────────────────────────────────────────────
@@ -250,6 +260,62 @@ describe("generation flow — correct args reach runComfyGeneration", () => {
       expect(entry.managedWorkflowId).toBe("image2video-ltx2_3");
       expect(payload.width).toBe(1024);
       expect(payload.height).toBe(1024);
+    });
+
+    it("audio2video: audio only sets useStartingImage true and no image filename", async () => {
+      const { payload, entry, method } = await buildComfyArgs(
+        {
+          prompt: "sing along",
+          model: "ltx_a2v",
+          method: "audio2video",
+          input_audio_urls: [AUDIO_URL],
+          aspect_ratio: "16:9",
+        },
+        OUTPUT_DIR,
+      );
+      expect(method).toBe("audio2video");
+      expect(entry.managedWorkflowId).toBe("audio2video-ltx2_3_ia2v");
+      expect(payload.inputAudioFilename).toBe(FAKE_AUDIO_FILENAME);
+      expect(payload.useStartingImage).toBe(true);
+      expect(payload.inputImageFilename).toBeUndefined();
+      expect(payload.width).toBe(1344);
+      expect(payload.height).toBe(768);
+      expect(downloadAudioToComfyInput).toHaveBeenCalledWith([AUDIO_URL]);
+      expect(downloadImagesToComfyInput).not.toHaveBeenCalled();
+    });
+
+    it("audio2video: audio + image sets useStartingImage false and both filenames", async () => {
+      const { payload } = await buildComfyArgs(
+        {
+          prompt: "lip sync scene",
+          model: "ltx_a2v",
+          method: "audio2video",
+          input_audio_urls: [AUDIO_URL],
+          input_images: [IMAGE_URL],
+          aspect_ratio: "1:1",
+        },
+        OUTPUT_DIR,
+      );
+      expect(payload.inputAudioFilename).toBe(FAKE_AUDIO_FILENAME);
+      expect(payload.inputImageFilename).toBe(FAKE_FILENAME);
+      expect(payload.useStartingImage).toBe(false);
+      expect(payload.width).toBe(1024);
+      expect(payload.height).toBe(1024);
+      expect(downloadAudioToComfyInput).toHaveBeenCalledWith([AUDIO_URL]);
+      expect(downloadImagesToComfyInput).toHaveBeenCalledWith([IMAGE_URL]);
+    });
+
+    it("audio2video: throws if input_audio_urls is missing", async () => {
+      await expect(
+        buildComfyArgs(
+          {
+            prompt: "no audio",
+            model: "ltx_a2v",
+            method: "audio2video",
+          },
+          OUTPUT_DIR,
+        ),
+      ).rejects.toThrow("audio2video requires input_audio_urls");
     });
   });
 

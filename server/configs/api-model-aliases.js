@@ -131,14 +131,40 @@ function buildSyntheticText2videoRegistryEntry(presetKey, preset) {
   return buildSyntheticPresetRegistryEntry("text2video", presetKey, preset);
 }
 
+/** Fixed-model audio2video presets. */
+const AUDIO2VIDEO_MODEL_PRESETS = {
+  ltx_a2v: {
+    managedWorkflowId: "audio2video-ltx2_3_ia2v",
+    family: "ltx-a2v",
+    loadKind: "checkpoint",
+    modelFile: "ltx-2.3-22b-dev-fp8.safetensors",
+    modelPath: "",
+    comfyCheckpointGroup: "ltx",
+    diffusionModelComfyName: null,
+    checkpointBasename: "ltx-2.3-22b-dev-fp8.safetensors",
+  },
+};
+
+function getAudio2videoPreset(clientModelField) {
+  const q = String(clientModelField || "").trim();
+  return AUDIO2VIDEO_MODEL_PRESETS[q] ?? null;
+}
+
+function buildSyntheticAudio2videoRegistryEntry(presetKey, preset) {
+  return buildSyntheticPresetRegistryEntry("audio2video", presetKey, preset);
+}
+
 module.exports = {
   IMAGE2VIDEO_MODEL_PRESETS,
   IMAGE2IMAGE_MODEL_PRESETS,
   TEXT2VIDEO_MODEL_PRESETS,
+  AUDIO2VIDEO_MODEL_PRESETS,
   getImage2videoPreset,
   getImage2imagePreset,
   getText2videoPreset,
+  getAudio2videoPreset,
   buildSyntheticImage2videoRegistryEntry,
   buildSyntheticImage2imageRegistryEntry,
   buildSyntheticText2videoRegistryEntry,
+  buildSyntheticAudio2videoRegistryEntry,
 };

@@ -25,6 +25,9 @@ const WORKFLOWS = {
   // Image-to-video workflows
   "image2video-wan2_2_14B": require("./image2video/wan2_2_14B.js"),
   "image2video-ltx2_3": require("./image2video/ltx2_3.js"),
+
+  // Audio-to-video workflows
+  "audio2video-ltx2_3_ia2v": require("./imageAudio2video/video_ltx2_3_ia2v.js"),
 };
 
 function buildWorkflowByFamily(input) {

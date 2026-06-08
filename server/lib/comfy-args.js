@@ -7,16 +7,20 @@ const {
   downloadImagesToComfyInput,
   COMFY_INPUT_DIR,
 } = require("../generator/image-input.js");
+const { downloadAudioToComfyInput } = require("../generator/audio-input.js");
 const {
   getImage2videoPreset,
   getImage2imagePreset,
   getText2videoPreset,
+  getAudio2videoPreset,
   buildSyntheticImage2videoRegistryEntry,
   buildSyntheticImage2imageRegistryEntry,
   buildSyntheticText2videoRegistryEntry,
+  buildSyntheticAudio2videoRegistryEntry,
   IMAGE2VIDEO_MODEL_PRESETS,
   IMAGE2IMAGE_MODEL_PRESETS,
   TEXT2VIDEO_MODEL_PRESETS,
+  AUDIO2VIDEO_MODEL_PRESETS,
 } = require("../configs/api-model-aliases.js");
 const { _loadTemplateDefaults } = require("../workflows/_defaults.js");
 const {
@@ -27,6 +31,15 @@ const {
 function normalizeInputImages(body) {
   if (Array.isArray(body.input_images)) {
     return body.input_images.map((v) => String(v || "").trim()).filter(Boolean);
+  }
+  return [];
+}
+
+function normalizeInputAudioUrls(body) {
+  if (Array.isArray(body.input_audio_urls)) {
+    return body.input_audio_urls
+      .map((v) => String(v || "").trim())
+      .filter(Boolean);
   }
   return [];
 }
@@ -107,6 +120,80 @@ async function buildComfyArgs(body, outputDir) {
       entry,
       method,
     };
+  }
+
+  if (method === "audio2video") {
+    const presetKey = String(body.model || "").trim();
+    if (!presetKey) throw new Error("Missing required field: model");
+    const preset = getAudio2videoPreset(presetKey);
+    if (!preset) {
+      const keys = Object.keys(AUDIO2VIDEO_MODEL_PRESETS).join(", ");
+      throw new Error(
+        `Unknown audio2video model "${presetKey}". Use one of: ${keys}.`,
+      );
+    }
+    const entry = buildSyntheticAudio2videoRegistryEntry(presetKey, preset);
+    const inputAudioUrls = normalizeInputAudioUrls(body);
+    if (!inputAudioUrls.length) {
+      throw new Error("audio2video requires input_audio_urls to be provided.");
+    }
+    const audioFiles = await downloadAudioToComfyInput(inputAudioUrls);
+    const [audioFilename] = audioFiles;
+    if (!audioFilename) {
+      throw new Error("Failed to prepare input audio for audio2video.");
+    }
+
+    const inputImages = normalizeInputImages(body);
+    const hasStartingImage = inputImages.length > 0;
+    let width;
+    let height;
+    let inputImageFilename;
+
+    if (hasStartingImage) {
+      const files = await downloadImagesToComfyInput(inputImages);
+      const [filename] = files;
+      if (!filename) {
+        throw new Error("Failed to prepare input image for audio2video.");
+      }
+      const resolved = await prepareInputImageAspectRatio(
+        body,
+        filename,
+        preset.managedWorkflowId,
+      );
+      width = resolved.width;
+      height = resolved.height;
+      inputImageFilename = resolved.inputFilename;
+    } else {
+      const defaults = { width: 768, height: 768 };
+      ({ width, height } = resolveGenerationDimensions(body, defaults));
+    }
+
+    const payload = {
+      family: preset.family,
+      managedWorkflowId: preset.managedWorkflowId,
+      modelFile: preset.modelFile,
+      modelPath: preset.modelPath,
+      comfyCheckpointGroup: preset.comfyCheckpointGroup,
+      diffusionModelComfyName: preset.diffusionModelComfyName,
+      loadKind: preset.loadKind,
+      checkpointBasename: preset.checkpointBasename,
+      prompt,
+      negativePrompt,
+      seed,
+      width,
+      height,
+      steps: body.steps,
+      cfg: body.cfg,
+      fps: body.fps,
+      inputAudioFilename: audioFilename,
+      useStartingImage: !hasStartingImage,
+      expectVideo: true,
+    };
+    if (inputImageFilename) {
+      payload.inputImageFilename = inputImageFilename;
+    }
+
+    return { payload, entry, method };
   }
 
   if (method === "image2video") {

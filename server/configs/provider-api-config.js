@@ -406,6 +406,58 @@ const BASE_PROVIDER_CAPABILITIES = {
         },
       },
     },
+    audio2video: {
+      id: "audio2video",
+      default: false,
+      async: true,
+      name: "Audio To Video",
+      description:
+        "Generate a video from audio and prompt; optional start image.",
+      intent: "video_generate",
+      credits: 1,
+      fields: {
+        model: {
+          label: "Model",
+          type: "select",
+          required: true,
+          options: [
+            {
+              label: "LTX — audio-to-video (ia2v)",
+              value: "ltx_a2v",
+              hint: "LTX 2.3 ia2v checkpoint with user-supplied audio (ltx-2.3-22b-dev-fp8.safetensors).",
+            },
+          ],
+        },
+        prompt: {
+          label: "Prompt",
+          type: "text",
+          required: true,
+        },
+        input_audio_urls: {
+          label: "Input Audio",
+          type: "audio_url_array",
+          required: true,
+        },
+        input_images: {
+          label: "Input Images",
+          type: "image_url_array",
+          required: false,
+          description:
+            "Optional start image. When omitted, generates from audio and prompt only.",
+        },
+        aspect_ratio: aspectRatioFieldDef(),
+        seed: {
+          label: "Seed",
+          type: "number",
+          required: false,
+          hidden: true,
+          min: 0,
+          step: 1,
+          description:
+            "Optional deterministic seed. If not provided, a random seed is used.",
+        },
+      },
+    },
   },
 };
 

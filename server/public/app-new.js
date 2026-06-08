@@ -154,8 +154,11 @@ function initApp() {
   const idleEl = document.getElementById("preview-idle");
   const imageEl = document.getElementById("image");
   const metaRowEl = document.getElementById("meta-row");
+  const audioUrlField = document.getElementById("audio-url-field");
+  const audioUrlInput = document.getElementById("input_audio_urls");
   const imageUrlField = document.getElementById("image-url-field");
   const imageUrlInput = document.getElementById("input_images");
+  const imageUrlLabel = document.getElementById("input_images_label");
   const aspectRatioField = document.getElementById("aspect-ratio-field");
   const aspectRatioSel = document.getElementById("aspect_ratio");
 
@@ -236,6 +239,7 @@ function initApp() {
       seed: form.seed ? form.seed.value : undefined,
       denoise: form.denoise ? form.denoise.value : undefined,
       input_images: imageUrlInput ? imageUrlInput.value : undefined,
+      input_audio_urls: audioUrlInput ? audioUrlInput.value : undefined,
       aspect_ratio: aspectRatioSel ? aspectRatioSel.value : undefined,
       perMethodModel,
     };
@@ -473,6 +477,13 @@ function initApp() {
             : "";
         imageUrlInput.value = savedInputImages;
       }
+      if (audioUrlInput) {
+        const savedInputAudio =
+          savedValues && typeof savedValues.input_audio_urls === "string"
+            ? savedValues.input_audio_urls
+            : "";
+        audioUrlInput.value = savedInputAudio;
+      }
       if (savedValues && savedValues.denoise != null && form.denoise)
         form.denoise.value = savedValues.denoise;
 
@@ -521,6 +532,8 @@ function initApp() {
 
   form.prompt.addEventListener("input", saveFormValues);
   form.seed?.addEventListener("input", saveFormValues);
+  audioUrlInput?.addEventListener("input", saveFormValues);
+  imageUrlInput?.addEventListener("input", saveFormValues);
   aspectRatioSel?.addEventListener("change", saveFormValues);
   form.model.addEventListener("change", () => {
     updateFamilyBadge();
@@ -560,8 +573,18 @@ function initApp() {
       }
     }
 
-    // Only send input_images for image2image or image2video
-    if (
+    if (method === "audio2video") {
+      const audioUrl = audioUrlInput ? audioUrlInput.value.trim() : "";
+      if (!audioUrl) {
+        setPreviewIdle();
+        setStatusMessage("Error: Input audio URL is required", true);
+        return;
+      }
+      body.input_audio_urls = [audioUrl];
+      if (imageUrlInput && imageUrlInput.value.trim()) {
+        body.input_images = [imageUrlInput.value.trim()];
+      }
+    } else if (
       (method === "image2image" || method === "image2video") &&
       imageUrlInput &&
       imageUrlInput.value.trim()
@@ -680,15 +703,26 @@ function initApp() {
 
   copyErrorBtn?.addEventListener("click", copyLastError);
 
-  // ── Show/hide image-url-field and denoise-field based on method ──
+  // ── Show/hide media fields based on method ──
   function updateFieldVisibility() {
     const method = methodSel.value;
-    // Show image-url-field for image2image or image2video
+    if (audioUrlField) {
+      audioUrlField.style.display = method === "audio2video" ? "" : "none";
+    }
     if (imageUrlField) {
       imageUrlField.style.display =
-        method === "image2image" || method === "image2video" ? "" : "none";
+        method === "image2image" ||
+        method === "image2video" ||
+        method === "audio2video"
+          ? ""
+          : "none";
     }
-    // Show denoise-field for image2image
+    if (imageUrlLabel) {
+      imageUrlLabel.textContent =
+        method === "audio2video"
+          ? "Input Image URL (optional)"
+          : "Input Image URL";
+    }
     const denoiseField = document.getElementById("denoise-field");
     if (denoiseField) {
       denoiseField.style.display = method === "image2image" ? "" : "none";
