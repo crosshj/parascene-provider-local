@@ -5,6 +5,7 @@ const { sanitizePromptText } = require("../handlers/generate.js");
 const { resolveModel } = require("../lib/model-registry.js");
 const {
   downloadImagesToComfyInput,
+  ensureAudio2videoPlaceholderImage,
   COMFY_INPUT_DIR,
 } = require("../generator/image-input.js");
 const { downloadAudioToComfyInput } = require("../generator/audio-input.js");
@@ -169,6 +170,7 @@ async function buildComfyArgs(body, outputDir) {
     } else {
       const defaults = { width: 768, height: 768 };
       ({ width, height } = resolveGenerationDimensions(body, defaults));
+      inputImageFilename = await ensureAudio2videoPlaceholderImage();
     }
 
     const payload = {

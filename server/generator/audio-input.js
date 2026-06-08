@@ -12,6 +12,7 @@ const ALLOWED_AUDIO_EXTENSIONS = new Set([
   ".flac",
   ".ogg",
   ".m4a",
+  ".webm",
 ]);
 
 /**

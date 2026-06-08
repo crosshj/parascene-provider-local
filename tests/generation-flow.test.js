@@ -74,7 +74,9 @@ jest.mock("../server/lib/model-registry.js", () => ({
 
 jest.mock("../server/generator/image-input.js", () => ({
   downloadImagesToComfyInput: jest.fn(),
+  ensureAudio2videoPlaceholderImage: jest.fn(),
   COMFY_INPUT_DIR: "/fake/comfy/input",
+  A2V_PLACEHOLDER_IMAGE_FILENAME: "a2v_placeholder.png",
 }));
 
 jest.mock("../server/generator/audio-input.js", () => ({
@@ -93,6 +95,8 @@ jest.mock("../server/generator/index.js", () => ({
 const { resolveModel } = require("../server/lib/model-registry.js");
 const {
   downloadImagesToComfyInput,
+  ensureAudio2videoPlaceholderImage,
+  A2V_PLACEHOLDER_IMAGE_FILENAME,
 } = require("../server/generator/image-input.js");
 const {
   downloadAudioToComfyInput,
@@ -163,6 +167,9 @@ describe("generation flow — correct args reach runComfyGeneration", () => {
     runComfyGeneration.mockResolvedValue(fakeSuccess());
     downloadImagesToComfyInput.mockResolvedValue([FAKE_FILENAME]);
     downloadAudioToComfyInput.mockResolvedValue([FAKE_AUDIO_FILENAME]);
+    ensureAudio2videoPlaceholderImage.mockResolvedValue(
+      A2V_PLACEHOLDER_IMAGE_FILENAME,
+    );
   });
 
   // ── buildComfyArgs unit ────────────────────────────────────────────────
@@ -262,13 +269,14 @@ describe("generation flow — correct args reach runComfyGeneration", () => {
       expect(payload.height).toBe(1024);
     });
 
-    it("audio2video: audio only sets useStartingImage true and no image filename", async () => {
+    it("audio2video: audio only sets useStartingImage true and uses placeholder image", async () => {
       const { payload, entry, method } = await buildComfyArgs(
         {
           prompt: "sing along",
           model: "ltx_a2v",
           method: "audio2video",
           input_audio_urls: [AUDIO_URL],
+          input_images: [],
           aspect_ratio: "16:9",
         },
         OUTPUT_DIR,
@@ -277,10 +285,11 @@ describe("generation flow — correct args reach runComfyGeneration", () => {
       expect(entry.managedWorkflowId).toBe("audio2video-ltx2_3_ia2v");
       expect(payload.inputAudioFilename).toBe(FAKE_AUDIO_FILENAME);
       expect(payload.useStartingImage).toBe(true);
-      expect(payload.inputImageFilename).toBeUndefined();
+      expect(payload.inputImageFilename).toBe(A2V_PLACEHOLDER_IMAGE_FILENAME);
       expect(payload.width).toBe(1344);
       expect(payload.height).toBe(768);
       expect(downloadAudioToComfyInput).toHaveBeenCalledWith([AUDIO_URL]);
+      expect(ensureAudio2videoPlaceholderImage).toHaveBeenCalled();
       expect(downloadImagesToComfyInput).not.toHaveBeenCalled();
     });
 
@@ -350,15 +359,17 @@ describe("generation flow — correct args reach runComfyGeneration", () => {
       expect(downloadImagesToComfyInput).toHaveBeenCalledWith([IMAGE_URL]);
     });
 
-    it("audio2video workflow: audio-only routes prompt directly and skips LoadImage chain", () => {
+    it("audio2video workflow: audio-only routes prompt directly and patches placeholder LoadImage", () => {
       const LtxAudio2VideoWorkflow = require("../server/workflows/imageAudio2video/video_ltx2_3_ia2v.js");
       const wf = LtxAudio2VideoWorkflow({
         useStartingImage: true,
         prompt: "dance to the beat",
         inputAudioFilename: "track.mp3",
+        inputImageFilename: "a2v_placeholder.png",
       });
       expect(wf["340:305"].inputs.value).toBe(true);
       expect(wf["340:306"].inputs.text).toEqual(["340:319", 0]);
+      expect(wf["269"].inputs.image).toBe("a2v_placeholder.png");
       expect(wf["276"].inputs.audio).toBe("track.mp3");
     });
 

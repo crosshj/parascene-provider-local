@@ -57,11 +57,8 @@ function LtxAudio2VideoWorkflow(overrides = {}) {
     workflow["340:306"].inputs.text = ["340:319", 0];
   }
 
-  if (
-    !switchToTextToVideo &&
-    overrides.inputImageFilename &&
-    workflow["269"]?.inputs
-  ) {
+  // Comfy validates LoadImage on every prompt; patch user image or placeholder.
+  if (overrides.inputImageFilename && workflow["269"]?.inputs) {
     workflow["269"].inputs.image = String(overrides.inputImageFilename);
   }
 
