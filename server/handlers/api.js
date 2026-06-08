@@ -275,6 +275,7 @@ async function handleApiPost(req, res, ctx = {}) {
   if (
     method === "text2image" ||
     method === "image2image" ||
+    method === "text2video" ||
     method === "image2video"
   ) {
     if (!ctx.outputDir) {
