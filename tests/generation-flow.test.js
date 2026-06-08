@@ -317,6 +317,53 @@ describe("generation flow — correct args reach runComfyGeneration", () => {
         ),
       ).rejects.toThrow("audio2video requires input_audio_urls");
     });
+
+    it("audio2video: accepts a single audio URL string", async () => {
+      const { payload } = await buildComfyArgs(
+        {
+          prompt: "sing along",
+          model: "ltx_a2v",
+          method: "audio2video",
+          input_audio_urls: AUDIO_URL,
+          aspect_ratio: "1:1",
+        },
+        OUTPUT_DIR,
+      );
+      expect(payload.inputAudioFilename).toBe(FAKE_AUDIO_FILENAME);
+      expect(downloadAudioToComfyInput).toHaveBeenCalledWith([AUDIO_URL]);
+    });
+
+    it("audio2video: accepts single image and audio URL strings", async () => {
+      const { payload } = await buildComfyArgs(
+        {
+          prompt: "lip sync",
+          model: "ltx_a2v",
+          method: "audio2video",
+          input_audio_urls: AUDIO_URL,
+          input_images: IMAGE_URL,
+          aspect_ratio: "1:1",
+        },
+        OUTPUT_DIR,
+      );
+      expect(payload.inputImageFilename).toBe(FAKE_FILENAME);
+      expect(payload.useStartingImage).toBe(false);
+      expect(downloadImagesToComfyInput).toHaveBeenCalledWith([IMAGE_URL]);
+    });
+
+    it("image2video: accepts a single image URL string", async () => {
+      const { payload } = await buildComfyArgs(
+        {
+          prompt: "camera pan",
+          model: "ltx_i2v",
+          method: "image2video",
+          input_images: IMAGE_URL,
+          aspect_ratio: "1:1",
+        },
+        OUTPUT_DIR,
+      );
+      expect(payload.inputImageFilename).toBe(FAKE_FILENAME);
+      expect(downloadImagesToComfyInput).toHaveBeenCalledWith([IMAGE_URL]);
+    });
   });
 
   // ── generate.js (app.html sync path) ──────────────────────────────────

@@ -28,20 +28,23 @@ const {
   resolveAspectRatioFromInputImage,
 } = require("../lib/aspect-ratio.js");
 
-function normalizeInputImages(body) {
-  if (Array.isArray(body.input_images)) {
-    return body.input_images.map((v) => String(v || "").trim()).filter(Boolean);
+function normalizeUrlArray(value) {
+  if (Array.isArray(value)) {
+    return value.map((v) => String(v || "").trim()).filter(Boolean);
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed ? [trimmed] : [];
   }
   return [];
 }
 
+function normalizeInputImages(body) {
+  return normalizeUrlArray(body.input_images);
+}
+
 function normalizeInputAudioUrls(body) {
-  if (Array.isArray(body.input_audio_urls)) {
-    return body.input_audio_urls
-      .map((v) => String(v || "").trim())
-      .filter(Boolean);
-  }
-  return [];
+  return normalizeUrlArray(body.input_audio_urls);
 }
 
 function getEntryDefaults(entry) {
