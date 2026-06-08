@@ -12,6 +12,8 @@ const WORKFLOWS = {
   "text2image-zimage-diffusion": require("./text2image/zimage-diffusion.js"),
 
   // Text-to-video workflows
+  "text2video-wan2_2_t2v": require("./text2video/wan2_2_t2v.js"),
+  "text2video-ltx2_3_t2v": require("./text2video/ltx2_3_t2v.js"),
 
   // Image-to-image workflows (fixed-model presets; weights baked into JSON)
   "image2image-sdxl-checkpoint": require("./image2image/sdxl-checkpoint.js"),

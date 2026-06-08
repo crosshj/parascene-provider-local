@@ -10,10 +10,13 @@ const {
 const {
   getImage2videoPreset,
   getImage2imagePreset,
+  getText2videoPreset,
   buildSyntheticImage2videoRegistryEntry,
   buildSyntheticImage2imageRegistryEntry,
+  buildSyntheticText2videoRegistryEntry,
   IMAGE2VIDEO_MODEL_PRESETS,
   IMAGE2IMAGE_MODEL_PRESETS,
+  TEXT2VIDEO_MODEL_PRESETS,
 } = require("../configs/api-model-aliases.js");
 const { _loadTemplateDefaults } = require("../workflows/_defaults.js");
 const {
@@ -65,6 +68,46 @@ async function buildComfyArgs(body, outputDir) {
     Number.isInteger(body.seed) && body.seed >= 0
       ? body.seed
       : Math.floor(Math.random() * 2_147_483_647) + 1;
+
+  if (method === "text2video") {
+    const presetKey = String(body.model || "").trim();
+    if (!presetKey) throw new Error("Missing required field: model");
+    const preset = getText2videoPreset(presetKey);
+    if (!preset) {
+      const keys = Object.keys(TEXT2VIDEO_MODEL_PRESETS).join(", ");
+      throw new Error(
+        `Unknown text2video model "${presetKey}". Use one of: ${keys}.`,
+      );
+    }
+    const entry = buildSyntheticText2videoRegistryEntry(presetKey, preset);
+    const defaults = { width: 768, height: 768 };
+    const { width, height } = resolveGenerationDimensions(body, defaults);
+
+    return {
+      payload: {
+        family: preset.family,
+        managedWorkflowId: preset.managedWorkflowId,
+        modelFile: preset.modelFile,
+        modelPath: preset.modelPath,
+        comfyCheckpointGroup: preset.comfyCheckpointGroup,
+        diffusionModelComfyName: preset.diffusionModelComfyName,
+        loadKind: preset.loadKind,
+        checkpointBasename: preset.checkpointBasename,
+        prompt,
+        negativePrompt,
+        seed,
+        width,
+        height,
+        steps: body.steps,
+        cfg: body.cfg,
+        fps: body.fps,
+        length: body.length,
+        expectVideo: true,
+      },
+      entry,
+      method,
+    };
+  }
 
   if (method === "image2video") {
     const presetKey = String(body.model || "").trim();

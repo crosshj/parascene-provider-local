@@ -311,6 +311,51 @@ const BASE_PROVIDER_CAPABILITIES = {
       },
     },
     // `model` values are preset keys (configs/api-model-aliases.js); not tied to MODEL_DIRS scan.
+    text2video: {
+      id: "text2video",
+      default: false,
+      async: true,
+      name: "Text To Video",
+      description: "Generate a video from a text prompt.",
+      intent: "video_generate",
+      credits: 1,
+      fields: {
+        model: {
+          label: "Model",
+          type: "select",
+          required: true,
+          options: [
+            {
+              label: "Wan — text-to-video (rapid AIO)",
+              value: "wan_t2v",
+              hint: "Wan 2.2 t2v rapid-AIO checkpoint (WAN\\wan2.2-t2v-rapid-aio-v10.safetensors).",
+            },
+            {
+              label: "LTX — text-to-video",
+              value: "ltx_t2v",
+              hint: "LTX 2.3 t2v checkpoint (ltx-2.3-22b-dev-fp8.safetensors).",
+            },
+          ],
+        },
+        prompt: {
+          label: "Prompt",
+          type: "text",
+          required: true,
+        },
+        aspect_ratio: aspectRatioFieldDef(),
+        seed: {
+          label: "Seed",
+          type: "number",
+          required: false,
+          hidden: true,
+          min: 0,
+          step: 1,
+          description:
+            "Optional deterministic seed. If not provided, a random seed is used.",
+        },
+      },
+    },
+    // `model` values are preset keys (configs/api-model-aliases.js); not tied to MODEL_DIRS scan.
     image2video: {
       id: "image2video",
       default: false,
