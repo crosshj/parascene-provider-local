@@ -27,8 +27,8 @@ function cloneBaseWorkflow() {
 /**
  * Wan 2.2 text-to-video workflow (template wan2.2-t2v-rapid-aio-example.json).
  *
- * Overrides: prompt, negativePrompt, seed, width, height, length, fps, steps,
- * checkpointBasename (ckpt_name in node "1").
+ * Overrides: prompt, negativePrompt, seed, width, height, length, fps,
+ * durationSeconds, steps, checkpointBasename (ckpt_name in node "1").
  */
 function WanText2VideoWorkflow(overrides = {}) {
   const workflow = cloneBaseWorkflow();
@@ -70,16 +70,33 @@ function WanText2VideoWorkflow(overrides = {}) {
     );
   }
 
-  const explicitLength = overrides.length ?? overrides.framesNumber ?? overrides.frames;
+  const defaultFps = workflow["11"]?.inputs?.fps ?? 16;
+  const fps =
+    overrides.fps !== undefined
+      ? toNumber(overrides.fps, defaultFps)
+      : defaultFps;
+  if (workflow["11"]?.inputs && fps !== undefined) {
+    workflow["11"].inputs.fps = fps;
+  }
+
+  const explicitLength =
+    overrides.length ?? overrides.framesNumber ?? overrides.frames;
   if (explicitLength !== undefined && workflow["6"]?.inputs) {
     workflow["6"].inputs.length = toPositiveInt(
       explicitLength,
       workflow["6"].inputs.length,
     );
-  }
-
-  if (overrides.fps !== undefined && workflow["11"]?.inputs) {
-    workflow["11"].inputs.fps = toNumber(overrides.fps, workflow["11"].inputs.fps);
+  } else if (
+    overrides.durationSeconds !== undefined &&
+    workflow["6"]?.inputs
+  ) {
+    const frames = Math.max(
+      1,
+      Math.round(
+        toNumber(overrides.durationSeconds, 0) * (Number(fps) > 0 ? fps : 16),
+      ),
+    );
+    if (frames > 0) workflow["6"].inputs.length = frames;
   }
 
   if (overrides.steps !== undefined && workflow["3"]?.inputs) {

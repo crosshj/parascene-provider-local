@@ -27,7 +27,8 @@ function cloneBaseWorkflow() {
  * LTX 2.3 image+audio-to-video workflow (template video_ltx2_3_ia2v.json).
  *
  * Overrides: prompt, negativePrompt, seed, inputImageFilename, inputAudioFilename,
- * useStartingImage, width, height, fps, durationSeconds, checkpointBasename.
+ * useStartingImage, width, height, fps, durationSeconds/duration_seconds,
+ * checkpointBasename.
  *
  * Node map:
  *   "269" - LoadImage
@@ -38,7 +39,8 @@ function cloneBaseWorkflow() {
  *   "340:330" - PrimitiveInt (Width)
  *   "340:324" - PrimitiveInt (Height)
  *   "340:323" - PrimitiveInt (Frame Rate)
- *   "340:331" - PrimitiveFloat (Duration seconds)
+ *   "340:331" - PrimitiveFloat (Duration seconds) → TrimAudioDuration
+ *   "340:302" - EmptyLTXVLatentVideo (length baked as duration×fps)
  *   "340:285" / "340:286" - RandomNoise (seed)
  *   "340:317" - CheckpointLoaderSimple (ckpt_name)
  */
@@ -114,12 +116,24 @@ function LtxAudio2VideoWorkflow(overrides = {}) {
     workflow["340:323"].inputs.value = fps;
   }
 
+  // Prefer camelCase (comfy payload) but accept snake_case if a caller bypasses buildComfyArgs.
   const durationSeconds = toNumber(
-    overrides.durationSeconds,
+    overrides.durationSeconds ?? overrides.duration_seconds,
     workflow["340:331"]?.inputs?.value ?? DEFAULT_DURATION_SECONDS,
   );
   if (workflow["340:331"]?.inputs) {
     workflow["340:331"].inputs.value = durationSeconds;
+  }
+
+  // Bake latent frame count directly (duration × fps). Relying only on the
+  // Duration→MathExpression link left Blue producing ~9s video while audio was
+  // already a 3s clip — set length explicitly like the i2v LTX builder.
+  const lengthFrames = Math.max(
+    1,
+    Math.round(durationSeconds * (Number(fps) > 0 ? Number(fps) : 24)),
+  );
+  if (workflow["340:302"]?.inputs) {
+    workflow["340:302"].inputs.length = lengthFrames;
   }
 
   const ckpt =

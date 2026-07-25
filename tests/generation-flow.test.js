@@ -269,6 +269,78 @@ describe("generation flow — correct args reach runComfyGeneration", () => {
       expect(payload.height).toBe(1024);
     });
 
+    it("text2video: forwards duration_seconds to the workflow payload", async () => {
+      const { payload } = await buildComfyArgs(
+        {
+          prompt: "camera pan",
+          model: "ltx_t2v",
+          method: "text2video",
+          duration_seconds: 6,
+          aspect_ratio: "16:9",
+        },
+        OUTPUT_DIR,
+      );
+      expect(payload.durationSeconds).toBe(6);
+      expect(payload.expectVideo).toBe(true);
+    });
+
+    it("image2video: forwards duration_seconds to the workflow payload", async () => {
+      const { payload } = await buildComfyArgs(
+        {
+          prompt: "camera pan",
+          model: "wan_i2v",
+          method: "image2video",
+          input_images: [IMAGE_URL],
+          duration_seconds: 5,
+        },
+        OUTPUT_DIR,
+      );
+      expect(payload.durationSeconds).toBe(5);
+    });
+
+    it("image2video: two images auto-route LTX to flf2v workflow", async () => {
+      const END_URL = "http://example.com/end.png";
+      downloadImagesToComfyInput.mockResolvedValue([
+        FAKE_FILENAME,
+        "input_456_end.png",
+      ]);
+      const { payload, entry } = await buildComfyArgs(
+        {
+          prompt: "morph between frames",
+          model: "ltx_i2v",
+          method: "image2video",
+          input_images: [IMAGE_URL, END_URL],
+        },
+        OUTPUT_DIR,
+      );
+      expect(entry.managedWorkflowId).toBe("image2video-ltx2_3_flf2v");
+      expect(payload.managedWorkflowId).toBe("image2video-ltx2_3_flf2v");
+      expect(payload.inputImageFilename).toBe(FAKE_FILENAME);
+      expect(payload.endImageFilename).toBe("input_456_end.png");
+      expect(downloadImagesToComfyInput).toHaveBeenCalledWith([
+        IMAGE_URL,
+        END_URL,
+      ]);
+    });
+
+    it("image2video: two images auto-route Wan to flf2v workflow", async () => {
+      downloadImagesToComfyInput.mockResolvedValue([
+        FAKE_FILENAME,
+        "input_456_end.png",
+      ]);
+      const { payload } = await buildComfyArgs(
+        {
+          prompt: "morph between frames",
+          model: "wan_i2v",
+          method: "image2video",
+          input_images: [IMAGE_URL, "http://example.com/end.png"],
+        },
+        OUTPUT_DIR,
+      );
+      expect(payload.managedWorkflowId).toBe("image2video-wan2_2_14B_flf2v");
+      expect(payload.endImageFilename).toBe("input_456_end.png");
+    });
+
     it("audio2video: audio only sets useStartingImage true and uses placeholder image", async () => {
       const { payload, entry, method } = await buildComfyArgs(
         {
@@ -288,9 +360,51 @@ describe("generation flow — correct args reach runComfyGeneration", () => {
       expect(payload.inputImageFilename).toBe(A2V_PLACEHOLDER_IMAGE_FILENAME);
       expect(payload.width).toBe(1344);
       expect(payload.height).toBe(768);
+      expect(payload.durationSeconds).toBeUndefined();
       expect(downloadAudioToComfyInput).toHaveBeenCalledWith([AUDIO_URL]);
       expect(ensureAudio2videoPlaceholderImage).toHaveBeenCalled();
       expect(downloadImagesToComfyInput).not.toHaveBeenCalled();
+    });
+
+    it("audio2video: forwards duration_seconds to the workflow payload", async () => {
+      const { payload } = await buildComfyArgs(
+        {
+          prompt: "sing along",
+          model: "ltx_a2v",
+          method: "audio2video",
+          input_audio_urls: [AUDIO_URL],
+          input_images: [],
+          aspect_ratio: "16:9",
+          duration_seconds: 4.5,
+        },
+        OUTPUT_DIR,
+      );
+      expect(payload.durationSeconds).toBe(4.5);
+    });
+
+    it("audio2video: clamps duration_seconds into 1–15", async () => {
+      const tooShort = await buildComfyArgs(
+        {
+          prompt: "sing along",
+          model: "ltx_a2v",
+          method: "audio2video",
+          input_audio_urls: [AUDIO_URL],
+          duration_seconds: 0.5,
+        },
+        OUTPUT_DIR,
+      );
+      expect(tooShort.payload.durationSeconds).toBe(1);
+      const tooLong = await buildComfyArgs(
+        {
+          prompt: "sing along",
+          model: "ltx_a2v",
+          method: "audio2video",
+          input_audio_urls: [AUDIO_URL],
+          duration_seconds: 40,
+        },
+        OUTPUT_DIR,
+      );
+      expect(tooLong.payload.durationSeconds).toBe(15);
     });
 
     it("audio2video: audio + image sets useStartingImage false and both filenames", async () => {

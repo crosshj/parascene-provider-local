@@ -9,19 +9,23 @@ const {
   COMFY_INPUT_DIR,
 } = require("../generator/image-input.js");
 const { downloadAudioToComfyInput } = require("../generator/audio-input.js");
+const { downloadVideoToComfyInput } = require("../generator/video-input.js");
 const {
   getImage2videoPreset,
   getImage2imagePreset,
   getText2videoPreset,
   getAudio2videoPreset,
+  getVideo2videoPreset,
   buildSyntheticImage2videoRegistryEntry,
   buildSyntheticImage2imageRegistryEntry,
   buildSyntheticText2videoRegistryEntry,
   buildSyntheticAudio2videoRegistryEntry,
+  buildSyntheticVideo2videoRegistryEntry,
   IMAGE2VIDEO_MODEL_PRESETS,
   IMAGE2IMAGE_MODEL_PRESETS,
   TEXT2VIDEO_MODEL_PRESETS,
   AUDIO2VIDEO_MODEL_PRESETS,
+  VIDEO2VIDEO_MODEL_PRESETS,
 } = require("../configs/api-model-aliases.js");
 const { _loadTemplateDefaults } = require("../workflows/_defaults.js");
 const {
@@ -46,6 +50,21 @@ function normalizeInputImages(body) {
 
 function normalizeInputAudioUrls(body) {
   return normalizeUrlArray(body.input_audio_urls);
+}
+
+function normalizeInputVideoUrls(body) {
+  return normalizeUrlArray(body.input_video_urls);
+}
+
+/** Optional clip length for audio2video (seconds). */
+function resolveDurationSeconds(body) {
+  const raw =
+    body.duration_seconds ?? body.durationSeconds ?? body.duration ?? null;
+  if (raw === undefined || raw === null || raw === "") return undefined;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return undefined;
+  // Keep within the same window the desktop editor enforces for add-asset A2V.
+  return Math.min(15, Math.max(1, Math.round(n * 10) / 10));
 }
 
 function getEntryDefaults(entry) {
@@ -99,31 +118,32 @@ async function buildComfyArgs(body, outputDir) {
     const entry = buildSyntheticText2videoRegistryEntry(presetKey, preset);
     const defaults = { width: 768, height: 768 };
     const { width, height } = resolveGenerationDimensions(body, defaults);
-
-    return {
-      payload: {
-        family: preset.family,
-        managedWorkflowId: preset.managedWorkflowId,
-        modelFile: preset.modelFile,
-        modelPath: preset.modelPath,
-        comfyCheckpointGroup: preset.comfyCheckpointGroup,
-        diffusionModelComfyName: preset.diffusionModelComfyName,
-        loadKind: preset.loadKind,
-        checkpointBasename: preset.checkpointBasename,
-        prompt,
-        negativePrompt,
-        seed,
-        width,
-        height,
-        steps: body.steps,
-        cfg: body.cfg,
-        fps: body.fps,
-        length: body.length,
-        expectVideo: true,
-      },
-      entry,
-      method,
+    const payload = {
+      family: preset.family,
+      managedWorkflowId: preset.managedWorkflowId,
+      modelFile: preset.modelFile,
+      modelPath: preset.modelPath,
+      comfyCheckpointGroup: preset.comfyCheckpointGroup,
+      diffusionModelComfyName: preset.diffusionModelComfyName,
+      loadKind: preset.loadKind,
+      checkpointBasename: preset.checkpointBasename,
+      prompt,
+      negativePrompt,
+      seed,
+      width,
+      height,
+      steps: body.steps,
+      cfg: body.cfg,
+      fps: body.fps,
+      length: body.length,
+      expectVideo: true,
     };
+    const durationSeconds = resolveDurationSeconds(body);
+    if (durationSeconds !== undefined) {
+      payload.durationSeconds = durationSeconds;
+    }
+
+    return { payload, entry, method };
   }
 
   if (method === "audio2video") {
@@ -197,6 +217,10 @@ async function buildComfyArgs(body, outputDir) {
     if (inputImageFilename) {
       payload.inputImageFilename = inputImageFilename;
     }
+    const durationSeconds = resolveDurationSeconds(body);
+    if (durationSeconds !== undefined) {
+      payload.durationSeconds = durationSeconds;
+    }
 
     return { payload, entry, method };
   }
@@ -211,43 +235,153 @@ async function buildComfyArgs(body, outputDir) {
         `Unknown image2video model "${presetKey}". Use one of: ${keys}.`,
       );
     }
-    const entry = buildSyntheticImage2videoRegistryEntry(presetKey, preset);
     const inputImages = normalizeInputImages(body);
     if (!inputImages.length) {
       throw new Error("image2video requires input_images to be provided.");
     }
     const files = await downloadImagesToComfyInput(inputImages);
-    const [filename] = files;
+    const [filename, endFilename] = files;
     if (!filename)
       throw new Error("Failed to prepare input image for image2video.");
 
-    const { width, height, inputFilename } =
-      await prepareInputImageAspectRatio(body, filename, preset.managedWorkflowId);
+    const useFlf2v = Boolean(endFilename);
+    let managedWorkflowId = preset.managedWorkflowId;
+    if (useFlf2v) {
+      if (presetKey === "ltx_i2v") {
+        managedWorkflowId = "image2video-ltx2_3_flf2v";
+      } else if (presetKey === "wan_i2v") {
+        managedWorkflowId = "image2video-wan2_2_14B_flf2v";
+      } else {
+        throw new Error(
+          `Model "${presetKey}" does not support an end frame. Use wan_i2v or ltx_i2v.`,
+        );
+      }
+    }
 
-    return {
-      payload: {
-        family: preset.family,
-        managedWorkflowId: preset.managedWorkflowId,
-        modelFile: preset.modelFile,
-        modelPath: preset.modelPath,
-        comfyCheckpointGroup: preset.comfyCheckpointGroup,
-        diffusionModelComfyName: preset.diffusionModelComfyName,
-        loadKind: preset.loadKind,
-        checkpointBasename: preset.checkpointBasename,
-        prompt,
-        negativePrompt,
-        seed,
-        width,
-        height,
-        steps: body.steps,
-        cfg: body.cfg,
-        fps: body.fps,
-        inputImageFilename: inputFilename,
-        expectVideo: true,
-      },
-      entry,
-      method,
+    const entry = {
+      ...buildSyntheticImage2videoRegistryEntry(presetKey, preset),
+      managedWorkflowId,
     };
+
+    const { width, height, inputFilename } =
+      await prepareInputImageAspectRatio(body, filename, managedWorkflowId);
+
+    let endImageFilename;
+    if (useFlf2v) {
+      const endResolved = await prepareInputImageAspectRatio(
+        body,
+        endFilename,
+        managedWorkflowId,
+      );
+      endImageFilename = endResolved.inputFilename;
+    }
+
+    const payload = {
+      family: preset.family,
+      managedWorkflowId,
+      modelFile: preset.modelFile,
+      modelPath: preset.modelPath,
+      comfyCheckpointGroup: preset.comfyCheckpointGroup,
+      diffusionModelComfyName: preset.diffusionModelComfyName,
+      loadKind: preset.loadKind,
+      checkpointBasename: preset.checkpointBasename,
+      prompt,
+      negativePrompt,
+      seed,
+      width,
+      height,
+      steps: body.steps,
+      cfg: body.cfg,
+      fps: body.fps,
+      length: body.length,
+      inputImageFilename: inputFilename,
+      expectVideo: true,
+    };
+    if (endImageFilename) {
+      payload.endImageFilename = endImageFilename;
+    }
+    const durationSeconds = resolveDurationSeconds(body);
+    if (durationSeconds !== undefined) {
+      payload.durationSeconds = durationSeconds;
+    }
+
+    return { payload, entry, method };
+  }
+
+  if (method === "video2video") {
+    const presetKey = String(body.model || "").trim();
+    if (!presetKey) throw new Error("Missing required field: model");
+    const preset = getVideo2videoPreset(presetKey);
+    if (!preset) {
+      const keys = Object.keys(VIDEO2VIDEO_MODEL_PRESETS).join(", ");
+      throw new Error(
+        `Unknown video2video model "${presetKey}". Use one of: ${keys}.`,
+      );
+    }
+    const entry = buildSyntheticVideo2videoRegistryEntry(presetKey, preset);
+    const inputVideoUrls = normalizeInputVideoUrls(body);
+    if (!inputVideoUrls.length) {
+      throw new Error("video2video requires input_video_urls to be provided.");
+    }
+    const videoFiles = await downloadVideoToComfyInput(inputVideoUrls);
+    const [inputVideoFilename] = videoFiles;
+    if (!inputVideoFilename) {
+      throw new Error("Failed to prepare input video for video2video.");
+    }
+
+    const defaults = { width: 640, height: 640 };
+    const { width, height } = resolveGenerationDimensions(body, defaults);
+    const payload = {
+      family: preset.family,
+      managedWorkflowId: preset.managedWorkflowId,
+      modelFile: preset.modelFile,
+      modelPath: preset.modelPath,
+      comfyCheckpointGroup: preset.comfyCheckpointGroup,
+      diffusionModelComfyName: preset.diffusionModelComfyName,
+      loadKind: preset.loadKind,
+      checkpointBasename: preset.checkpointBasename,
+      prompt,
+      negativePrompt,
+      seed,
+      width,
+      height,
+      steps: body.steps,
+      cfg: body.cfg,
+      fps: body.fps,
+      length: body.length,
+      strength: body.strength,
+      inputVideoFilename,
+      expectVideo: true,
+    };
+
+    if (preset.requiresReferenceImage) {
+      const inputImages = normalizeInputImages(body);
+      if (!inputImages.length) {
+        throw new Error(
+          `video2video model "${presetKey}" requires input_images (character/reference).`,
+        );
+      }
+      const imageFiles = await downloadImagesToComfyInput(inputImages);
+      const [imageFilename] = imageFiles;
+      if (!imageFilename) {
+        throw new Error("Failed to prepare reference image for video2video.");
+      }
+      const resolved = await prepareInputImageAspectRatio(
+        body,
+        imageFilename,
+        preset.managedWorkflowId,
+      );
+      payload.inputImageFilename = resolved.inputFilename;
+      payload.width = resolved.width;
+      payload.height = resolved.height;
+    }
+
+    const durationSeconds = resolveDurationSeconds(body);
+    if (durationSeconds !== undefined) {
+      payload.durationSeconds = durationSeconds;
+    }
+
+    return { payload, entry, method };
   }
 
   if (method === "image2image") {
@@ -380,4 +514,4 @@ async function buildComfyArgs(body, outputDir) {
   };
 }
 
-module.exports = { buildComfyArgs };
+module.exports = { buildComfyArgs, resolveDurationSeconds };

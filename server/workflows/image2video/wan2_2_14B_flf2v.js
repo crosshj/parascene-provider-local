@@ -4,7 +4,7 @@ const path = require("path");
 const fs = require("fs");
 
 const WORKFLOW_TEMPLATE = JSON.parse(
-  fs.readFileSync(path.join(__dirname, "wan2_2_14B.json"), "utf8"),
+  fs.readFileSync(path.join(__dirname, "wan2_2_14B_flf2v.json"), "utf8"),
 );
 
 function toPositiveInt(value, fallback) {
@@ -38,20 +38,20 @@ function patchWanUnetPair(workflow, diffusionModelComfyName) {
 }
 
 /**
- * Wan 2.2 image-to-video workflow (template wan2_2_14B.json).
+ * Wan 2.2 first/last-frame image-to-video (template wan2_2_14B_flf2v.json).
  *
- * Overrides: prompt, negativePrompt, seed, inputImageFilename,
+ * Overrides: prompt, negativePrompt, seed, inputImageFilename, endImageFilename,
  * width, height, fps, length/frames, durationSeconds, steps, cfg,
- * diffusionModelComfyName (WAN dual UNET pair).
+ * diffusionModelComfyName.
  */
-function WanImage2VideoWorkflow(overrides = {}) {
+function WanFlf2vWorkflow(overrides = {}) {
   const workflow = cloneBaseWorkflow();
 
-  if (
-    overrides.inputImageFilename &&
-    workflow["97"]?.inputs
-  ) {
+  if (overrides.inputImageFilename && workflow["97"]?.inputs) {
     workflow["97"].inputs.image = String(overrides.inputImageFilename);
+  }
+  if (overrides.endImageFilename && workflow["99"]?.inputs) {
+    workflow["99"].inputs.image = String(overrides.endImageFilename);
   }
 
   if (workflow["129:93"]?.inputs) {
@@ -145,4 +145,4 @@ function WanImage2VideoWorkflow(overrides = {}) {
   return workflow;
 }
 
-module.exports = WanImage2VideoWorkflow;
+module.exports = WanFlf2vWorkflow;

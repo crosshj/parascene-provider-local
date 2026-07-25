@@ -235,10 +235,14 @@ async function runComfyGeneration(input, outDir) {
     throw new Error("Comfy did not return prompt_id.");
   }
 
+  const workflowId =
+    typeof input.managedWorkflowId === "string" ? input.managedWorkflowId : "";
   const wantsVideo =
     input.expectVideo === true ||
-    (typeof input.managedWorkflowId === "string" &&
-      input.managedWorkflowId.startsWith("image2video"));
+    workflowId.startsWith("image2video") ||
+    workflowId.startsWith("text2video") ||
+    workflowId.startsWith("audio2video") ||
+    workflowId.startsWith("video2video");
 
   const mediaRef = await pollHistoryForOutput(
     String(promptId),

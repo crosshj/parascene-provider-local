@@ -343,6 +343,16 @@ const BASE_PROVIDER_CAPABILITIES = {
           required: true,
         },
         aspect_ratio: aspectRatioFieldDef(),
+        duration_seconds: {
+          label: "Duration (seconds)",
+          type: "number",
+          required: false,
+          min: 1,
+          max: 15,
+          step: 0.5,
+          description:
+            "Output video length in seconds (default ~5–9 depending on model).",
+        },
         seed: {
           label: "Seed",
           type: "number",
@@ -392,8 +402,20 @@ const BASE_PROVIDER_CAPABILITIES = {
           label: "Input Images",
           type: "image_url_array",
           required: true,
+          description:
+            "Start frame (required). Optional second image is the end frame (first/last-frame interpolate).",
         },
         aspect_ratio: aspectRatioFieldDef(),
+        duration_seconds: {
+          label: "Duration (seconds)",
+          type: "number",
+          required: false,
+          min: 1,
+          max: 15,
+          step: 0.5,
+          description:
+            "Output video length in seconds (default ~5–9 depending on model).",
+        },
         seed: {
           label: "Seed",
           type: "number",
@@ -446,6 +468,85 @@ const BASE_PROVIDER_CAPABILITIES = {
             "Optional start image. When omitted, generates from audio and prompt only.",
         },
         aspect_ratio: aspectRatioFieldDef(),
+        duration_seconds: {
+          label: "Duration (seconds)",
+          type: "number",
+          required: false,
+          min: 1,
+          max: 15,
+          step: 0.5,
+          description:
+            "Output video length in seconds (default 9). Audio is trimmed to match.",
+        },
+        seed: {
+          label: "Seed",
+          type: "number",
+          required: false,
+          hidden: true,
+          min: 0,
+          step: 1,
+          description:
+            "Optional deterministic seed. If not provided, a random seed is used.",
+        },
+      },
+    },
+    // `model` values are preset keys (configs/api-model-aliases.js).
+    video2video: {
+      id: "video2video",
+      default: false,
+      async: true,
+      name: "Video To Video",
+      description:
+        "Restyle a video (Wan VACE) or transfer motion from a video onto a character image.",
+      intent: "video_generate",
+      credits: 1,
+      fields: {
+        model: {
+          label: "Model",
+          type: "select",
+          required: true,
+          options: [
+            {
+              label: "Wan — video-to-video (Fun VACE)",
+              value: "wan_v2v",
+              hint: "Classic V2V: input video + prompt. Requires wan2.2_fun_vace_*_14B_fp8_scaled weights.",
+            },
+            {
+              label: "Wan — motion transfer (Fun VACE)",
+              value: "wan_motion",
+              hint: "Character image + motion video. Requires wan2.2_fun_vace_*_14B_fp8_scaled weights.",
+            },
+          ],
+        },
+        prompt: {
+          label: "Prompt",
+          type: "text",
+          required: true,
+        },
+        input_video_urls: {
+          label: "Input Video",
+          type: "video_url_array",
+          required: true,
+          description: "Source video (motion / footage to condition on).",
+        },
+        input_images: {
+          label: "Input Images",
+          type: "image_url_array",
+          required: false,
+          description:
+            "Required for wan_motion: character/reference image. Ignored for wan_v2v.",
+        },
+        aspect_ratio: aspectRatioFieldDef(),
+        duration_seconds: {
+          label: "Duration (seconds)",
+          type: "number",
+          required: false,
+          min: 1,
+          max: 15,
+          step: 0.5,
+          description:
+            "Output video length in seconds (default ~5). Clamped to 1–15.",
+        },
         seed: {
           label: "Seed",
           type: "number",

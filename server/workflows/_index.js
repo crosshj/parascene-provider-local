@@ -25,9 +25,15 @@ const WORKFLOWS = {
   // Image-to-video workflows
   "image2video-wan2_2_14B": require("./image2video/wan2_2_14B.js"),
   "image2video-ltx2_3": require("./image2video/ltx2_3.js"),
+  "image2video-wan2_2_14B_flf2v": require("./image2video/wan2_2_14B_flf2v.js"),
+  "image2video-ltx2_3_flf2v": require("./image2video/ltx2_3_flf2v.js"),
 
   // Audio-to-video workflows
   "audio2video-ltx2_3_ia2v": require("./imageAudio2video/video_ltx2_3_ia2v.js"),
+
+  // Video-to-video workflows (Wan Fun VACE)
+  "video2video-wan2_2_vace_v2v": require("./video2video/wan2_2_vace_v2v.js"),
+  "video2video-wan2_2_vace_motion": require("./video2video/wan2_2_vace_motion.js"),
 };
 
 function buildWorkflowByFamily(input) {

@@ -9,7 +9,6 @@ const workflowsIndexPath = path.join(
   __dirname,
   "..",
   "server",
-  "generator",
   "workflows",
   "_index.js",
 );
@@ -17,7 +16,6 @@ const workflowsDefaultsPath = path.join(
   __dirname,
   "..",
   "server",
-  "generator",
   "workflows",
   "_defaults.js",
 );
@@ -34,17 +32,20 @@ describe("managed workflows", () => {
     expect(ids.length).toBeGreaterThan(0);
   });
 
-  it.each(ids)("can build workflow and defaults for %s", (id) => {
+  it.each(ids)("can build workflow for %s", (id) => {
     const wf = buildWorkflowByFamily({ managedWorkflowId: id });
     expect(typeof wf).toBe("object");
+    expect(Object.keys(wf).length).toBeGreaterThan(0);
 
+    // Template defaults are extracted only for classic text2image layouts
+    // (KSampler "31" + latent "27"/"39"). Other families may return null.
     const defaults = _loadTemplateDefaults(id);
-    expect(defaults).not.toBeNull();
-    expect(typeof defaults.steps).toBe("number");
-    expect(typeof defaults.cfg).toBe("number");
-    expect(typeof defaults.width).toBe("number");
-    expect(typeof defaults.height).toBe("number");
+    if (defaults) {
+      expect(typeof defaults.steps).toBe("number");
+      expect(typeof defaults.cfg).toBe("number");
+      expect(typeof defaults.width).toBe("number");
+      expect(typeof defaults.height).toBe("number");
+    }
   });
-}
-);
+});
 

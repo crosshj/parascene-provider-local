@@ -154,17 +154,62 @@ function buildSyntheticAudio2videoRegistryEntry(presetKey, preset) {
   return buildSyntheticPresetRegistryEntry("audio2video", presetKey, preset);
 }
 
+/**
+ * Fixed-model video2video presets.
+ * wan_v2v: classic restyle (video + prompt).
+ * wan_motion: motion transfer (video + character image + prompt).
+ * Requires Wan 2.2 Fun VACE high/low noise weights under diffusion_models/wan/.
+ */
+const VIDEO2VIDEO_MODEL_PRESETS = {
+  wan_v2v: {
+    managedWorkflowId: "video2video-wan2_2_vace_v2v",
+    family: "wan-v2v",
+    loadKind: "diffusion_model",
+    modelFile: "wan2.2_fun_vace_low_noise_14B_fp8_scaled.safetensors",
+    modelPath: "",
+    comfyCheckpointGroup: null,
+    diffusionModelComfyName:
+      "wan\\wan2.2_fun_vace_low_noise_14B_fp8_scaled.safetensors",
+    checkpointBasename: undefined,
+    requiresReferenceImage: false,
+  },
+  wan_motion: {
+    managedWorkflowId: "video2video-wan2_2_vace_motion",
+    family: "wan-motion",
+    loadKind: "diffusion_model",
+    modelFile: "wan2.2_fun_vace_low_noise_14B_fp8_scaled.safetensors",
+    modelPath: "",
+    comfyCheckpointGroup: null,
+    diffusionModelComfyName:
+      "wan\\wan2.2_fun_vace_low_noise_14B_fp8_scaled.safetensors",
+    checkpointBasename: undefined,
+    requiresReferenceImage: true,
+  },
+};
+
+function getVideo2videoPreset(clientModelField) {
+  const q = String(clientModelField || "").trim();
+  return VIDEO2VIDEO_MODEL_PRESETS[q] ?? null;
+}
+
+function buildSyntheticVideo2videoRegistryEntry(presetKey, preset) {
+  return buildSyntheticPresetRegistryEntry("video2video", presetKey, preset);
+}
+
 module.exports = {
   IMAGE2VIDEO_MODEL_PRESETS,
   IMAGE2IMAGE_MODEL_PRESETS,
   TEXT2VIDEO_MODEL_PRESETS,
   AUDIO2VIDEO_MODEL_PRESETS,
+  VIDEO2VIDEO_MODEL_PRESETS,
   getImage2videoPreset,
   getImage2imagePreset,
   getText2videoPreset,
   getAudio2videoPreset,
+  getVideo2videoPreset,
   buildSyntheticImage2videoRegistryEntry,
   buildSyntheticImage2imageRegistryEntry,
   buildSyntheticText2videoRegistryEntry,
   buildSyntheticAudio2videoRegistryEntry,
+  buildSyntheticVideo2videoRegistryEntry,
 };

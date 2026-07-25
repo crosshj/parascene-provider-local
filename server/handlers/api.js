@@ -277,7 +277,8 @@ async function handleApiPost(req, res, ctx = {}) {
     method === "image2image" ||
     method === "text2video" ||
     method === "image2video" ||
-    method === "audio2video"
+    method === "audio2video" ||
+    method === "video2video"
   ) {
     if (!ctx.outputDir) {
       return sendJson(res, 503, { error: "OUTPUT_DIR not configured" });

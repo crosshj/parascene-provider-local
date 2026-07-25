@@ -156,9 +156,13 @@ function initApp() {
   const metaRowEl = document.getElementById("meta-row");
   const audioUrlField = document.getElementById("audio-url-field");
   const audioUrlInput = document.getElementById("input_audio_urls");
+  const videoUrlField = document.getElementById("video-url-field");
+  const videoUrlInput = document.getElementById("input_video_urls");
   const imageUrlField = document.getElementById("image-url-field");
   const imageUrlInput = document.getElementById("input_images");
   const imageUrlLabel = document.getElementById("input_images_label");
+  const endImageUrlField = document.getElementById("end-image-url-field");
+  const endImageUrlInput = document.getElementById("input_end_image");
   const aspectRatioField = document.getElementById("aspect-ratio-field");
   const aspectRatioSel = document.getElementById("aspect_ratio");
 
@@ -239,7 +243,9 @@ function initApp() {
       seed: form.seed ? form.seed.value : undefined,
       denoise: form.denoise ? form.denoise.value : undefined,
       input_images: imageUrlInput ? imageUrlInput.value : undefined,
+      input_end_image: endImageUrlInput ? endImageUrlInput.value : undefined,
       input_audio_urls: audioUrlInput ? audioUrlInput.value : undefined,
+      input_video_urls: videoUrlInput ? videoUrlInput.value : undefined,
       aspect_ratio: aspectRatioSel ? aspectRatioSel.value : undefined,
       perMethodModel,
     };
@@ -484,6 +490,20 @@ function initApp() {
             : "";
         audioUrlInput.value = savedInputAudio;
       }
+      if (videoUrlInput) {
+        const savedInputVideo =
+          savedValues && typeof savedValues.input_video_urls === "string"
+            ? savedValues.input_video_urls
+            : "";
+        videoUrlInput.value = savedInputVideo;
+      }
+      if (endImageUrlInput) {
+        const savedEndImage =
+          savedValues && typeof savedValues.input_end_image === "string"
+            ? savedValues.input_end_image
+            : "";
+        endImageUrlInput.value = savedEndImage;
+      }
       if (savedValues && savedValues.denoise != null && form.denoise)
         form.denoise.value = savedValues.denoise;
 
@@ -533,7 +553,9 @@ function initApp() {
   form.prompt.addEventListener("input", saveFormValues);
   form.seed?.addEventListener("input", saveFormValues);
   audioUrlInput?.addEventListener("input", saveFormValues);
+  videoUrlInput?.addEventListener("input", saveFormValues);
   imageUrlInput?.addEventListener("input", saveFormValues);
+  endImageUrlInput?.addEventListener("input", saveFormValues);
   aspectRatioSel?.addEventListener("change", saveFormValues);
   form.model.addEventListener("change", () => {
     updateFamilyBadge();
@@ -584,12 +606,31 @@ function initApp() {
       if (imageUrlInput && imageUrlInput.value.trim()) {
         body.input_images = [imageUrlInput.value.trim()];
       }
+    } else if (method === "video2video") {
+      const videoUrl = videoUrlInput ? videoUrlInput.value.trim() : "";
+      if (!videoUrl) {
+        setPreviewIdle();
+        setStatusMessage("Error: Input video URL is required", true);
+        return;
+      }
+      body.input_video_urls = [videoUrl];
+      if (imageUrlInput && imageUrlInput.value.trim()) {
+        body.input_images = [imageUrlInput.value.trim()];
+      }
     } else if (
       (method === "image2image" || method === "image2video") &&
       imageUrlInput &&
       imageUrlInput.value.trim()
     ) {
-      body.input_images = [imageUrlInput.value.trim()];
+      const images = [imageUrlInput.value.trim()];
+      if (
+        method === "image2video" &&
+        endImageUrlInput &&
+        endImageUrlInput.value.trim()
+      ) {
+        images.push(endImageUrlInput.value.trim());
+      }
+      body.input_images = images;
     }
 
     if (aspectRatioSel && aspectRatioSel.value) {
@@ -709,19 +750,33 @@ function initApp() {
     if (audioUrlField) {
       audioUrlField.style.display = method === "audio2video" ? "" : "none";
     }
+    if (videoUrlField) {
+      videoUrlField.style.display = method === "video2video" ? "" : "none";
+    }
     if (imageUrlField) {
       imageUrlField.style.display =
         method === "image2image" ||
         method === "image2video" ||
-        method === "audio2video"
+        method === "audio2video" ||
+        method === "video2video"
           ? ""
           : "none";
     }
+    if (endImageUrlField) {
+      endImageUrlField.style.display =
+        method === "image2video" ? "" : "none";
+    }
     if (imageUrlLabel) {
-      imageUrlLabel.textContent =
-        method === "audio2video"
-          ? "Input Image URL (optional)"
-          : "Input Image URL";
+      if (method === "audio2video") {
+        imageUrlLabel.textContent = "Input Image URL (optional)";
+      } else if (method === "video2video") {
+        imageUrlLabel.textContent =
+          "Character Image URL (required for wan_motion)";
+      } else if (method === "image2video") {
+        imageUrlLabel.textContent = "Start Image URL";
+      } else {
+        imageUrlLabel.textContent = "Input Image URL";
+      }
     }
     const denoiseField = document.getElementById("denoise-field");
     if (denoiseField) {
