@@ -20,15 +20,71 @@ function resolveReleaseRoot(dataRoot) {
   return process.cwd();
 }
 
-function waitForHealth(host, port, timeoutMs = DEFAULT_HEALTH_TIMEOUT_MS) {
+function normalizeFsPath(p) {
+  return path.resolve(String(p || ""));
+}
+
+/**
+ * True if /api/health payload was served from expectedReleaseRoot
+ * (public_dir_abs is …/<release>/server/public).
+ */
+function healthMatchesRelease(health, expectedReleaseRoot) {
+  if (!expectedReleaseRoot) return true;
+  const expected = normalizeFsPath(expectedReleaseRoot);
+  const abs = health && health.public_dir_abs;
+  if (typeof abs === "string" && abs.trim()) {
+    const resolved = normalizeFsPath(abs);
+    return (
+      resolved === expected ||
+      resolved.startsWith(expected + path.sep)
+    );
+  }
+  // Fallback when only relative public_dir is present.
+  const rel = String((health && health.public_dir) || "");
+  const releaseId = path.basename(expected);
+  return Boolean(releaseId && rel.includes(releaseId));
+}
+
+function childExited(child) {
+  return Boolean(child && (child.exitCode != null || child.signalCode != null));
+}
+
+/**
+ * Wait until /api/health returns 200.
+ * When expectedReleaseRoot is set, also require public_dir to belong to that release
+ * so a stale process on the same port cannot satisfy the check.
+ *
+ * @param {string} host
+ * @param {number} port
+ * @param {number} [timeoutMs]
+ * @param {{ expectedReleaseRoot?: string, child?: import('child_process').ChildProcess }} [opts]
+ */
+function waitForHealth(host, port, timeoutMs = DEFAULT_HEALTH_TIMEOUT_MS, opts = {}) {
+  const expectedReleaseRoot = opts.expectedReleaseRoot || null;
+  const child = opts.child || null;
+
   return new Promise((resolve, reject) => {
     const deadline = Date.now() + timeoutMs;
+    let sawWrongRelease = false;
+    let lastWrongPublicDir = null;
 
     function attempt() {
-      if (Date.now() >= deadline) {
-        reject(new Error("Node app health check timed out"));
+      if (childExited(child)) {
+        reject(
+          new Error(
+            `Node app exited before becoming healthy (code=${child.exitCode}, signal=${child.signalCode})`,
+          ),
+        );
         return;
       }
+      if (Date.now() >= deadline) {
+        const hint = sawWrongRelease
+          ? ` Staging port may be occupied by another release (public_dir=${lastWrongPublicDir || "?"}).`
+          : "";
+        reject(new Error(`Node app health check timed out.${hint}`));
+        return;
+      }
+
       const req = http.request(
         {
           host,
@@ -38,11 +94,32 @@ function waitForHealth(host, port, timeoutMs = DEFAULT_HEALTH_TIMEOUT_MS) {
           timeout: 2000,
         },
         (res) => {
-          if (res.statusCode === 200) {
-            resolve();
-            return;
-          }
-          schedule();
+          let raw = "";
+          res.setEncoding("utf8");
+          res.on("data", (chunk) => {
+            raw += chunk;
+          });
+          res.on("end", () => {
+            if (res.statusCode !== 200) {
+              schedule();
+              return;
+            }
+            let health = {};
+            try {
+              health = raw ? JSON.parse(raw) : {};
+            } catch {
+              schedule();
+              return;
+            }
+            if (!healthMatchesRelease(health, expectedReleaseRoot)) {
+              sawWrongRelease = true;
+              lastWrongPublicDir =
+                health.public_dir_abs || health.public_dir || null;
+              schedule();
+              return;
+            }
+            resolve(health);
+          });
         },
       );
       req.on("error", () => schedule());
@@ -59,6 +136,32 @@ function waitForHealth(host, port, timeoutMs = DEFAULT_HEALTH_TIMEOUT_MS) {
 
     attempt();
   });
+}
+
+/**
+ * If something already answers on host:port, ensure it is the expected release.
+ * Connection errors mean the port is free (OK). Wrong release => throw.
+ */
+async function assertPortServesReleaseOrFree(
+  host,
+  port,
+  expectedReleaseRoot,
+  timeoutMs = 1500,
+) {
+  if (!expectedReleaseRoot) return { free: true };
+  let health;
+  try {
+    health = await getHealthJson(host, port, timeoutMs);
+  } catch {
+    return { free: true };
+  }
+  if (healthMatchesRelease(health, expectedReleaseRoot)) {
+    return { free: false, alreadyDesired: true, health };
+  }
+  const publicDir = health.public_dir_abs || health.public_dir || "?";
+  throw new Error(
+    `Port ${port} is occupied by another release (public_dir=${publicDir}); refusing rollout cutover`,
+  );
 }
 
 const WORKER_PID_FILE = "runtime/.worker.pid";
@@ -146,10 +249,14 @@ function getHealthJson(host, port, timeoutMs = 5000) {
         res.setEncoding("utf8");
         res.on("data", (chunk) => { raw += chunk; });
         res.on("end", () => {
+          if (res.statusCode !== 200) {
+            reject(new Error(`Health HTTP ${res.statusCode}`));
+            return;
+          }
           try {
             resolve(raw ? JSON.parse(raw) : {});
           } catch {
-            resolve({});
+            reject(new Error("Health response was not JSON"));
           }
         });
       },
@@ -208,6 +315,8 @@ function startNodeApp({ releaseRoot, port, dataRoot, log, skipOrphanCleanup = fa
 module.exports = {
   resolveReleaseRoot,
   waitForHealth,
+  healthMatchesRelease,
+  assertPortServesReleaseOrFree,
   startNodeApp,
   killOrphanWorker,
   cleanupWorkerPid,

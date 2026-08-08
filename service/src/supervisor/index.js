@@ -19,6 +19,7 @@ const {
   waitForHealth,
   getHealthJson,
   cleanupWorkerPid,
+  assertPortServesReleaseOrFree,
 } = require("./nodeAppManager");
 const { readDeployState, writeDeployState } = require("./deployState");
 
@@ -225,6 +226,13 @@ function main() {
       }
     }
 
+    // Fail closed if staging already has a different release (avoids silent cutover to a stale listener).
+    await assertPortServesReleaseOrFree(
+      "127.0.0.1",
+      stagingPort,
+      releaseRoot,
+    );
+
     const child = startNodeApp({
       releaseRoot,
       port: stagingPort,
@@ -232,7 +240,17 @@ function main() {
       log,
       skipOrphanCleanup: true,
     });
-    await waitForHealth("127.0.0.1", stagingPort);
+    try {
+      await waitForHealth("127.0.0.1", stagingPort, undefined, {
+        expectedReleaseRoot: releaseRoot,
+        child,
+      });
+    } catch (err) {
+      try {
+        child.kill("SIGTERM");
+      } catch (_) {}
+      throw err;
+    }
 
     const oldProcess = nodeAppProcess;
     activeNodeTarget = { host: "127.0.0.1", port: stagingPort };
@@ -337,7 +355,10 @@ function main() {
           log,
         });
         nodeAppProcess = child;
-        await waitForHealth("127.0.0.1", nodeAppActivePort);
+        await waitForHealth("127.0.0.1", nodeAppActivePort, undefined, {
+          expectedReleaseRoot: releaseRoot,
+          child,
+        });
         activeNodeTarget = { host: "127.0.0.1", port: nodeAppActivePort };
         log.info("orchestrator.nodeapp.ready", {
           port: nodeAppActivePort,
