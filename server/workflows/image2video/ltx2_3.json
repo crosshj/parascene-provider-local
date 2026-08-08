@@ -410,7 +410,7 @@
   "267:240": {
     "inputs": {
       "text": [
-        "267:266",
+        "267:276",
         0
       ],
       "clip": [
@@ -565,7 +565,7 @@
   },
   "267:247": {
     "inputs": {
-      "text": "pc game, console game, video game, cartoon, childish",
+      "text": "pc game, console game, video game, text overlay, subtitles, captions, lower third, watermark, logo, on-screen text, burned-in text, title card, UI text, readable text, identity drift, face morph, changing face, inconsistent face, morphing identity, different person, wardrobe change",
       "clip": [
         "267:272",
         1
@@ -648,10 +648,7 @@
   },
   "267:274": {
     "inputs": {
-      "prompt": [
-        "267:266",
-        0
-      ],
+      "prompt": "",
       "max_length": 256,
       "sampling_mode": "on",
       "sampling_mode.temperature": 0.7,
@@ -660,6 +657,8 @@
       "sampling_mode.min_p": 0.05,
       "sampling_mode.repetition_penalty": 1.05,
       "sampling_mode.seed": 0,
+      "thinking": false,
+      "use_default_template": false,
       "clip": [
         "267:272",
         1
@@ -669,18 +668,18 @@
         0
       ]
     },
-    "class_type": "TextGenerateLTX2Prompt",
+    "class_type": "TextGenerate",
     "_meta": {
-      "title": "TextGenerateLTX2Prompt"
+      "title": "Prompt Magic (TextGenerate)"
     }
   },
   "267:275": {
     "inputs": {
-      "preview_markdown": "Style: Chibi - The Chibi banana hops to the left and balances on one foot.  Then it hops to the right and balances on the other foot.  \n\nThis dance repeats as nursery music plays softly in the background.",
-      "preview_text": "Style: Chibi - The Chibi banana hops to the left and balances on one foot.  Then it hops to the right and balances on the other foot.  \n\nThis dance repeats as nursery music plays softly in the background.",
+      "preview_markdown": "",
+      "preview_text": "",
       "previewMode": null,
       "source": [
-        "267:274",
+        "267:276",
         0
       ]
     },
@@ -722,6 +721,35 @@
     "class_type": "LTXVConcatAVLatent",
     "_meta": {
       "title": "LTXVConcatAVLatent"
+    }
+  },
+  "267:276": {
+    "inputs": {
+      "switch": [
+        "267:277",
+        0
+      ],
+      "on_false": [
+        "267:266",
+        0
+      ],
+      "on_true": [
+        "267:274",
+        0
+      ]
+    },
+    "class_type": "ComfySwitchNode",
+    "_meta": {
+      "title": "Prompt Magic Switch"
+    }
+  },
+  "267:277": {
+    "inputs": {
+      "value": true
+    },
+    "class_type": "PrimitiveBoolean",
+    "_meta": {
+      "title": "Boolean (Prompt Magic)"
     }
   }
 }

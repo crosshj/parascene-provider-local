@@ -227,7 +227,7 @@
   "340:306": {
     "inputs": {
       "text": [
-        "340:342",
+        "340:348",
         0
       ],
       "clip": [
@@ -323,7 +323,7 @@
   },
   "340:314": {
     "inputs": {
-      "text": "pc game, console game, video game, cartoon, childish, ugly",
+      "text": "pc game, console game, video game, ugly, text overlay, subtitles, captions, lower third, watermark, logo, on-screen text, burned-in text, title card, UI text, readable text, identity drift, face morph, changing face, inconsistent face, morphing identity, different person, wardrobe change",
       "clip": [
         "340:318",
         0
@@ -713,10 +713,7 @@
   },
   "340:342": {
     "inputs": {
-      "prompt": [
-        "340:319",
-        0
-      ],
+      "prompt": "",
       "max_length": 256,
       "sampling_mode": "on",
       "sampling_mode.temperature": 0.7,
@@ -725,6 +722,8 @@
       "sampling_mode.min_p": 0.05,
       "sampling_mode.repetition_penalty": 1.05,
       "sampling_mode.seed": 0,
+      "thinking": false,
+      "use_default_template": false,
       "clip": [
         "340:344",
         1
@@ -734,9 +733,9 @@
         0
       ]
     },
-    "class_type": "TextGenerateLTX2Prompt",
+    "class_type": "TextGenerate",
     "_meta": {
-      "title": "TextGenerateLTX2Prompt"
+      "title": "Prompt Magic (TextGenerate)"
     }
   },
   "340:344": {
@@ -787,13 +786,42 @@
       "preview_text": "",
       "previewMode": null,
       "source": [
-        "340:342",
+        "340:348",
         0
       ]
     },
     "class_type": "PreviewAny",
     "_meta": {
       "title": "Preview as Text"
+    }
+  },
+  "340:348": {
+    "inputs": {
+      "switch": [
+        "340:349",
+        0
+      ],
+      "on_false": [
+        "340:319",
+        0
+      ],
+      "on_true": [
+        "340:342",
+        0
+      ]
+    },
+    "class_type": "ComfySwitchNode",
+    "_meta": {
+      "title": "Prompt Magic Switch"
+    }
+  },
+  "340:349": {
+    "inputs": {
+      "value": true
+    },
+    "class_type": "PrimitiveBoolean",
+    "_meta": {
+      "title": "Boolean (Prompt Magic)"
     }
   }
 }

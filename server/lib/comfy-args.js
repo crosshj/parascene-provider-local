@@ -212,6 +212,7 @@ async function buildComfyArgs(body, outputDir) {
       fps: body.fps,
       inputAudioFilename: audioFilename,
       useStartingImage: !hasStartingImage,
+      promptMagic: body.prompt_magic ?? body.promptMagic,
       expectVideo: true,
     };
     if (inputImageFilename) {
@@ -295,6 +296,8 @@ async function buildComfyArgs(body, outputDir) {
       fps: body.fps,
       length: body.length,
       inputImageFilename: inputFilename,
+      // LTX i2v prompt magic (Gemma TextGenerate); ignored by Wan / flf2v builders.
+      promptMagic: body.prompt_magic ?? body.promptMagic,
       expectVideo: true,
     };
     if (endImageFilename) {

@@ -388,7 +388,7 @@
   },
   "317": {
     "inputs": {
-      "text": "",
+      "text": "text overlay, subtitles, captions, lower third, watermark, logo, on-screen text, burned-in text, title card, UI text, readable text",
       "clip": ["321", 0]
     },
     "class_type": "CLIPTextEncode",

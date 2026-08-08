@@ -2,6 +2,10 @@
 
 const path = require("path");
 const fs = require("fs");
+const {
+  formatLtx2TextGeneratePrompt,
+  resolvePromptMagic,
+} = require("../_ltx-prompt-magic.js");
 
 const WORKFLOW_TEMPLATE = JSON.parse(
   fs.readFileSync(path.join(__dirname, "ltx2_3.json"), "utf8"),
@@ -27,21 +31,59 @@ function cloneBaseWorkflow() {
  * LTX 2.3 image-to-video workflow (template ltx2_3.json).
  *
  * Overrides: prompt, negativePrompt, seed, inputImageFilename,
- * width, height, fps, length/framesNumber, durationSeconds,
+ * promptMagic, width, height, fps, length/framesNumber, durationSeconds,
  * checkpointBasename (checkpoint loader ckpt_name fields).
+ *
+ * Node map:
+ *   "287" - LoadImage
+ *   "267:266" - PrimitiveStringMultiline (prompt)
+ *   "267:274" - TextGenerate (prompt magic)
+ *   "267:276" - ComfySwitchNode (raw vs enhanced)
+ *   "267:277" - PrimitiveBoolean (Prompt Magic)
+ *   "267:240" - CLIPTextEncode (positive)
+ *   "267:247" - CLIPTextEncode (negative)
  */
 function LtxImage2VideoWorkflow(overrides = {}) {
   const workflow = cloneBaseWorkflow();
+  const userPrompt =
+    overrides.prompt !== undefined && overrides.prompt !== null
+      ? String(overrides.prompt)
+      : workflow["267:266"]?.inputs?.value ?? "";
+  const promptMagic = resolvePromptMagic(
+    overrides.promptMagic ?? overrides.prompt_magic,
+    true,
+  );
 
   if (overrides.inputImageFilename && workflow["287"]?.inputs) {
     workflow["287"].inputs.image = String(overrides.inputImageFilename);
   }
 
   if (workflow["267:266"]?.inputs) {
-    workflow["267:266"].inputs.value =
-      overrides.prompt !== undefined && overrides.prompt !== null
-        ? String(overrides.prompt)
-        : workflow["267:266"].inputs.value;
+    workflow["267:266"].inputs.value = userPrompt;
+  }
+
+  if (workflow["267:277"]?.inputs) {
+    workflow["267:277"].inputs.value = promptMagic;
+  }
+
+  if (workflow["267:240"]?.inputs) {
+    workflow["267:240"].inputs.text = promptMagic
+      ? ["267:274", 0]
+      : ["267:266", 0];
+  }
+
+  if (workflow["267:275"]?.inputs) {
+    workflow["267:275"].inputs.source = promptMagic
+      ? ["267:274", 0]
+      : ["267:266", 0];
+  }
+
+  if (promptMagic && workflow["267:274"]?.inputs) {
+    workflow["267:274"].inputs.prompt = formatLtx2TextGeneratePrompt(
+      userPrompt,
+      { mode: "i2v" },
+    );
+    workflow["267:274"].inputs.use_default_template = false;
   }
 
   if (workflow["267:247"]?.inputs) {
@@ -60,6 +102,17 @@ function LtxImage2VideoWorkflow(overrides = {}) {
   }
   if (seed !== undefined && workflow["267:237"]?.inputs) {
     workflow["267:237"].inputs.noise_seed = seed + 1;
+  }
+  if (
+    seed !== undefined &&
+    promptMagic &&
+    workflow["267:274"]?.inputs &&
+    Object.prototype.hasOwnProperty.call(
+      workflow["267:274"].inputs,
+      "sampling_mode.seed",
+    )
+  ) {
+    workflow["267:274"].inputs["sampling_mode.seed"] = seed;
   }
 
   if (overrides.width !== undefined && workflow["267:257"]?.inputs) {

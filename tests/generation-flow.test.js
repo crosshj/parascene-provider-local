@@ -482,21 +482,71 @@ describe("generation flow — correct args reach runComfyGeneration", () => {
         inputImageFilename: "a2v_placeholder.png",
       });
       expect(wf["340:305"].inputs.value).toBe(true);
+      expect(wf["340:349"].inputs.value).toBe(false);
       expect(wf["340:306"].inputs.text).toEqual(["340:319", 0]);
       expect(wf["269"].inputs.image).toBe("a2v_placeholder.png");
       expect(wf["276"].inputs.audio).toBe("track.mp3");
     });
 
-    it("audio2video workflow: image mode keeps TextGenerateLTX2Prompt path", () => {
+    it("audio2video workflow: image mode uses TextGenerate prompt magic by default", () => {
       const LtxAudio2VideoWorkflow = require("../server/workflows/imageAudio2video/video_ltx2_3_ia2v.js");
       const wf = LtxAudio2VideoWorkflow({
         useStartingImage: false,
+        prompt: "waves a hand",
         inputImageFilename: "start.png",
         inputAudioFilename: "track.mp3",
       });
       expect(wf["340:305"].inputs.value).toBe(false);
+      expect(wf["340:349"].inputs.value).toBe(true);
       expect(wf["340:306"].inputs.text).toEqual(["340:342", 0]);
+      expect(wf["340:342"].class_type).toBe("TextGenerate");
+      expect(wf["340:342"].inputs.use_default_template).toBe(false);
+      expect(String(wf["340:342"].inputs.prompt)).toContain(
+        "User Raw Input Prompt: waves a hand.",
+      );
+      expect(String(wf["340:342"].inputs.prompt)).toMatch(/lip sync/i);
+      expect(String(wf["340:342"].inputs.prompt)).toMatch(
+        /Do NOT invent quoted dialogue/i,
+      );
+      expect(String(wf["340:342"].inputs.prompt)).not.toMatch(
+        /glances at her watch|barista|cappuccino/i,
+      );
       expect(wf["269"].inputs.image).toBe("start.png");
+    });
+
+    it("audio2video workflow: promptMagic false sends raw prompt to CLIP", () => {
+      const LtxAudio2VideoWorkflow = require("../server/workflows/imageAudio2video/video_ltx2_3_ia2v.js");
+      const wf = LtxAudio2VideoWorkflow({
+        useStartingImage: false,
+        promptMagic: false,
+        prompt: "raw only",
+        inputImageFilename: "start.png",
+        inputAudioFilename: "track.mp3",
+      });
+      expect(wf["340:349"].inputs.value).toBe(false);
+      expect(wf["340:306"].inputs.text).toEqual(["340:319", 0]);
+    });
+
+    it("image2video LTX: prompt magic on by default; can be disabled", () => {
+      const LtxImage2VideoWorkflow = require("../server/workflows/image2video/ltx2_3.js");
+      const on = LtxImage2VideoWorkflow({
+        prompt: "nods once",
+        inputImageFilename: "frame.png",
+      });
+      expect(on["267:277"].inputs.value).toBe(true);
+      expect(on["267:240"].inputs.text).toEqual(["267:274", 0]);
+      expect(on["267:274"].class_type).toBe("TextGenerate");
+      expect(String(on["267:274"].inputs.prompt)).not.toMatch(
+        /glances at her watch|barista|cappuccino/i,
+      );
+
+      const off = LtxImage2VideoWorkflow({
+        prompt: "nods once",
+        promptMagic: false,
+        inputImageFilename: "frame.png",
+      });
+      expect(off["267:277"].inputs.value).toBe(false);
+      expect(off["267:240"].inputs.text).toEqual(["267:266", 0]);
     });
 
     it("image2video: accepts a single image URL string", async () => {

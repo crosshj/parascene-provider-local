@@ -398,6 +398,14 @@ const BASE_PROVIDER_CAPABILITIES = {
           type: "text",
           required: true,
         },
+        prompt_magic: {
+          label: "Prompt Magic",
+          type: "boolean",
+          required: false,
+          default: true,
+          description:
+            "LTX only: expand the prompt with Gemma (official LTX2 I2V instructions, without the watch/café few-shot). Set false to send your prompt unchanged.",
+        },
         input_images: {
           label: "Input Images",
           type: "image_url_array",
@@ -454,6 +462,14 @@ const BASE_PROVIDER_CAPABILITIES = {
           label: "Prompt",
           type: "text",
           required: true,
+        },
+        prompt_magic: {
+          label: "Prompt Magic",
+          type: "boolean",
+          required: false,
+          default: true,
+          description:
+            "When a start image is provided: expand the prompt with Gemma using LTX IA2V lip-sync guidance (stable camera, mouth motion matching the audio, no invented dialogue/music). Ignored for audio-only. Set false to send your prompt unchanged.",
         },
         input_audio_urls: {
           label: "Input Audio",

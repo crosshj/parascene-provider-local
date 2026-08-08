@@ -2,6 +2,10 @@
 
 const path = require("path");
 const fs = require("fs");
+const {
+  formatLtx2TextGeneratePrompt,
+  resolvePromptMagic,
+} = require("../_ltx-prompt-magic.js");
 
 const WORKFLOW_TEMPLATE = JSON.parse(
   fs.readFileSync(path.join(__dirname, "video_ltx2_3_ia2v.json"), "utf8"),
@@ -27,7 +31,7 @@ function cloneBaseWorkflow() {
  * LTX 2.3 image+audio-to-video workflow (template video_ltx2_3_ia2v.json).
  *
  * Overrides: prompt, negativePrompt, seed, inputImageFilename, inputAudioFilename,
- * useStartingImage, width, height, fps, durationSeconds/duration_seconds,
+ * useStartingImage, promptMagic, width, height, fps, durationSeconds/duration_seconds,
  * checkpointBasename.
  *
  * Node map:
@@ -35,6 +39,10 @@ function cloneBaseWorkflow() {
  *   "276" - LoadAudio
  *   "340:305" - PrimitiveBoolean (Switch to Text to Video?)
  *   "340:319" - PrimitiveStringMultiline (prompt)
+ *   "340:342" - TextGenerate (prompt magic)
+ *   "340:348" - ComfySwitchNode (raw vs enhanced)
+ *   "340:349" - PrimitiveBoolean (Prompt Magic)
+ *   "340:306" - CLIPTextEncode (positive)
  *   "340:314" - CLIPTextEncode (negative)
  *   "340:330" - PrimitiveInt (Width)
  *   "340:324" - PrimitiveInt (Height)
@@ -48,15 +56,48 @@ function LtxAudio2VideoWorkflow(overrides = {}) {
   const workflow = cloneBaseWorkflow();
   // useStartingImage true = audio-only (Comfy toggle true); false = image+audio path.
   const switchToTextToVideo = overrides.useStartingImage === true;
+  const userPrompt =
+    overrides.prompt !== undefined && overrides.prompt !== null
+      ? String(overrides.prompt)
+      : workflow["340:319"]?.inputs?.value ?? "";
 
   if (workflow["340:305"]?.inputs) {
     workflow["340:305"].inputs.value = switchToTextToVideo;
   }
 
-  // Audio-only path: bypass TextGenerateLTX2Prompt (which requires LoadImage) and
-  // encode the user prompt directly, matching ltx2_3_t2v behavior.
-  if (switchToTextToVideo && workflow["340:306"]?.inputs) {
-    workflow["340:306"].inputs.text = ["340:319", 0];
+  // Audio-only: no real first frame → skip I2V prompt magic (use raw prompt).
+  // Image+audio: default magic on; override via promptMagic / prompt_magic.
+  const promptMagic = switchToTextToVideo
+    ? false
+    : resolvePromptMagic(
+        overrides.promptMagic ?? overrides.prompt_magic,
+        true,
+      );
+
+  if (workflow["340:349"]?.inputs) {
+    workflow["340:349"].inputs.value = promptMagic;
+  }
+
+  if (workflow["340:306"]?.inputs) {
+    // Prefer direct wiring so TextGenerate is not executed when magic is off.
+    workflow["340:306"].inputs.text = promptMagic
+      ? ["340:342", 0]
+      : ["340:319", 0];
+  }
+
+  if (workflow["340:343"]?.inputs) {
+    workflow["340:343"].inputs.source = promptMagic
+      ? ["340:342", 0]
+      : ["340:319", 0];
+  }
+
+  if (promptMagic && workflow["340:342"]?.inputs) {
+    // IA2V-specific enhance: lip-sync to supplied audio; don't invent competing dialogue/music.
+    workflow["340:342"].inputs.prompt = formatLtx2TextGeneratePrompt(
+      userPrompt,
+      { mode: "ia2v" },
+    );
+    workflow["340:342"].inputs.use_default_template = false;
   }
 
   // Comfy validates LoadImage on every prompt; patch user image or placeholder.
@@ -70,10 +111,7 @@ function LtxAudio2VideoWorkflow(overrides = {}) {
   }
 
   if (workflow["340:319"]?.inputs) {
-    workflow["340:319"].inputs.value =
-      overrides.prompt !== undefined && overrides.prompt !== null
-        ? String(overrides.prompt)
-        : workflow["340:319"].inputs.value;
+    workflow["340:319"].inputs.value = userPrompt;
   }
 
   if (workflow["340:314"]?.inputs) {
@@ -92,6 +130,17 @@ function LtxAudio2VideoWorkflow(overrides = {}) {
   }
   if (seed !== undefined && workflow["340:286"]?.inputs) {
     workflow["340:286"].inputs.noise_seed = seed + 1;
+  }
+  if (
+    seed !== undefined &&
+    promptMagic &&
+    workflow["340:342"]?.inputs &&
+    Object.prototype.hasOwnProperty.call(
+      workflow["340:342"].inputs,
+      "sampling_mode.seed",
+    )
+  ) {
+    workflow["340:342"].inputs["sampling_mode.seed"] = seed;
   }
 
   if (overrides.width !== undefined && workflow["340:330"]?.inputs) {
