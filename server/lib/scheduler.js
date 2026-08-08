@@ -7,6 +7,7 @@ const { runComfyGeneration } = require("../generator/index.js");
 const {
   BASE_PROVIDER_CAPABILITIES,
 } = require("../configs/provider-api-config.js");
+const { OUTPUT_TTL_SECONDS, expiresAtFromNow } = require("./retention.js");
 
 // Job state is persisted under DATA_ROOT/runtime so it survives rollouts.
 const dataRoot = process.env.DATA_ROOT || process.cwd();
@@ -166,6 +167,7 @@ async function _processLoop() {
             ok: true,
             file_name: result.file_name,
             image_url: `/outputs/${result.file_name}`,
+            expires_at: expiresAtFromNow(OUTPUT_TTL_SECONDS),
             seed: result.seed,
             family: result.family,
             model: result.model,
@@ -173,6 +175,7 @@ async function _processLoop() {
             backend: "comfy",
             media_kind: result.media_kind,
           };
+          current.data_removed = false;
         } else {
           current.status = "failed";
           current.completed_at = new Date().toISOString();
@@ -248,6 +251,42 @@ function getJob(jobId) {
   return jobs.get(jobId) || null;
 }
 
+function getAllJobs() {
+  return Array.from(jobs.values());
+}
+
+function markDataRemoved(jobId) {
+  const job = jobs.get(jobId);
+  if (!job) return false;
+  job.data_removed = true;
+  if (job.result && typeof job.result === "object") {
+    job.result.file_name = null;
+    job.result.image_url = null;
+    job.result.data_removed = true;
+    job.result.expires_at = null;
+  }
+  jobs.set(jobId, job);
+  _writeState();
+  return true;
+}
+
+function removeExpiredJobs(metaTtlSeconds) {
+  const now = Date.now();
+  let removed = 0;
+  for (const [id, job] of jobs.entries()) {
+    if (!job) continue;
+    if (job.status === "pending" || job.status === "running") continue;
+    const completedMs = Date.parse(job.completed_at || job.created_at || 0);
+    if (!Number.isFinite(completedMs)) continue;
+    if ((now - completedMs) / 1000 < metaTtlSeconds) continue;
+    jobs.delete(id);
+    pendingOrder = pendingOrder.filter((x) => x !== id);
+    removed += 1;
+  }
+  if (removed) _writeState();
+  return removed;
+}
+
 function getSummary() {
   const all = Array.from(jobs.values());
   const pending = all.filter((j) => j.status === "pending");
@@ -277,5 +316,8 @@ function getSummary() {
 module.exports = {
   enqueueGenerationJob,
   getJob,
+  getAllJobs,
+  markDataRemoved,
+  removeExpiredJobs,
   getSummary,
 };

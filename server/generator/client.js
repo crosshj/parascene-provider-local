@@ -242,7 +242,8 @@ async function runComfyGeneration(input, outDir) {
     workflowId.startsWith("image2video") ||
     workflowId.startsWith("text2video") ||
     workflowId.startsWith("audio2video") ||
-    workflowId.startsWith("video2video");
+    workflowId.startsWith("video2video") ||
+    workflowId.startsWith("reference2video");
 
   const mediaRef = await pollHistoryForOutput(
     String(promptId),

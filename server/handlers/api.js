@@ -9,6 +9,8 @@ const { buildComfyArgs } = require("../lib/comfy-args.js");
 const {
   BASE_PROVIDER_CAPABILITIES,
 } = require("../configs/provider-api-config.js");
+const { buildCapabilityMatrix } = require("../configs/api-model-aliases.js");
+const { OUTPUT_TTL_SECONDS, expiresAtFromNow } = require("../lib/retention.js");
 
 function resolveMethodCredits(method) {
   const value = BASE_PROVIDER_CAPABILITIES?.methods?.[method]?.credits;
@@ -130,6 +132,12 @@ function handleApiGet(req, res) {
   const payload = JSON.parse(JSON.stringify(BASE_PROVIDER_CAPABILITIES));
   payload.status = "operational";
   payload.last_check_at = new Date().toISOString();
+  payload.capability_matrix = buildCapabilityMatrix();
+  payload.retention = {
+    input_ttl_seconds: Number(process.env.INPUT_TTL_SECONDS) || 86400,
+    output_ttl_seconds: OUTPUT_TTL_SECONDS,
+    note: "Uploaded inputs expire in ~24h; API outputs expire ~1h after completion. Copy outputs you need.",
+  };
   sendJson(res, 200, payload);
 }
 
@@ -208,6 +216,15 @@ async function handleApiPost(req, res, ctx = {}) {
         result: job.result,
       });
     }
+    if (job.data_removed || job.result?.data_removed) {
+      return sendJson(res, 410, {
+        async: true,
+        status: job.status,
+        job_id: job.id,
+        error: "Output data removed (retention TTL expired).",
+        data_removed: true,
+      });
+    }
     // Succeeded: stream artifact (infer video vs image so method/registry stays consistent).
     if (job.result?.file_name && ctx.outputDir) {
       const filePath = path.join(ctx.outputDir, job.result.file_name);
@@ -278,7 +295,8 @@ async function handleApiPost(req, res, ctx = {}) {
     method === "text2video" ||
     method === "image2video" ||
     method === "audio2video" ||
-    method === "video2video"
+    method === "video2video" ||
+    method === "reference2video"
   ) {
     if (!ctx.outputDir) {
       return sendJson(res, 503, { error: "OUTPUT_DIR not configured" });
@@ -301,6 +319,7 @@ async function handleApiPost(req, res, ctx = {}) {
       async: true,
       status: job.status,
       job_id: job.id,
+      expires_at: expiresAtFromNow(OUTPUT_TTL_SECONDS),
     });
   }
 
@@ -316,4 +335,5 @@ module.exports = {
   handleApiGet,
   handleApiPost,
   applyMethodFieldDefaults,
+  ensureAuthorized,
 };

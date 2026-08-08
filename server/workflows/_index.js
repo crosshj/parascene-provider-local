@@ -14,6 +14,7 @@ const WORKFLOWS = {
   // Text-to-video workflows
   "text2video-wan2_2_t2v": require("./text2video/wan2_2_t2v.js"),
   "text2video-ltx2_3_t2v": require("./text2video/ltx2_3_t2v.js"),
+  "text2video-minimax_h3_t2v": require("./text2video/minimax_h3_t2v.js"),
 
   // Image-to-image workflows (fixed-model presets; weights baked into JSON)
   "image2image-sdxl-checkpoint": require("./image2image/sdxl-checkpoint.js"),
@@ -27,13 +28,21 @@ const WORKFLOWS = {
   "image2video-ltx2_3": require("./image2video/ltx2_3.js"),
   "image2video-wan2_2_14B_flf2v": require("./image2video/wan2_2_14B_flf2v.js"),
   "image2video-ltx2_3_flf2v": require("./image2video/ltx2_3_flf2v.js"),
+  "image2video-minimax_h3_i2v": require("./image2video/minimax_h3_i2v.js"),
+  "image2video-ltx2_3_style_transition": require("./image2video/ltx2_3_style_transition.js"),
 
   // Audio-to-video workflows
   "audio2video-ltx2_3_ia2v": require("./imageAudio2video/video_ltx2_3_ia2v.js"),
+  "audio2video-ltx2_3_id_lora": require("./imageAudio2video/video_ltx2_3_id_lora.js"),
 
-  // Video-to-video workflows (Wan Fun VACE)
+  // Video-to-video workflows
   "video2video-wan2_2_vace_v2v": require("./video2video/wan2_2_vace_v2v.js"),
   "video2video-wan2_2_vace_motion": require("./video2video/wan2_2_vace_motion.js"),
+  "video2video-ltx2_3_ic_lora": require("./video2video/ltx2_3_ic_lora.js"),
+
+  // Reference / omni-ref workflows
+  "reference2video-minimax_h3_r2v": require("./reference2video/minimax_h3_r2v.js"),
+  "reference2video-ltx2_3_ic_lora_ingredients": require("./reference2video/ltx2_3_ic_lora_ingredients.js"),
 };
 
 function buildWorkflowByFamily(input) {

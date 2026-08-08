@@ -83,6 +83,10 @@ jest.mock("../server/generator/audio-input.js", () => ({
   downloadAudioToComfyInput: jest.fn(),
 }));
 
+jest.mock("../server/generator/video-input.js", () => ({
+  downloadVideoToComfyInput: jest.fn(),
+}));
+
 jest.mock("../server/generator/index.js", () => ({
   runComfyGeneration: jest.fn(),
   hasWorkflow: jest.fn(() => true),
@@ -101,6 +105,9 @@ const {
 const {
   downloadAudioToComfyInput,
 } = require("../server/generator/audio-input.js");
+const {
+  downloadVideoToComfyInput,
+} = require("../server/generator/video-input.js");
 const { runComfyGeneration } = require("../server/generator/index.js");
 const { buildComfyArgs } = require("../server/lib/comfy-args.js");
 const { enqueueGenerationJob } = require("../server/lib/scheduler.js");
@@ -110,8 +117,10 @@ const { enqueueGenerationJob } = require("../server/lib/scheduler.js");
 const OUTPUT_DIR = "/fake/output";
 const IMAGE_URL = "http://example.com/input.png";
 const AUDIO_URL = "http://example.com/input.mp3";
+const VIDEO_URL = "http://example.com/input.mp4";
 const FAKE_FILENAME = "input_123_abc.png";
 const FAKE_AUDIO_FILENAME = "audio_123_def.mp3";
+const FAKE_VIDEO_FILENAME = "video_123_ghi.mp4";
 
 function fakeSuccess() {
   return {
@@ -167,6 +176,7 @@ describe("generation flow — correct args reach runComfyGeneration", () => {
     runComfyGeneration.mockResolvedValue(fakeSuccess());
     downloadImagesToComfyInput.mockResolvedValue([FAKE_FILENAME]);
     downloadAudioToComfyInput.mockResolvedValue([FAKE_AUDIO_FILENAME]);
+    downloadVideoToComfyInput.mockResolvedValue([FAKE_VIDEO_FILENAME]);
     ensureAudio2videoPlaceholderImage.mockResolvedValue(
       A2V_PLACEHOLDER_IMAGE_FILENAME,
     );
@@ -339,6 +349,81 @@ describe("generation flow — correct args reach runComfyGeneration", () => {
       );
       expect(payload.managedWorkflowId).toBe("image2video-wan2_2_14B_flf2v");
       expect(payload.endImageFilename).toBe("input_456_end.png");
+    });
+
+    it("image2video: MiniMax flf stays on FL2VA i2v workflow with end frame", async () => {
+      downloadImagesToComfyInput.mockResolvedValue([
+        FAKE_FILENAME,
+        "input_456_end.png",
+      ]);
+      const { payload } = await buildComfyArgs(
+        {
+          prompt: "start to end",
+          model: "minimax_i2v",
+          method: "image2video",
+          input_images: [IMAGE_URL, "http://example.com/end.png"],
+        },
+        OUTPUT_DIR,
+      );
+      expect(payload.managedWorkflowId).toBe("image2video-minimax_h3_i2v");
+      expect(payload.endImageFilename).toBe("input_456_end.png");
+    });
+
+    it("text2video: minimax_t2v maps to MiniMax FL2VA workflow", async () => {
+      const { payload } = await buildComfyArgs(
+        {
+          prompt: "city night",
+          model: "minimax_t2v",
+          method: "text2video",
+          duration_seconds: 6,
+        },
+        OUTPUT_DIR,
+      );
+      expect(payload.managedWorkflowId).toBe("text2video-minimax_h3_t2v");
+      expect(payload.durationSeconds).toBe(6);
+    });
+
+    it("reference2video: MiniMax Ref2VA accepts images + video + audio", async () => {
+      downloadImagesToComfyInput.mockResolvedValue([
+        FAKE_FILENAME,
+        "input_456_b.png",
+      ]);
+      const { payload, method } = await buildComfyArgs(
+        {
+          prompt: "Use <Picture 1> and <Video 1>",
+          model: "minimax_r2v",
+          method: "reference2video",
+          input_images: [IMAGE_URL, "http://example.com/b.png"],
+          input_video_urls: [VIDEO_URL],
+          input_audio_urls: [AUDIO_URL],
+        },
+        OUTPUT_DIR,
+      );
+      expect(method).toBe("reference2video");
+      expect(payload.managedWorkflowId).toBe(
+        "reference2video-minimax_h3_r2v",
+      );
+      expect(payload.inputImageFilenames).toEqual([
+        FAKE_FILENAME,
+        "input_456_b.png",
+      ]);
+      expect(payload.inputVideoFilenames).toEqual([FAKE_VIDEO_FILENAME]);
+      expect(payload.inputAudioFilenames).toEqual([FAKE_AUDIO_FILENAME]);
+      expect(downloadVideoToComfyInput).toHaveBeenCalledWith([VIDEO_URL]);
+    });
+
+    it("reference2video: rejects audio-only", async () => {
+      await expect(
+        buildComfyArgs(
+          {
+            prompt: "voice only",
+            model: "minimax_r2v",
+            method: "reference2video",
+            input_audio_urls: [AUDIO_URL],
+          },
+          OUTPUT_DIR,
+        ),
+      ).rejects.toThrow(/at least one input image or input video/i);
     });
 
     it("audio2video: audio only sets useStartingImage true and uses placeholder image", async () => {

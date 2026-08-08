@@ -6,8 +6,8 @@ const { resolveModel } = require("../lib/model-registry.js");
 const {
   downloadImagesToComfyInput,
   ensureAudio2videoPlaceholderImage,
-  COMFY_INPUT_DIR,
 } = require("../generator/image-input.js");
+const { getComfyInputDir } = require("./comfy-paths.js");
 const { downloadAudioToComfyInput } = require("../generator/audio-input.js");
 const { downloadVideoToComfyInput } = require("../generator/video-input.js");
 const {
@@ -16,16 +16,19 @@ const {
   getText2videoPreset,
   getAudio2videoPreset,
   getVideo2videoPreset,
+  getReference2videoPreset,
   buildSyntheticImage2videoRegistryEntry,
   buildSyntheticImage2imageRegistryEntry,
   buildSyntheticText2videoRegistryEntry,
   buildSyntheticAudio2videoRegistryEntry,
   buildSyntheticVideo2videoRegistryEntry,
+  buildSyntheticReference2videoRegistryEntry,
   IMAGE2VIDEO_MODEL_PRESETS,
   IMAGE2IMAGE_MODEL_PRESETS,
   TEXT2VIDEO_MODEL_PRESETS,
   AUDIO2VIDEO_MODEL_PRESETS,
   VIDEO2VIDEO_MODEL_PRESETS,
+  REFERENCE2VIDEO_MODEL_PRESETS,
 } = require("../configs/api-model-aliases.js");
 const { _loadTemplateDefaults } = require("../workflows/_defaults.js");
 const {
@@ -84,7 +87,7 @@ async function prepareInputImageAspectRatio(body, filename, managedWorkflowId) {
   return resolveAspectRatioFromInputImage({
     body,
     inputFilename: filename,
-    inputDir: COMFY_INPUT_DIR,
+    inputDir: getComfyInputDir(),
     baseWidth: defaults.width,
     baseHeight: defaults.height,
   });
@@ -136,6 +139,7 @@ async function buildComfyArgs(body, outputDir) {
       cfg: body.cfg,
       fps: body.fps,
       length: body.length,
+      aspectRatio: body.aspect_ratio || body.aspectRatio,
       expectVideo: true,
     };
     const durationSeconds = resolveDurationSeconds(body);
@@ -169,6 +173,11 @@ async function buildComfyArgs(body, outputDir) {
 
     const inputImages = normalizeInputImages(body);
     const hasStartingImage = inputImages.length > 0;
+    if (preset.requiresReferenceImage && !hasStartingImage) {
+      throw new Error(
+        `audio2video model "${presetKey}" requires input_images (identity/reference).`,
+      );
+    }
     let width;
     let height;
     let inputImageFilename;
@@ -213,6 +222,7 @@ async function buildComfyArgs(body, outputDir) {
       inputAudioFilename: audioFilename,
       useStartingImage: !hasStartingImage,
       promptMagic: body.prompt_magic ?? body.promptMagic,
+      aspectRatio: body.aspect_ratio || body.aspectRatio,
       expectVideo: true,
     };
     if (inputImageFilename) {
@@ -245,16 +255,19 @@ async function buildComfyArgs(body, outputDir) {
     if (!filename)
       throw new Error("Failed to prepare input image for image2video.");
 
-    const useFlf2v = Boolean(endFilename);
+    const useFlf2v = Boolean(endFilename) || Boolean(preset.requiresEndFrame);
+    if (preset.requiresEndFrame && !endFilename) {
+      throw new Error(
+        `Model "${presetKey}" requires two input_images (first and last frame).`,
+      );
+    }
     let managedWorkflowId = preset.managedWorkflowId;
     if (useFlf2v) {
-      if (presetKey === "ltx_i2v") {
-        managedWorkflowId = "image2video-ltx2_3_flf2v";
-      } else if (presetKey === "wan_i2v") {
-        managedWorkflowId = "image2video-wan2_2_14B_flf2v";
-      } else {
+      if (preset.flfWorkflowId) {
+        managedWorkflowId = preset.flfWorkflowId;
+      } else if (!preset.requiresEndFrame) {
         throw new Error(
-          `Model "${presetKey}" does not support an end frame. Use wan_i2v or ltx_i2v.`,
+          `Model "${presetKey}" does not support an end frame.`,
         );
       }
     }
@@ -298,11 +311,108 @@ async function buildComfyArgs(body, outputDir) {
       inputImageFilename: inputFilename,
       // LTX i2v prompt magic (Gemma TextGenerate); ignored by Wan / flf2v builders.
       promptMagic: body.prompt_magic ?? body.promptMagic,
+      aspectRatio: body.aspect_ratio || body.aspectRatio,
       expectVideo: true,
     };
     if (endImageFilename) {
       payload.endImageFilename = endImageFilename;
     }
+    const durationSeconds = resolveDurationSeconds(body);
+    if (durationSeconds !== undefined) {
+      payload.durationSeconds = durationSeconds;
+    }
+
+    return { payload, entry, method };
+  }
+
+  if (method === "reference2video") {
+    const presetKey = String(body.model || "").trim();
+    if (!presetKey) throw new Error("Missing required field: model");
+    const preset = getReference2videoPreset(presetKey);
+    if (!preset) {
+      const keys = Object.keys(REFERENCE2VIDEO_MODEL_PRESETS).join(", ");
+      throw new Error(
+        `Unknown reference2video model "${presetKey}". Use one of: ${keys}.`,
+      );
+    }
+    const entry = buildSyntheticReference2videoRegistryEntry(presetKey, preset);
+    const inputImages = normalizeInputImages(body);
+    const inputVideoUrls = normalizeInputVideoUrls(body);
+    const inputAudioUrls = normalizeInputAudioUrls(body);
+
+    const maxImages = preset.maxRefImages ?? 9;
+    const maxVideos = preset.maxRefVideos ?? 3;
+    const maxAudios = preset.maxRefAudios ?? 3;
+    if (inputImages.length > maxImages) {
+      throw new Error(`reference2video allows at most ${maxImages} images.`);
+    }
+    if (inputVideoUrls.length > maxVideos) {
+      throw new Error(`reference2video allows at most ${maxVideos} videos.`);
+    }
+    if (inputAudioUrls.length > maxAudios) {
+      throw new Error(`reference2video allows at most ${maxAudios} audios.`);
+    }
+    if (!inputImages.length && !inputVideoUrls.length) {
+      throw new Error(
+        "reference2video requires at least one input image or input video.",
+      );
+    }
+    if (inputAudioUrls.length && !inputImages.length && !inputVideoUrls.length) {
+      throw new Error(
+        "reference2video audio requires an accompanying image or video.",
+      );
+    }
+
+    const inputImageFilenames = inputImages.length
+      ? await downloadImagesToComfyInput(inputImages)
+      : [];
+    const inputVideoFilenames = inputVideoUrls.length
+      ? await downloadVideoToComfyInput(inputVideoUrls)
+      : [];
+    const inputAudioFilenames = inputAudioUrls.length
+      ? await downloadAudioToComfyInput(inputAudioUrls)
+      : [];
+
+    const defaults = { width: 768, height: 768 };
+    let width;
+    let height;
+    if (inputImageFilenames[0]) {
+      const resolved = await prepareInputImageAspectRatio(
+        body,
+        inputImageFilenames[0],
+        preset.managedWorkflowId,
+      );
+      width = resolved.width;
+      height = resolved.height;
+    } else {
+      ({ width, height } = resolveGenerationDimensions(body, defaults));
+    }
+
+    const payload = {
+      family: preset.family,
+      managedWorkflowId: preset.managedWorkflowId,
+      modelFile: preset.modelFile,
+      modelPath: preset.modelPath,
+      comfyCheckpointGroup: preset.comfyCheckpointGroup,
+      diffusionModelComfyName: preset.diffusionModelComfyName,
+      loadKind: preset.loadKind,
+      checkpointBasename: preset.checkpointBasename,
+      prompt,
+      negativePrompt,
+      seed,
+      width,
+      height,
+      steps: body.steps,
+      cfg: body.cfg,
+      fps: body.fps,
+      inputImageFilenames,
+      inputVideoFilenames,
+      inputAudioFilenames,
+      inputImageFilename: inputImageFilenames[0],
+      aspectRatio: body.aspect_ratio || body.aspectRatio,
+      ref_image_size: body.ref_image_size || body.refImageSize,
+      expectVideo: true,
+    };
     const durationSeconds = resolveDurationSeconds(body);
     if (durationSeconds !== undefined) {
       payload.durationSeconds = durationSeconds;

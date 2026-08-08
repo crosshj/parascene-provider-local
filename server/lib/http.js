@@ -52,7 +52,8 @@ function readJson(req) {
     req.setEncoding("utf8");
     req.on("data", (chunk) => {
       raw += chunk;
-      if (raw.length > 1_000_000) {
+      // Allow a few small data-URI media fields in generate JSON (≤256KB each).
+      if (raw.length > 5_000_000) {
         reject(new Error("Request too large."));
         req.destroy();
       }

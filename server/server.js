@@ -20,7 +20,19 @@ const { handleGpu } = require("./handlers/gpu.js");
 const { handleOutputImage } = require("./handlers/outputs.js");
 const { handlePublic } = require("./handlers/public.js");
 const { handleGenerate } = require("./handlers/generate.js");
-const { handleApiGet, handleApiPost } = require("./handlers/api.js");
+const {
+  handleApiGet,
+  handleApiPost,
+  ensureAuthorized,
+} = require("./handlers/api.js");
+const { handleFilesPost, handleFilesGet } = require("./handlers/files.js");
+const { startRetentionSweeper } = require("./lib/retention.js");
+const { getComfyInputDir } = require("./lib/comfy-paths.js");
+const {
+  getAllJobs,
+  markDataRemoved,
+  removeExpiredJobs,
+} = require("./lib/scheduler.js");
 
 const ctx = {
   outputDir: process.env.OUTPUT_DIR || null,
@@ -38,11 +50,25 @@ app.get("/api/health", handleHealth);
 app.get("/api/gpu", handleGpu);
 app.get("/api/models", handleModels);
 app.post("/api/generate", handleGenerate);
+app.post("/api/files", (req, res, c) => {
+  if (!ensureAuthorized(req, res)) return;
+  return handleFilesPost(req, res, c);
+});
+app.get("/api/files/*", (req, res, c) => {
+  if (!ensureAuthorized(req, res)) return;
+  return handleFilesGet(req, res, c);
+});
 app.get("/outputs/*", handleOutputImage);
 app.get("*", handlePublic);
 
 app.listen(Number(PORT), HOST, () => {
   console.log(`Server running at http://${HOST}:${PORT}/`);
+  startRetentionSweeper({
+    getComfyInputDir,
+    getJobs: getAllJobs,
+    markDataRemoved,
+    removeExpiredJobs,
+  });
   if (!ctx.outputDir) {
     console.warn("[comfy] warm start skipped: OUTPUT_DIR not configured");
     return;

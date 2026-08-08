@@ -335,6 +335,11 @@ const BASE_PROVIDER_CAPABILITIES = {
               value: "ltx_t2v",
               hint: "LTX 2.3 t2v checkpoint (ltx-2.3-22b-dev-fp8.safetensors).",
             },
+            {
+              label: "MiniMax H3 — text-to-video (FL2VA)",
+              value: "minimax_t2v",
+              hint: "MiniMax H3 FL2VA with native stereo audio.",
+            },
           ],
         },
         prompt: {
@@ -391,6 +396,16 @@ const BASE_PROVIDER_CAPABILITIES = {
               value: "ltx_i2v",
               hint: "LTX 2.3 i2v checkpoint (weights under checkpoints/ltx/i2v).",
             },
+            {
+              label: "MiniMax H3 — image-to-video (FL2VA)",
+              value: "minimax_i2v",
+              hint: "MiniMax H3 FL2VA; second image enables flf2va with native audio.",
+            },
+            {
+              label: "LTX — style transition (flf + LoRA)",
+              value: "ltx_style_transition",
+              hint: "First/last frame style morph with ltx2.3-transition LoRA.",
+            },
           ],
         },
         prompt: {
@@ -411,7 +426,7 @@ const BASE_PROVIDER_CAPABILITIES = {
           type: "image_url_array",
           required: true,
           description:
-            "Start frame (required). Optional second image is the end frame (first/last-frame interpolate).",
+            "Start frame (required). Optional second image is the end frame (first/last-frame interpolate). Each entry may be an https URL, data URI (≤256KB), or /api/files/… upload ref.",
         },
         aspect_ratio: aspectRatioFieldDef(),
         duration_seconds: {
@@ -456,6 +471,11 @@ const BASE_PROVIDER_CAPABILITIES = {
               value: "ltx_a2v",
               hint: "LTX 2.3 ia2v checkpoint with user-supplied audio (ltx-2.3-22b-dev-fp8.safetensors).",
             },
+            {
+              label: "LTX — ID-LoRA talkvid",
+              value: "ltx_id_lora",
+              hint: "Identity lock + user audio (requires start image).",
+            },
           ],
         },
         prompt: {
@@ -475,13 +495,15 @@ const BASE_PROVIDER_CAPABILITIES = {
           label: "Input Audio",
           type: "audio_url_array",
           required: true,
+          description:
+            "https URL, small data URI (≤256KB), or /api/files/… upload ref.",
         },
         input_images: {
           label: "Input Images",
           type: "image_url_array",
           required: false,
           description:
-            "Optional start image. When omitted, generates from audio and prompt only.",
+            "Optional start image (required for ltx_id_lora). URL, data URI, or upload ref.",
         },
         aspect_ratio: aspectRatioFieldDef(),
         duration_seconds: {
@@ -532,6 +554,11 @@ const BASE_PROVIDER_CAPABILITIES = {
               value: "wan_motion",
               hint: "Character image + motion video. Requires wan2.2_fun_vace_*_14B_fp8_scaled weights.",
             },
+            {
+              label: "LTX — IC-LoRA video control",
+              value: "ltx_ic_lora",
+              hint: "Structure/control from video + start image (IC-LoRA).",
+            },
           ],
         },
         prompt: {
@@ -543,14 +570,15 @@ const BASE_PROVIDER_CAPABILITIES = {
           label: "Input Video",
           type: "video_url_array",
           required: true,
-          description: "Source video (motion / footage to condition on).",
+          description:
+            "Source video (motion / footage). https URL or /api/files/… upload ref (no data URI).",
         },
         input_images: {
           label: "Input Images",
           type: "image_url_array",
           required: false,
           description:
-            "Required for wan_motion: character/reference image. Ignored for wan_v2v.",
+            "Required for wan_motion and ltx_ic_lora: character/reference image.",
         },
         aspect_ratio: aspectRatioFieldDef(),
         duration_seconds: {
@@ -562,6 +590,83 @@ const BASE_PROVIDER_CAPABILITIES = {
           step: 0.5,
           description:
             "Output video length in seconds (default ~5). Clamped to 1–15.",
+        },
+        seed: {
+          label: "Seed",
+          type: "number",
+          required: false,
+          hidden: true,
+          min: 0,
+          step: 1,
+          description:
+            "Optional deterministic seed. If not provided, a random seed is used.",
+        },
+      },
+    },
+    reference2video: {
+      id: "reference2video",
+      default: false,
+      async: true,
+      name: "Reference To Video",
+      description:
+        "Generate video from multimodal references (images, videos, and/or audio).",
+      intent: "video_generate",
+      credits: 1,
+      fields: {
+        model: {
+          label: "Model",
+          type: "select",
+          required: true,
+          options: [
+            {
+              label: "MiniMax H3 — reference-to-video (Ref2VA)",
+              value: "minimax_r2v",
+              hint: "Omni-ref: ≤9 images, ≤3 videos, ≤3 audios; native stereo AV out.",
+            },
+            {
+              label: "LTX — IC-LoRA ingredients",
+              value: "ltx_ingredients",
+              hint: "Character/prop sheet image → video (IC-LoRA ingredients).",
+            },
+          ],
+        },
+        prompt: {
+          label: "Prompt",
+          type: "text",
+          required: true,
+          description:
+            "Reference tags by connection order, e.g. <Picture 1>, <Video 1>, <Audio 1>.",
+        },
+        input_images: {
+          label: "Reference Images",
+          type: "image_url_array",
+          required: false,
+          description:
+            "Up to 9 for MiniMax (URL, data URI ≤256KB, or upload). At least one image or video required.",
+        },
+        input_video_urls: {
+          label: "Reference Videos",
+          type: "video_url_array",
+          required: false,
+          description:
+            "Up to 3 for MiniMax. https URL or /api/files/… (no data URI).",
+        },
+        input_audio_urls: {
+          label: "Reference Audio",
+          type: "audio_url_array",
+          required: false,
+          description:
+            "Up to 3 for MiniMax; requires image or video. URL, data URI, or upload.",
+        },
+        aspect_ratio: aspectRatioFieldDef(),
+        duration_seconds: {
+          label: "Duration (seconds)",
+          type: "number",
+          required: false,
+          min: 1,
+          max: 15,
+          step: 0.5,
+          description: "Output length in seconds (MiniMax typically 4–15).",
         },
         seed: {
           label: "Seed",

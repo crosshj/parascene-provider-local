@@ -91,48 +91,39 @@
                 />
               </div>
 
-              <div class="field" id="audio-url-field" style="display:none">
-                <label for="input_audio_urls">Input Audio URL</label>
-                <input
-                  id="input_audio_urls"
-                  name="input_audio_urls"
-                  type="url"
-                  placeholder="https://example.com/audio.mp3"
-                  autocomplete="off"
-                />
+              <div class="field" id="images-media-field" style="display:none">
+                <label id="images-media-label">Images</label>
+                <div id="images-media-slots" class="media-slots"></div>
+                <button type="button" class="btn-secondary media-add-btn" id="images-media-add">
+                  Add image
+                </button>
+                <small class="field-hint" id="images-media-hint"></small>
               </div>
 
-              <div class="field" id="video-url-field" style="display:none">
-                <label for="input_video_urls">Input Video URL</label>
-                <input
-                  id="input_video_urls"
-                  name="input_video_urls"
-                  type="url"
-                  placeholder="https://example.com/video.mp4"
-                  autocomplete="off"
-                />
+              <div class="field" id="videos-media-field" style="display:none">
+                <label id="videos-media-label">Videos</label>
+                <div id="videos-media-slots" class="media-slots"></div>
+                <button type="button" class="btn-secondary media-add-btn" id="videos-media-add">
+                  Add video
+                </button>
+                <small class="field-hint" id="videos-media-hint"></small>
               </div>
 
-              <div class="field" id="image-url-field" style="display:none">
-              <label for="input_images" id="input_images_label">Input Image URL</label>
-              <input
-                id="input_images"
-                name="input_images"
-                type="url"
-                placeholder="https://example.com/image.png"
-                autocomplete="off"
-              />
+              <div class="field" id="audios-media-field" style="display:none">
+                <label id="audios-media-label">Audio</label>
+                <div id="audios-media-slots" class="media-slots"></div>
+                <button type="button" class="btn-secondary media-add-btn" id="audios-media-add">
+                  Add audio
+                </button>
+                <small class="field-hint" id="audios-media-hint"></small>
               </div>
 
-              <div class="field" id="end-image-url-field" style="display:none">
-                <label for="input_end_image">End Image URL (optional)</label>
-                <input
-                  id="input_end_image"
-                  name="input_end_image"
-                  type="url"
-                  placeholder="https://example.com/end.png"
-                  autocomplete="off"
-                />
+              <div class="field" id="upload-library-field">
+                <label>Uploaded files (reuse while TTL allows)</label>
+                <div id="upload-library" class="upload-library"></div>
+                <small class="field-hint">
+                  Click a file to fill the next empty matching slot. Server TTL resets on use.
+                </small>
               </div>
 
               <div class="field" id="denoise-field" style="display:none">

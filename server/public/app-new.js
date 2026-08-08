@@ -154,17 +154,451 @@ function initApp() {
   const idleEl = document.getElementById("preview-idle");
   const imageEl = document.getElementById("image");
   const metaRowEl = document.getElementById("meta-row");
-  const audioUrlField = document.getElementById("audio-url-field");
-  const audioUrlInput = document.getElementById("input_audio_urls");
-  const videoUrlField = document.getElementById("video-url-field");
-  const videoUrlInput = document.getElementById("input_video_urls");
-  const imageUrlField = document.getElementById("image-url-field");
-  const imageUrlInput = document.getElementById("input_images");
-  const imageUrlLabel = document.getElementById("input_images_label");
-  const endImageUrlField = document.getElementById("end-image-url-field");
-  const endImageUrlInput = document.getElementById("input_end_image");
   const aspectRatioField = document.getElementById("aspect-ratio-field");
   const aspectRatioSel = document.getElementById("aspect_ratio");
+  const uploadLibraryEl = document.getElementById("upload-library");
+
+  const UPLOAD_LIBRARY_KEY = "local-image-generator.uploads.v1";
+  let inputTtlSeconds = 86400;
+  /** @type {Array<object>} */
+  let capabilityMatrix = [];
+  /** @type {{ image: string[], video: string[], audio: string[] }} */
+  let mediaValues = { image: [""], video: [], audio: [] };
+
+  function loadUploadLibrary() {
+    try {
+      const raw = localStorage.getItem(UPLOAD_LIBRARY_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function saveUploadLibrary(items) {
+    try {
+      localStorage.setItem(UPLOAD_LIBRARY_KEY, JSON.stringify(items));
+    } catch {
+      // ignore
+    }
+  }
+
+  function pruneUploadLibrary(items) {
+    const now = Date.now();
+    return items.filter((it) => {
+      if (!it || !it.url) return false;
+      if (!it.expires_at) return true;
+      const exp = Date.parse(it.expires_at);
+      return !Number.isFinite(exp) || exp > now;
+    });
+  }
+
+  function rememberUpload(meta) {
+    if (!meta?.url) return;
+    const items = pruneUploadLibrary(loadUploadLibrary());
+    const next = {
+      url: meta.url,
+      filename: meta.filename || meta.id || "",
+      kind: meta.kind || "image",
+      label: meta.label || meta.originalName || meta.filename || "upload",
+      bytes: meta.bytes ?? null,
+      expires_at: meta.expires_at || null,
+      uploaded_at: meta.uploaded_at || new Date().toISOString(),
+    };
+    const filtered = items.filter((it) => it.url !== next.url);
+    filtered.unshift(next);
+    saveUploadLibrary(filtered.slice(0, 40));
+    renderUploadLibrary();
+  }
+
+  function bumpLibraryTtlForUrls(urls) {
+    if (!urls?.length) return;
+    const items = loadUploadLibrary();
+    const set = new Set(urls.filter(Boolean));
+    let changed = false;
+    const expires = new Date(Date.now() + inputTtlSeconds * 1000).toISOString();
+    for (const it of items) {
+      if (set.has(it.url)) {
+        it.expires_at = expires;
+        changed = true;
+      }
+    }
+    if (changed) {
+      saveUploadLibrary(items);
+      renderUploadLibrary();
+    }
+  }
+
+  function formatExpiresShort(iso) {
+    if (!iso) return "";
+    const ms = Date.parse(iso) - Date.now();
+    if (!Number.isFinite(ms)) return "";
+    if (ms <= 0) return "expired";
+    const h = Math.floor(ms / 3600000);
+    if (h >= 48) return `${Math.floor(h / 24)}d left`;
+    if (h >= 1) return `${h}h left`;
+    const m = Math.max(1, Math.floor(ms / 60000));
+    return `${m}m left`;
+  }
+
+  function renderUploadLibrary() {
+    if (!uploadLibraryEl) return;
+    const items = pruneUploadLibrary(loadUploadLibrary());
+    saveUploadLibrary(items);
+    uploadLibraryEl.innerHTML = "";
+    if (!items.length) {
+      const empty = document.createElement("div");
+      empty.className = "upload-library-empty";
+      empty.textContent = "No uploads yet — use a slot’s file picker.";
+      uploadLibraryEl.appendChild(empty);
+      return;
+    }
+    for (const it of items) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "upload-library-item";
+      const expired =
+        it.expires_at && Date.parse(it.expires_at) <= Date.now();
+      if (expired) btn.classList.add("is-expired");
+      btn.innerHTML = `<span class="ul-kind">${it.kind || "?"}</span><span class="ul-name" title="${it.url}">${it.label || it.filename || it.url}</span><span class="ul-exp">${formatExpiresShort(it.expires_at)}</span>`;
+      btn.addEventListener("click", () => assignLibraryItem(it));
+      uploadLibraryEl.appendChild(btn);
+    }
+  }
+
+  async function assignLibraryItem(item) {
+    if (!item?.url || !item.kind) return;
+    const kind =
+      item.kind === "video" || item.kind === "audio" ? item.kind : "image";
+    const limits = getMediaLimits();
+    const max =
+      kind === "video"
+        ? limits.maxVideos
+        : kind === "audio"
+          ? limits.maxAudios
+          : limits.maxImages;
+    if (max <= 0) {
+      setStatusMessage(`Current method/model does not accept ${kind} inputs.`, true);
+      return;
+    }
+    // Touch server TTL + refresh expires_at
+    try {
+      const path = item.url.startsWith("/") ? item.url : `/api/files/${encodeURIComponent(item.filename || "")}`;
+      const res = await apiFetch(path, { method: "GET" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        // Drop stale library entry
+        saveUploadLibrary(
+          loadUploadLibrary().filter((it) => it.url !== item.url),
+        );
+        renderUploadLibrary();
+        throw new Error(data.error || "Upload expired on server.");
+      }
+      rememberUpload({
+        ...item,
+        ...data,
+        label: item.label,
+        kind: data.kind || item.kind,
+      });
+      item = { ...item, url: data.url || item.url, expires_at: data.expires_at };
+    } catch (err) {
+      setStatusMessage("Library error: " + (err.message || "Unknown"), true);
+      return;
+    }
+
+    const arr = mediaValues[kind] || [];
+    let idx = arr.findIndex((v) => !String(v || "").trim());
+    if (idx < 0) {
+      if (arr.length >= max) {
+        setStatusMessage(`All ${kind} slots are full (max ${max}).`, true);
+        return;
+      }
+      arr.push(item.url);
+    } else {
+      arr[idx] = item.url;
+    }
+    mediaValues[kind] = arr;
+    renderMediaSlots();
+    saveFormValues();
+    setStatusMessage(`Filled ${kind} slot from library.`);
+  }
+
+  async function uploadFileToApi(file) {
+    if (!file) return null;
+    const formData = new FormData();
+    formData.append("content", file, file.name || "upload.bin");
+    const res = await apiFetch("/api/files", {
+      method: "POST",
+      body: formData,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || `Upload failed (${res.status})`);
+    }
+    const url =
+      data.url ||
+      (data.filename
+        ? `/api/files/${encodeURIComponent(data.filename)}`
+        : "");
+    if (!url) throw new Error("Upload succeeded but no file URL was returned.");
+    rememberUpload({
+      ...data,
+      url,
+      label: file.name || data.filename,
+      originalName: file.name,
+      uploaded_at: new Date().toISOString(),
+    });
+    return { url, data };
+  }
+
+  function getMediaLimits() {
+    const method = methodSel.value;
+    const model = modelSel.value;
+    const matrixEntry = Array.isArray(capabilityMatrix)
+      ? capabilityMatrix.find(
+          (row) => row && row.method === method && row.model === model,
+        )
+      : null;
+
+    if (method === "reference2video") {
+      return {
+        maxImages: matrixEntry?.maxRefImages ?? 9,
+        maxVideos: matrixEntry?.maxRefVideos ?? 3,
+        maxAudios: matrixEntry?.maxRefAudios ?? 3,
+        imagesRequired: false,
+        videosRequired: false,
+        audiosRequired: false,
+        labelImages: "Reference images",
+        labelVideos: "Reference videos",
+        labelAudios: "Reference audio",
+        hintImages: "MiniMax: up to 9. Prompt tags: <Picture 1>…",
+        hintVideos: "MiniMax: up to 3. Prompt tags: <Video 1>…",
+        hintAudios: "MiniMax: up to 3 (needs image or video). <Audio 1>…",
+      };
+    }
+    if (method === "image2video") {
+      return {
+        maxImages: 2,
+        maxVideos: 0,
+        maxAudios: 0,
+        imagesRequired: true,
+        labelImages: "Start / end images",
+        hintImages: "Slot 1 = start frame; slot 2 = optional end frame (FLF).",
+      };
+    }
+    if (method === "image2image") {
+      return {
+        maxImages: 1,
+        maxVideos: 0,
+        maxAudios: 0,
+        imagesRequired: true,
+        labelImages: "Input image",
+        hintImages: "",
+      };
+    }
+    if (method === "audio2video") {
+      return {
+        maxImages: 1,
+        maxVideos: 0,
+        maxAudios: 1,
+        imagesRequired: false,
+        audiosRequired: true,
+        labelImages: "Input image (optional)",
+        labelAudios: "Input audio",
+        hintAudios: "Required.",
+      };
+    }
+    if (method === "video2video") {
+      return {
+        maxImages: 1,
+        maxVideos: 1,
+        maxAudios: 0,
+        videosRequired: true,
+        labelImages: "Character image (wan_motion)",
+        labelVideos: "Input video",
+        hintVideos: "Required.",
+      };
+    }
+    return {
+      maxImages: 0,
+      maxVideos: 0,
+      maxAudios: 0,
+    };
+  }
+
+  function clampMediaToLimits() {
+    const limits = getMediaLimits();
+    const clamp = (arr, max, minSlots) => {
+      let next = Array.isArray(arr) ? [...arr] : [];
+      if (max <= 0) return [];
+      if (next.length > max) next = next.slice(0, max);
+      while (next.length < minSlots) next.push("");
+      if (next.length === 0 && max > 0 && minSlots > 0) next.push("");
+      return next;
+    };
+    const imgMin =
+      limits.imagesRequired || methodSel.value === "image2video" ? 1 : 0;
+    const vidMin = limits.videosRequired ? 1 : 0;
+    const audMin = limits.audiosRequired ? 1 : 0;
+    // For reference2video show at least one empty image slot when images allowed
+    const imgFloor =
+      methodSel.value === "reference2video" && limits.maxImages > 0
+        ? Math.max(imgMin, 1)
+        : imgMin;
+
+    mediaValues.image = clamp(mediaValues.image, limits.maxImages, imgFloor);
+    mediaValues.video = clamp(mediaValues.video, limits.maxVideos, vidMin);
+    mediaValues.audio = clamp(mediaValues.audio, limits.maxAudios, audMin);
+  }
+
+  function renderMediaSlots() {
+    clampMediaToLimits();
+    const limits = getMediaLimits();
+
+    const configs = [
+      {
+        kind: "image",
+        fieldId: "images-media-field",
+        listId: "images-media-slots",
+        addId: "images-media-add",
+        labelId: "images-media-label",
+        hintId: "images-media-hint",
+        max: limits.maxImages,
+        accept: "image/*",
+        label: limits.labelImages || "Images",
+        hint: limits.hintImages || "",
+        placeholder: "https://…, data:…, or upload",
+      },
+      {
+        kind: "video",
+        fieldId: "videos-media-field",
+        listId: "videos-media-slots",
+        addId: "videos-media-add",
+        labelId: "videos-media-label",
+        hintId: "videos-media-hint",
+        max: limits.maxVideos,
+        accept: "video/*",
+        label: limits.labelVideos || "Videos",
+        hint: limits.hintVideos || "",
+        placeholder: "https://… or upload (no data URI)",
+      },
+      {
+        kind: "audio",
+        fieldId: "audios-media-field",
+        listId: "audios-media-slots",
+        addId: "audios-media-add",
+        labelId: "audios-media-label",
+        hintId: "audios-media-hint",
+        max: limits.maxAudios,
+        accept: "audio/*",
+        label: limits.labelAudios || "Audio",
+        hint: limits.hintAudios || "",
+        placeholder: "https://…, data:…, or upload",
+      },
+    ];
+
+    for (const cfg of configs) {
+      const field = document.getElementById(cfg.fieldId);
+      const list = document.getElementById(cfg.listId);
+      const addBtn = document.getElementById(cfg.addId);
+      const labelEl = document.getElementById(cfg.labelId);
+      const hintEl = document.getElementById(cfg.hintId);
+      if (!field || !list) continue;
+
+      if (cfg.max <= 0) {
+        field.style.display = "none";
+        continue;
+      }
+      field.style.display = "";
+      if (labelEl) {
+        const n = (mediaValues[cfg.kind] || []).filter((v) =>
+          String(v || "").trim(),
+        ).length;
+        labelEl.textContent = `${cfg.label} (${n}/${cfg.max})`;
+      }
+      if (hintEl) hintEl.textContent = cfg.hint || "";
+
+      list.innerHTML = "";
+      const values = mediaValues[cfg.kind] || [];
+      values.forEach((value, idx) => {
+        const row = document.createElement("div");
+        row.className = "media-slot";
+
+        const text = document.createElement("input");
+        text.type = "text";
+        text.placeholder = cfg.placeholder;
+        text.value = value || "";
+        text.autocomplete = "off";
+        text.addEventListener("input", () => {
+          mediaValues[cfg.kind][idx] = text.value;
+          saveFormValues();
+          const label = document.getElementById(cfg.labelId);
+          if (label) {
+            const n = (mediaValues[cfg.kind] || []).filter((v) =>
+              String(v || "").trim(),
+            ).length;
+            label.textContent = `${cfg.label} (${n}/${cfg.max})`;
+          }
+        });
+
+        const file = document.createElement("input");
+        file.type = "file";
+        file.accept = cfg.accept;
+        file.addEventListener("change", async () => {
+          const f = file.files && file.files[0];
+          if (!f) return;
+          try {
+            setStatusMessage("Uploading…");
+            const result = await uploadFileToApi(f);
+            if (result?.url) {
+              mediaValues[cfg.kind][idx] = result.url;
+              text.value = result.url;
+              saveFormValues();
+              renderMediaSlots();
+              setStatusMessage("Uploaded.");
+            }
+          } catch (err) {
+            setStatusMessage("Upload error: " + (err.message || "Unknown"), true);
+          } finally {
+            file.value = "";
+          }
+        });
+
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "media-slot-remove";
+        remove.textContent = "✕";
+        remove.title = "Remove slot";
+        remove.addEventListener("click", () => {
+          mediaValues[cfg.kind].splice(idx, 1);
+          renderMediaSlots();
+          saveFormValues();
+        });
+
+        row.appendChild(text);
+        row.appendChild(file);
+        row.appendChild(remove);
+        list.appendChild(row);
+      });
+
+      if (addBtn) {
+        addBtn.style.display = values.length < cfg.max ? "" : "none";
+        addBtn.onclick = () => {
+          if ((mediaValues[cfg.kind] || []).length >= cfg.max) return;
+          mediaValues[cfg.kind].push("");
+          renderMediaSlots();
+          saveFormValues();
+        };
+      }
+    }
+  }
+
+  function getFilledMedia(kind) {
+    return (mediaValues[kind] || [])
+      .map((v) => String(v || "").trim())
+      .filter(Boolean);
+  }
 
   /** @type {HTMLVideoElement | null} */
   let previewVideoEl = null;
@@ -242,10 +676,11 @@ function initApp() {
       method: methodSel ? methodSel.value : "",
       seed: form.seed ? form.seed.value : undefined,
       denoise: form.denoise ? form.denoise.value : undefined,
-      input_images: imageUrlInput ? imageUrlInput.value : undefined,
-      input_end_image: endImageUrlInput ? endImageUrlInput.value : undefined,
-      input_audio_urls: audioUrlInput ? audioUrlInput.value : undefined,
-      input_video_urls: videoUrlInput ? videoUrlInput.value : undefined,
+      media_values: {
+        image: [...(mediaValues.image || [])],
+        video: [...(mediaValues.video || [])],
+        audio: [...(mediaValues.audio || [])],
+      },
       aspect_ratio: aspectRatioSel ? aspectRatioSel.value : undefined,
       perMethodModel,
     };
@@ -349,6 +784,12 @@ function initApp() {
     try {
       const res = await apiFetch("/api", { method: "GET" });
       const data = await res.json();
+      if (data?.retention?.input_ttl_seconds) {
+        inputTtlSeconds = Number(data.retention.input_ttl_seconds) || 86400;
+      }
+      if (Array.isArray(data?.capability_matrix)) {
+        capabilityMatrix = data.capability_matrix;
+      }
       const methods = data && data.methods;
 
       if (
@@ -471,44 +912,50 @@ function initApp() {
           : null,
       );
 
-      // Restore prompt, input_images, denoise
+      // Restore prompt, media slots, denoise
       if (savedValues && savedValues.prompt != null)
         form.prompt.value = savedValues.prompt;
       if (savedValues && savedValues.seed != null && form.seed)
         form.seed.value = savedValues.seed;
-      if (imageUrlInput) {
-        const savedInputImages =
-          savedValues && typeof savedValues.input_images === "string"
-            ? savedValues.input_images
-            : "";
-        imageUrlInput.value = savedInputImages;
-      }
-      if (audioUrlInput) {
-        const savedInputAudio =
-          savedValues && typeof savedValues.input_audio_urls === "string"
-            ? savedValues.input_audio_urls
-            : "";
-        audioUrlInput.value = savedInputAudio;
-      }
-      if (videoUrlInput) {
-        const savedInputVideo =
-          savedValues && typeof savedValues.input_video_urls === "string"
-            ? savedValues.input_video_urls
-            : "";
-        videoUrlInput.value = savedInputVideo;
-      }
-      if (endImageUrlInput) {
-        const savedEndImage =
-          savedValues && typeof savedValues.input_end_image === "string"
-            ? savedValues.input_end_image
-            : "";
-        endImageUrlInput.value = savedEndImage;
+      if (savedValues && savedValues.media_values) {
+        const mv = savedValues.media_values;
+        mediaValues = {
+          image: Array.isArray(mv.image) ? mv.image.map(String) : [""],
+          video: Array.isArray(mv.video) ? mv.video.map(String) : [],
+          audio: Array.isArray(mv.audio) ? mv.audio.map(String) : [],
+        };
+      } else {
+        // Migrate older single-field saves
+        const images = [];
+        if (typeof savedValues?.input_images === "string" && savedValues.input_images) {
+          images.push(savedValues.input_images);
+        }
+        if (
+          typeof savedValues?.input_end_image === "string" &&
+          savedValues.input_end_image
+        ) {
+          images.push(savedValues.input_end_image);
+        }
+        mediaValues = {
+          image: images.length ? images : [""],
+          video:
+            typeof savedValues?.input_video_urls === "string" &&
+            savedValues.input_video_urls
+              ? [savedValues.input_video_urls]
+              : [],
+          audio:
+            typeof savedValues?.input_audio_urls === "string" &&
+            savedValues.input_audio_urls
+              ? [savedValues.input_audio_urls]
+              : [],
+        };
       }
       if (savedValues && savedValues.denoise != null && form.denoise)
         form.denoise.value = savedValues.denoise;
 
       // Apply field visibility now that method is known
       updateFieldVisibility();
+      renderUploadLibrary();
 
       // Events
       methodSel.addEventListener("change", () => {
@@ -531,6 +978,7 @@ function initApp() {
         }
         saveFormValues();
         updateFamilyBadge();
+        updateFieldVisibility();
       });
 
       updateFamilyBadge();
@@ -552,10 +1000,6 @@ function initApp() {
 
   form.prompt.addEventListener("input", saveFormValues);
   form.seed?.addEventListener("input", saveFormValues);
-  audioUrlInput?.addEventListener("input", saveFormValues);
-  videoUrlInput?.addEventListener("input", saveFormValues);
-  imageUrlInput?.addEventListener("input", saveFormValues);
-  endImageUrlInput?.addEventListener("input", saveFormValues);
   aspectRatioSel?.addEventListener("change", saveFormValues);
   form.model.addEventListener("change", () => {
     updateFamilyBadge();
@@ -595,40 +1039,46 @@ function initApp() {
       }
     }
 
+    const images = getFilledMedia("image");
+    const videos = getFilledMedia("video");
+    const audios = getFilledMedia("audio");
+
     if (method === "audio2video") {
-      const audioUrl = audioUrlInput ? audioUrlInput.value.trim() : "";
-      if (!audioUrl) {
+      if (!audios.length) {
         setPreviewIdle();
-        setStatusMessage("Error: Input audio URL is required", true);
+        setStatusMessage(
+          "Error: Input audio is required (URL, data URI, or upload)",
+          true,
+        );
         return;
       }
-      body.input_audio_urls = [audioUrl];
-      if (imageUrlInput && imageUrlInput.value.trim()) {
-        body.input_images = [imageUrlInput.value.trim()];
-      }
+      body.input_audio_urls = audios;
+      if (images.length) body.input_images = images;
     } else if (method === "video2video") {
-      const videoUrl = videoUrlInput ? videoUrlInput.value.trim() : "";
-      if (!videoUrl) {
+      if (!videos.length) {
         setPreviewIdle();
-        setStatusMessage("Error: Input video URL is required", true);
+        setStatusMessage("Error: Input video is required (URL or upload)", true);
         return;
       }
-      body.input_video_urls = [videoUrl];
-      if (imageUrlInput && imageUrlInput.value.trim()) {
-        body.input_images = [imageUrlInput.value.trim()];
+      body.input_video_urls = videos;
+      if (images.length) body.input_images = images;
+    } else if (method === "reference2video") {
+      if (!images.length && !videos.length) {
+        setPreviewIdle();
+        setStatusMessage(
+          "Error: reference2video needs at least one image or video",
+          true,
+        );
+        return;
       }
-    } else if (
-      (method === "image2image" || method === "image2video") &&
-      imageUrlInput &&
-      imageUrlInput.value.trim()
-    ) {
-      const images = [imageUrlInput.value.trim()];
-      if (
-        method === "image2video" &&
-        endImageUrlInput &&
-        endImageUrlInput.value.trim()
-      ) {
-        images.push(endImageUrlInput.value.trim());
+      if (images.length) body.input_images = images;
+      if (videos.length) body.input_video_urls = videos;
+      if (audios.length) body.input_audio_urls = audios;
+    } else if (method === "image2image" || method === "image2video") {
+      if (!images.length) {
+        setPreviewIdle();
+        setStatusMessage("Error: Input image is required", true);
+        return;
       }
       body.input_images = images;
     }
@@ -651,6 +1101,12 @@ function initApp() {
       if (startRes.status !== 202 || !startData.job_id) {
         throw new Error(startData.error || "Failed to start job");
       }
+
+      // Server resets staged-file TTL on use; mirror that in the local library.
+      const usedRefs = [...images, ...videos, ...audios].filter((u) =>
+        String(u).includes("/api/files/"),
+      );
+      bumpLibraryTtlForUrls(usedRefs);
 
       const jobId = startData.job_id;
 
@@ -746,41 +1202,11 @@ function initApp() {
 
   // ── Show/hide media fields based on method ──
   function updateFieldVisibility() {
-    const method = methodSel.value;
-    if (audioUrlField) {
-      audioUrlField.style.display = method === "audio2video" ? "" : "none";
-    }
-    if (videoUrlField) {
-      videoUrlField.style.display = method === "video2video" ? "" : "none";
-    }
-    if (imageUrlField) {
-      imageUrlField.style.display =
-        method === "image2image" ||
-        method === "image2video" ||
-        method === "audio2video" ||
-        method === "video2video"
-          ? ""
-          : "none";
-    }
-    if (endImageUrlField) {
-      endImageUrlField.style.display =
-        method === "image2video" ? "" : "none";
-    }
-    if (imageUrlLabel) {
-      if (method === "audio2video") {
-        imageUrlLabel.textContent = "Input Image URL (optional)";
-      } else if (method === "video2video") {
-        imageUrlLabel.textContent =
-          "Character Image URL (required for wan_motion)";
-      } else if (method === "image2video") {
-        imageUrlLabel.textContent = "Start Image URL";
-      } else {
-        imageUrlLabel.textContent = "Input Image URL";
-      }
-    }
+    renderMediaSlots();
     const denoiseField = document.getElementById("denoise-field");
     if (denoiseField) {
-      denoiseField.style.display = method === "image2image" ? "" : "none";
+      denoiseField.style.display =
+        methodSel.value === "image2image" ? "" : "none";
     }
   }
   methodSel.addEventListener("change", updateFieldVisibility);
@@ -788,6 +1214,7 @@ function initApp() {
 
   savedValues = restoreSavedValues();
   setPreviewIdle();
+  renderUploadLibrary();
   loadCapabilitiesAndModels();
 }
 
