@@ -442,7 +442,9 @@ async function buildComfyArgs(body, outputDir) {
       throw new Error("Failed to prepare input video for video2video.");
     }
 
-    const defaults = { width: 640, height: 640 };
+    // Prefer template dims (VACE = 640²). Do not fall through to 1024 via
+    // aspect-ratio tables when the workflow base is 640.
+    const defaults = getEntryDefaults(entry);
     const { width, height } = resolveGenerationDimensions(body, defaults);
     const payload = {
       family: preset.family,

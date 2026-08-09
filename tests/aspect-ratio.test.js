@@ -37,6 +37,25 @@ describe("aspect-ratio", () => {
     });
   });
 
+  it("keeps Wan VACE 640 base (does not upscale to 1024)", () => {
+    expect(resolveAspectRatioDimensions("1:1", 640, 640)).toEqual({
+      requested: "1:1",
+      width: 640,
+      height: 640,
+    });
+    expect(resolveAspectRatioDimensions("16:9", 640, 640)).toEqual({
+      requested: "16:9",
+      width: 960,
+      height: 544,
+    });
+    expect(
+      resolveGenerationDimensions(
+        { aspect_ratio: "1:1" },
+        { width: 640, height: 640 },
+      ),
+    ).toEqual({ width: 640, height: 640 });
+  });
+
   it("rejects invalid aspect_ratio strings", () => {
     expect(() => resolveAspectRatioDimensions("3:2", 1024, 1024)).toThrow(
       'Unsupported aspect_ratio "3:2"',

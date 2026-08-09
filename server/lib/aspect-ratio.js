@@ -8,13 +8,20 @@ const ASPECT_RATIO_OPTIONS = ["1:1", "4:5", "9:16", "16:9"];
 
 const RATIO_KEY_RE = /^(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/;
 
-/** Comfy-friendly pixel pairs per workflow base size (multiples of 8). */
+/** Comfy-friendly pixel pairs per workflow base size (multiples of 16). */
 const DIMENSIONS_BY_BASE = {
   512: {
     "1:1": { width: 512, height: 512 },
     "16:9": { width: 768, height: 432 },
     "9:16": { width: 432, height: 768 },
     "4:5": { width: 512, height: 640 },
+  },
+  // Wan Fun VACE templates ship at 640² — must not upscale to the 1024 table.
+  640: {
+    "1:1": { width: 640, height: 640 },
+    "16:9": { width: 960, height: 544 },
+    "9:16": { width: 544, height: 960 },
+    "4:5": { width: 640, height: 800 },
   },
   1024: {
     "1:1": { width: 1024, height: 1024 },
@@ -63,7 +70,9 @@ function normalizeBase(baseWidth, baseHeight) {
     Number.isFinite(w) && w > 0 ? w : 1024,
     Number.isFinite(h) && h > 0 ? h : 1024,
   );
-  return short <= 512 ? 512 : 1024;
+  if (short <= 512) return 512;
+  if (short <= 640) return 640;
+  return 1024;
 }
 
 function getDimensionsTable(baseWidth, baseHeight) {

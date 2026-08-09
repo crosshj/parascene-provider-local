@@ -2,6 +2,7 @@
 
 const path = require("path");
 const fs = require("fs");
+const { durationSecondsToWanFrames } = require("../_wan-duration.js");
 
 const WORKFLOW_TEMPLATE = JSON.parse(
   fs.readFileSync(path.join(__dirname, "wan2_2_vace_motion.json"), "utf8"),
@@ -130,13 +131,10 @@ function WanVaceMotionTransferWorkflow(overrides = {}) {
     overrides.durationSeconds !== undefined &&
     workflow["40"]?.inputs
   ) {
-    const frames = Math.max(
-      1,
-      Math.round(
-        toNumber(overrides.durationSeconds, 0) * (Number(fps) > 0 ? fps : 16),
-      ),
+    workflow["40"].inputs.length = durationSecondsToWanFrames(
+      overrides.durationSeconds,
+      Number(fps) > 0 ? fps : 16,
     );
-    if (frames > 0) workflow["40"].inputs.length = frames;
   }
 
   if (workflow["92"]?.inputs) {

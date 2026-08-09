@@ -19,7 +19,8 @@ describe("first/last-frame workflows", () => {
     expect(workflow["31"].inputs.image).toBe("start.png");
     expect(workflow["39"].inputs.image).toBe("end.png");
     expect(workflow["128"].inputs.text).toBe("walk across");
-    expect(workflow["102"].inputs.value).toBe(75);
+    // 3s × 25fps + 1 (LTX latent convention)
+    expect(workflow["102"].inputs.value).toBe(76);
     expect(workflow["113"].inputs.value).toBe(768);
     expect(workflow["98"].inputs.value).toBe(768);
     expect(workflow["100"].inputs.noise_seed).toBe(42);

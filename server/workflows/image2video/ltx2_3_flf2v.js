@@ -2,6 +2,7 @@
 
 const path = require("path");
 const fs = require("fs");
+const { durationSecondsToLtxFrames } = require("../_ltx-duration.js");
 
 const WORKFLOW_TEMPLATE = JSON.parse(
   fs.readFileSync(path.join(__dirname, "ltx2_3_flf2v.json"), "utf8"),
@@ -85,11 +86,9 @@ function LtxFlf2vWorkflow(overrides = {}) {
   const lengthFrames =
     explicitLength !== undefined
       ? toPositiveInt(explicitLength, workflow["102"]?.inputs?.value)
-      : Math.max(
-          1,
-          Math.round(
-            toNumber(overrides.durationSeconds, DEFAULT_DURATION_SECONDS) * fps,
-          ),
+      : durationSecondsToLtxFrames(
+          toNumber(overrides.durationSeconds, DEFAULT_DURATION_SECONDS),
+          fps,
         );
   if (lengthFrames !== undefined && workflow["102"]?.inputs) {
     workflow["102"].inputs.value = lengthFrames;

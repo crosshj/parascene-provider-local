@@ -25,18 +25,18 @@ describe("audio2video duration → Comfy workflow", () => {
 
     expect(workflow["340:331"].inputs.value).toBe(3);
     expect(workflow["340:323"].inputs.value).toBe(24);
-    // duration × fps — must not stay linked to MathExpression alone
-    expect(workflow["340:302"].inputs.length).toBe(72);
+    // duration × fps + 1 — must not stay linked to MathExpression alone
+    expect(workflow["340:302"].inputs.length).toBe(73);
     // TrimAudioDuration still reads the Duration primitive
     expect(workflow["340:332"].inputs.duration).toEqual(["340:331", 0]);
   });
 
-  it("defaults to template 9s / 216 frames when duration omitted", () => {
+  it("defaults to template 9s / 217 frames when duration omitted", () => {
     const workflow = LtxAudio2VideoWorkflow({
       prompt: "lip sync",
       inputAudioFilename: "clip.wav",
     });
     expect(workflow["340:331"].inputs.value).toBe(9);
-    expect(workflow["340:302"].inputs.length).toBe(216);
+    expect(workflow["340:302"].inputs.length).toBe(217);
   });
 });

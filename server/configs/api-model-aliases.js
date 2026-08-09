@@ -239,36 +239,40 @@ function buildSyntheticAudio2videoRegistryEntry(presetKey, preset) {
 
 /**
  * Fixed-model video2video presets.
+ *
+ * Wan Fun VACE (wan_v2v / wan_motion) is parked — graphs + builders remain under
+ * server/workflows/video2video/ and _index.js, but are not API-exposed. See
+ * video-capability-notes.md § "Parked: Wan Fun VACE".
  */
 const VIDEO2VIDEO_MODEL_PRESETS = {
-  wan_v2v: {
-    managedWorkflowId: "video2video-wan2_2_vace_v2v",
-    family: "wan-v2v",
-    loadKind: "diffusion_model",
-    modelFile: "wan2.2_fun_vace_low_noise_14B_fp8_scaled.safetensors",
-    modelPath: "",
-    comfyCheckpointGroup: null,
-    diffusionModelComfyName:
-      "wan\\wan2.2_fun_vace_low_noise_14B_fp8_scaled.safetensors",
-    checkpointBasename: undefined,
-    requiresReferenceImage: false,
-    capabilities: caps(["v2v", "refVideo"]),
-    nativeAudio: false,
-  },
-  wan_motion: {
-    managedWorkflowId: "video2video-wan2_2_vace_motion",
-    family: "wan-motion",
-    loadKind: "diffusion_model",
-    modelFile: "wan2.2_fun_vace_low_noise_14B_fp8_scaled.safetensors",
-    modelPath: "",
-    comfyCheckpointGroup: null,
-    diffusionModelComfyName:
-      "wan\\wan2.2_fun_vace_low_noise_14B_fp8_scaled.safetensors",
-    checkpointBasename: undefined,
-    requiresReferenceImage: true,
-    capabilities: caps(["motion", "refVideo"]),
-    nativeAudio: false,
-  },
+  // wan_v2v: {
+  //   managedWorkflowId: "video2video-wan2_2_vace_v2v",
+  //   family: "wan-v2v",
+  //   loadKind: "diffusion_model",
+  //   modelFile: "wan2.2_fun_vace_low_noise_14B_fp8_scaled.safetensors",
+  //   modelPath: "",
+  //   comfyCheckpointGroup: null,
+  //   diffusionModelComfyName:
+  //     "wan\\wan2.2_fun_vace_low_noise_14B_fp8_scaled.safetensors",
+  //   checkpointBasename: undefined,
+  //   requiresReferenceImage: false,
+  //   capabilities: caps(["v2v", "refVideo"]),
+  //   nativeAudio: false,
+  // },
+  // wan_motion: {
+  //   managedWorkflowId: "video2video-wan2_2_vace_motion",
+  //   family: "wan-motion",
+  //   loadKind: "diffusion_model",
+  //   modelFile: "wan2.2_fun_vace_low_noise_14B_fp8_scaled.safetensors",
+  //   modelPath: "",
+  //   comfyCheckpointGroup: null,
+  //   diffusionModelComfyName:
+  //     "wan\\wan2.2_fun_vace_low_noise_14B_fp8_scaled.safetensors",
+  //   checkpointBasename: undefined,
+  //   requiresReferenceImage: true,
+  //   capabilities: caps(["motion", "refVideo"]),
+  //   nativeAudio: false,
+  // },
   ltx_ic_lora: {
     managedWorkflowId: "video2video-ltx2_3_ic_lora",
     family: "ltx-ic",

@@ -12,16 +12,34 @@ const path = require("path");
 const _cache = Object.create(null);
 
 function _extractFromWorkflowJson(wf) {
-  const sampler = wf && wf["31"] && wf["31"].inputs;
+  if (!wf || typeof wf !== "object") return null;
+
+  const sampler = wf["31"] && wf["31"].inputs;
   const latent =
     (wf["27"] && wf["27"].inputs) || (wf["39"] && wf["39"].inputs);
-  if (!sampler || !latent) return null;
-  return {
-    steps: Number(sampler.steps),
-    cfg: Number(sampler.cfg),
-    width: Number(latent.width),
-    height: Number(latent.height),
-  };
+  if (sampler && latent) {
+    return {
+      steps: Number(sampler.steps),
+      cfg: Number(sampler.cfg),
+      width: Number(latent.width),
+      height: Number(latent.height),
+    };
+  }
+
+  // Wan Fun VACE (and similar): dims live on WanVaceToVideo "40", steps/cfg on
+  // KSamplerAdvanced "60". Node "31" is CLIP negative — not a sampler.
+  const vace = wf["40"] && wf["40"].inputs;
+  const vaceSampler = wf["60"] && wf["60"].inputs;
+  if (vace && Number.isFinite(Number(vace.width))) {
+    return {
+      steps: Number(vaceSampler?.steps) || 20,
+      cfg: Number(vaceSampler?.cfg) || 3.5,
+      width: Number(vace.width),
+      height: Number(vace.height),
+    };
+  }
+
+  return null;
 }
 
 function _loadTemplateDefaults(managedWorkflowId) {

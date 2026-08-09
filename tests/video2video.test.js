@@ -61,28 +61,18 @@ describe("video2video", () => {
     downloadImagesToComfyInput.mockResolvedValue([FAKE_IMAGE]);
   });
 
-  it("wan_v2v: video + prompt → classic VACE workflow", async () => {
-    const { payload, entry, method } = await buildComfyArgs(
-      {
-        prompt: "anime restyle",
-        model: "wan_v2v",
-        method: "video2video",
-        input_video_urls: [VIDEO_URL],
-        duration_seconds: 3,
-      },
-      OUTPUT_DIR,
-    );
-    expect(method).toBe("video2video");
-    expect(entry.managedWorkflowId).toBe("video2video-wan2_2_vace_v2v");
-    expect(payload.inputVideoFilename).toBe(FAKE_VIDEO);
-    expect(payload.inputImageFilename).toBeUndefined();
-    expect(payload.durationSeconds).toBe(3);
-    expect(payload.expectVideo).toBe(true);
-    expect(downloadVideoToComfyInput).toHaveBeenCalledWith([VIDEO_URL]);
-    expect(downloadImagesToComfyInput).not.toHaveBeenCalled();
-  });
-
-  it("wan_motion: requires character image", async () => {
+  it("parked Wan VACE presets are rejected by the API", async () => {
+    await expect(
+      buildComfyArgs(
+        {
+          prompt: "anime restyle",
+          model: "wan_v2v",
+          method: "video2video",
+          input_video_urls: [VIDEO_URL],
+        },
+        OUTPUT_DIR,
+      ),
+    ).rejects.toThrow(/Unknown video2video model "wan_v2v"/);
     await expect(
       buildComfyArgs(
         {
@@ -90,31 +80,15 @@ describe("video2video", () => {
           model: "wan_motion",
           method: "video2video",
           input_video_urls: [VIDEO_URL],
+          input_images: [IMAGE_URL],
         },
         OUTPUT_DIR,
       ),
-    ).rejects.toThrow(/requires input_images/);
+    ).rejects.toThrow(/Unknown video2video model "wan_motion"/);
   });
 
-  it("wan_motion: video + image → motion transfer workflow", async () => {
-    const { payload } = await buildComfyArgs(
-      {
-        prompt: "character dances",
-        model: "wan_motion",
-        method: "video2video",
-        input_video_urls: [VIDEO_URL],
-        input_images: [IMAGE_URL],
-        aspect_ratio: "1:1",
-      },
-      OUTPUT_DIR,
-    );
-    expect(payload.managedWorkflowId).toBe("video2video-wan2_2_vace_motion");
-    expect(payload.inputVideoFilename).toBe(FAKE_VIDEO);
-    expect(payload.inputImageFilename).toBe(FAKE_IMAGE);
-    expect(downloadImagesToComfyInput).toHaveBeenCalledWith([IMAGE_URL]);
-  });
-
-  it("classic V2V builder patches video, prompt, length", () => {
+  // Builders kept for a possible VACE revival (presets commented out above).
+  it("classic V2V builder patches video, prompt, length, and slice", () => {
     const workflow = WanVaceVideo2VideoWorkflow({
       prompt: "oil painting",
       inputVideoFilename: "clip.mp4",
@@ -124,8 +98,12 @@ describe("video2video", () => {
     });
     expect(workflow["10"].inputs.file).toBe("clip.mp4");
     expect(workflow["30"].inputs.text).toBe("oil painting");
-    expect(workflow["40"].inputs.length).toBe(32);
-    expect(workflow["40"].inputs.control_video).toEqual(["11", 0]);
+    // 2s × 16fps = 32 → snap to Wan 4n+1 = 33
+    expect(workflow["40"].inputs.length).toBe(33);
+    // WAN v2v++: LoadVideo → Video Slice(92) → components → optional resize(96)
+    expect(workflow["11"].inputs.video).toEqual(["92", 0]);
+    expect(workflow["92"].inputs.duration).toBe(2);
+    expect(workflow["40"].inputs.control_video).toEqual(["96", 0]);
     expect(workflow["40"].inputs.reference_image).toBeUndefined();
     expect(workflow["60"].inputs.noise_seed).toBe(7);
   });
@@ -137,10 +115,16 @@ describe("video2video", () => {
       inputImageFilename: "hero.png",
       width: 512,
       height: 512,
+      durationSeconds: 4,
+      fps: 16,
     });
     expect(workflow["10"].inputs.file).toBe("dance.mp4");
     expect(workflow["12"].inputs.image).toBe("hero.png");
     expect(workflow["40"].inputs.reference_image).toEqual(["12", 0]);
     expect(workflow["40"].inputs.width).toBe(512);
+    expect(workflow["40"].inputs.control_video).toEqual(["96", 0]);
+    expect(workflow["92"].inputs.duration).toBe(4);
+    // 4s × 16fps = 64 → 4n+1 = 65
+    expect(workflow["40"].inputs.length).toBe(65);
   });
 });

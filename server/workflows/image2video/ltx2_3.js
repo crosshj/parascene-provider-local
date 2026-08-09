@@ -6,6 +6,10 @@ const {
   formatLtx2TextGeneratePrompt,
   resolvePromptMagic,
 } = require("../_ltx-prompt-magic.js");
+const { durationSecondsToLtxFrames } = require("../_ltx-duration.js");
+
+/** Match TextGenerateLTX2Prompt template budget; keep image-conditioned TextGenerate. */
+const TEXT_GENERATE_MAX_LENGTH = 2048;
 
 const WORKFLOW_TEMPLATE = JSON.parse(
   fs.readFileSync(path.join(__dirname, "ltx2_3.json"), "utf8"),
@@ -84,6 +88,7 @@ function LtxImage2VideoWorkflow(overrides = {}) {
       { mode: "i2v" },
     );
     workflow["267:274"].inputs.use_default_template = false;
+    workflow["267:274"].inputs.max_length = TEXT_GENERATE_MAX_LENGTH;
   }
 
   if (workflow["267:247"]?.inputs) {
@@ -142,11 +147,9 @@ function LtxImage2VideoWorkflow(overrides = {}) {
   const lengthFrames =
     explicitLength !== undefined
       ? toPositiveInt(explicitLength, workflow["267:225"]?.inputs?.value)
-      : Math.max(
-          1,
-          Math.round(
-            toNumber(overrides.durationSeconds, DEFAULT_DURATION_SECONDS) * fps,
-          ),
+      : durationSecondsToLtxFrames(
+          toNumber(overrides.durationSeconds, DEFAULT_DURATION_SECONDS),
+          fps,
         );
   if (lengthFrames !== undefined && workflow["267:225"]?.inputs) {
     workflow["267:225"].inputs.value = lengthFrames;

@@ -6,6 +6,10 @@ const {
   formatLtx2TextGeneratePrompt,
   resolvePromptMagic,
 } = require("../_ltx-prompt-magic.js");
+const { durationSecondsToLtxFrames } = require("../_ltx-duration.js");
+
+/** Match TextGenerateLTX2Prompt template budget; keep image-conditioned TextGenerate. */
+const TEXT_GENERATE_MAX_LENGTH = 2048;
 
 const WORKFLOW_TEMPLATE = JSON.parse(
   fs.readFileSync(path.join(__dirname, "video_ltx2_3_ia2v.json"), "utf8"),
@@ -48,7 +52,7 @@ function cloneBaseWorkflow() {
  *   "340:324" - PrimitiveInt (Height)
  *   "340:323" - PrimitiveInt (Frame Rate)
  *   "340:331" - PrimitiveFloat (Duration seconds) → TrimAudioDuration
- *   "340:302" - EmptyLTXVLatentVideo (length baked as duration×fps)
+ *   "340:302" - EmptyLTXVLatentVideo (length baked as duration×fps+1)
  *   "340:285" / "340:286" - RandomNoise (seed)
  *   "340:317" - CheckpointLoaderSimple (ckpt_name)
  */
@@ -98,6 +102,7 @@ function LtxAudio2VideoWorkflow(overrides = {}) {
       { mode: "ia2v" },
     );
     workflow["340:342"].inputs.use_default_template = false;
+    workflow["340:342"].inputs.max_length = TEXT_GENERATE_MAX_LENGTH;
   }
 
   // Comfy validates LoadImage on every prompt; patch user image or placeholder.
@@ -174,12 +179,12 @@ function LtxAudio2VideoWorkflow(overrides = {}) {
     workflow["340:331"].inputs.value = durationSeconds;
   }
 
-  // Bake latent frame count directly (duration × fps). Relying only on the
+  // Bake latent frame count directly (duration × fps + 1). Relying only on the
   // Duration→MathExpression link left Blue producing ~9s video while audio was
   // already a 3s clip — set length explicitly like the i2v LTX builder.
-  const lengthFrames = Math.max(
-    1,
-    Math.round(durationSeconds * (Number(fps) > 0 ? Number(fps) : 24)),
+  const lengthFrames = durationSecondsToLtxFrames(
+    durationSeconds,
+    Number(fps) > 0 ? Number(fps) : 24,
   );
   if (workflow["340:302"]?.inputs) {
     workflow["340:302"].inputs.length = lengthFrames;

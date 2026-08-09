@@ -27,22 +27,22 @@ describe("video duration → Comfy workflow length", () => {
     expect(workflow["6"].inputs.length).toBe(40);
   });
 
-  it("LTX i2v patches length from durationSeconds × fps", () => {
+  it("LTX i2v patches length from durationSeconds × fps + 1", () => {
     const workflow = LtxImage2VideoWorkflow({
       prompt: "hop",
       durationSeconds: 3,
       fps: 24,
       inputImageFilename: "start.png",
     });
-    expect(workflow["267:225"].inputs.value).toBe(72);
+    expect(workflow["267:225"].inputs.value).toBe(73);
   });
 
-  it("LTX t2v patches length from durationSeconds × fps", () => {
+  it("LTX t2v patches length from durationSeconds × fps + 1", () => {
     const workflow = LtxText2VideoWorkflow({
       prompt: "hop",
       durationSeconds: 4,
       fps: 24,
     });
-    expect(workflow["305"].inputs.value).toBe(96);
+    expect(workflow["305"].inputs.value).toBe(97);
   });
 });

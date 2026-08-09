@@ -570,7 +570,7 @@
   },
   "340:329": {
     "inputs": {
-      "expression": "a * b",
+      "expression": "a * b + 1",
       "values.a": [
         "340:331",
         0
@@ -714,7 +714,7 @@
   "340:342": {
     "inputs": {
       "prompt": "",
-      "max_length": 256,
+      "max_length": 2048,
       "sampling_mode": "on",
       "sampling_mode.temperature": 0.7,
       "sampling_mode.top_k": 64,

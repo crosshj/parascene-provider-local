@@ -62,7 +62,7 @@
   },
   "717": {
     "inputs": {
-      "expression": "a * b",
+      "expression": "a * b + 1",
       "values.a": [
         "715",
         0

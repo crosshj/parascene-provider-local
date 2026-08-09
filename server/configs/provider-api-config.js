@@ -535,7 +535,7 @@ const BASE_PROVIDER_CAPABILITIES = {
       async: true,
       name: "Video To Video",
       description:
-        "Restyle a video (Wan VACE) or transfer motion from a video onto a character image.",
+        "Control / restyle from an input video (LTX IC-LoRA). Wan Fun VACE is parked — see video-capability-notes.md.",
       intent: "video_generate",
       credits: 1,
       fields: {
@@ -544,16 +544,17 @@ const BASE_PROVIDER_CAPABILITIES = {
           type: "select",
           required: true,
           options: [
-            {
-              label: "Wan — video-to-video (Fun VACE)",
-              value: "wan_v2v",
-              hint: "Classic V2V: input video + prompt. Requires wan2.2_fun_vace_*_14B_fp8_scaled weights.",
-            },
-            {
-              label: "Wan — motion transfer (Fun VACE)",
-              value: "wan_motion",
-              hint: "Character image + motion video. Requires wan2.2_fun_vace_*_14B_fp8_scaled weights.",
-            },
+            // Parked — Wan Fun VACE felt too slow/fragile for production. Graphs kept.
+            // {
+            //   label: "Wan — video-to-video (Fun VACE)",
+            //   value: "wan_v2v",
+            //   hint: "Classic V2V: input video + prompt. Requires wan2.2_fun_vace_*_14B_fp8_scaled weights.",
+            // },
+            // {
+            //   label: "Wan — motion transfer (Fun VACE)",
+            //   value: "wan_motion",
+            //   hint: "Character image + motion video. Requires wan2.2_fun_vace_*_14B_fp8_scaled weights.",
+            // },
             {
               label: "LTX — IC-LoRA video control",
               value: "ltx_ic_lora",
@@ -578,7 +579,7 @@ const BASE_PROVIDER_CAPABILITIES = {
           type: "image_url_array",
           required: false,
           description:
-            "Required for wan_motion and ltx_ic_lora: character/reference image.",
+            "Required for ltx_ic_lora: character/reference / start image.",
         },
         aspect_ratio: aspectRatioFieldDef(),
         duration_seconds: {

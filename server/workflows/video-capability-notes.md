@@ -2,25 +2,27 @@
 
 WAN / LTX / MiniMax — where we are, what’s sitting unused, how to grow.
 
+**Status checklist (done vs next):** [video-session-status.plan.md](video-session-status.plan.md)  
+**Next build:** [video2video/wan_animate_2_move.plan.md](video2video/wan_animate_2_move.plan.md)
+
 ---
 
 ## Short term vs long term
 
 short term (near work / current plan todos)
-- retention sweeper + TTLs (needed before upload is safe)
-- mixed media inputs (URL + small data URI + upload)
-- MiniMax t2v / i2v / flf (FL2VA; generated audio ok)
-- MiniMax Ref2VA with video-in
-- tests + presets + comfy-args for the above
+- ~~retention sweeper + TTLs~~ / ~~mixed media upload~~ / ~~MiniMax t2v·i2v·flf + Ref2VA~~ — largely landed
+- LTX duration `×fps+1` + TextGenerate max_length 2048 — done locally (see status doc)
+- Wan Fun VACE parked; aspect 640 fix kept for a possible revival
+- **WAN Animate 2 Move** — next (auto-chain blocks, fps/offset window); see Animate plan
 
-that cluster is “MiniMax on the board + media/lifecycle plumbing”
+that cluster is shifting from “MiniMax + media plumbing” → **Animate Move as Wan video-in**
 
 long term (strategy in this doc; not all todod yet)
 - same verb set across families where each family can honestly support it
 - LTX advanced graduation: style_transition, id_lora, ic_lora video-in, ingredients
 - flf + user audio (first+last+caller audio) — aspiration; LTX merge candidate later, not phase 1
 - capability matrix so clients discover end-frame / multi-ref / video-ref / native audio per model
-- WAN stays strong on VACE video-in; LTX/MiniMax grow their own video-in paths
+- WAN Fun VACE video-in is parked; LTX IC-LoRA + MiniMax Ref2VA carry video-in for now
 - optional later: extend/continue, 2K regenerate, Context-IR-style prompt prep
 - API stays method+preset; may drift toward richer content roles over time
 
@@ -48,8 +50,35 @@ image2video: second image auto-routes to flf2v (wan / ltx only)
 
 WAN
 - t2v, i2v, flf2v
-- v2v + motion (VACE, video-in)
 - silent video out
+- v2v + motion (Fun VACE) — **parked** (see below)
+
+---
+
+## Parked: Wan Fun VACE
+
+`wan_v2v` / `wan_motion` are commented out of the API surface
+(`provider-api-config.js` options + `VIDEO2VIDEO_MODEL_PRESETS`).
+
+Kept on disk (come back later if we want):
+- `server/workflows/video2video/wan2_2_vace_v2v.{js,json}`
+- `server/workflows/video2video/wan2_2_vace_motion.{js,json}`
+- registry entries in `_index.js`
+- aspect-ratio 640 table + Video Slice / resize gate from `WAN v2v++`
+
+Why it feels like it sucks (working notes):
+- Dual 14B high+low Fun VACE is heavy; easy to look “hung forever” even at 640²
+- Default aspect plumbing used to blow 640 → 1024 (fixed, but showed how fragile the path is)
+- Control-video decode + VACE strength behavior is finicky; quality/speed tradeoff never felt good in the harness
+- Silent video out only — weaker vs LTX IC-LoRA (AV) and MiniMax Ref2VA video-in
+- We spent cycles on trim/slice/resize/4n+1 just to make it survivable — still not confidence-inspiring
+
+Prefer for video-in / v2v for now:
+- LTX `ltx_ic_lora` (hooked video2video)
+- MiniMax Ref2VA `minimax_r2v` (reference2video, video refs)
+- Inbox: `video_wan2_2_14B_animate.json` if we revisit Wan video-in under a different node stack
+
+To re-enable: uncomment presets + API options; leave graphs as-is.
 
 LTX
 - t2v, i2v (+ prompt magic), flf2v
@@ -109,7 +138,7 @@ still unhooked
 ### WAN gaps
 
 no native audio, a2v, multi-ref, style transition
-only family with production video-in today (VACE)
+Fun VACE was the only Wan video-in path — now parked (LTX/MiniMax cover video-in)
 
 ---
 
@@ -172,14 +201,14 @@ t2v, i2v, flf2v, a2v, flf_a2v (first+last+user audio), r2v, v2v, motion, identit
 suffix “a” alone = native/generated audio out — different from user-audio conditioning
 
 where they should land
-- WAN: keep current; video-in stays VACE
-- LTX: keep current; add style / id / ic (ic = video-in)
+- WAN: t2v/i2v/flf; Fun VACE video-in parked (maybe Animate / other later)
+- LTX: keep current; ic_lora = primary video-in for now
 - MiniMax: FL2VA for t2v/i2v/flf; Ref2VA for r2v including video-in
 
 video-in has three homes — don’t collapse them
-- WAN video2video (hooked)
-- MiniMax reference2video / Ref2VA (unhooked)
-- LTX IC-LoRA via video2video (unhooked)
+- WAN video2video / Fun VACE (parked)
+- MiniMax reference2video / Ref2VA (hooked)
+- LTX IC-LoRA via video2video (hooked)
 
 ---
 
