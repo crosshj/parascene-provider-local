@@ -12,12 +12,40 @@ function toPositiveInt(value, fallback) {
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
 }
 
+function toNumber(value, fallback) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function resolveSliceDurationSeconds(
+  overrides,
+  fps,
+  explicitLength,
+  fallbackSeconds,
+) {
+  if (overrides.durationSeconds !== undefined) {
+    const fromDuration = toNumber(overrides.durationSeconds, 0);
+    if (fromDuration > 0) return fromDuration;
+  }
+  if (explicitLength !== undefined) {
+    const frames = toPositiveInt(explicitLength, 0);
+    const useFps = Number(fps) > 0 ? Number(fps) : 25;
+    if (frames > 0 && useFps > 0) {
+      return frames / useFps;
+    }
+  }
+  return fallbackSeconds;
+}
+
 function cloneBaseWorkflow() {
   return JSON.parse(JSON.stringify(WORKFLOW_TEMPLATE));
 }
 
 /**
  * LTX 2.3 IC-LoRA video control (video + optional start image).
+ *
+ * Overrides: prompt, negativePrompt, inputVideoFilename, inputImageFilename,
+ * width, height, durationSeconds, length/framesNumber/frames, checkpointBasename.
  */
 function LtxIcLoraWorkflow(overrides = {}) {
   const workflow = cloneBaseWorkflow();
@@ -51,6 +79,19 @@ function LtxIcLoraWorkflow(overrides = {}) {
     workflow["129:98"].inputs.value = toPositiveInt(
       overrides.height,
       workflow["129:98"].inputs.value,
+    );
+  }
+
+  const explicitLength =
+    overrides.length ?? overrides.framesNumber ?? overrides.frames;
+  const defaultFps = toNumber(workflow["129:114"]?.inputs?.value, 25);
+  if (workflow["692"]?.inputs) {
+    const fallbackSliceDuration = toNumber(workflow["692"].inputs.duration, 5);
+    workflow["692"].inputs.duration = resolveSliceDurationSeconds(
+      overrides,
+      defaultFps,
+      explicitLength,
+      fallbackSliceDuration,
     );
   }
 

@@ -17,6 +17,26 @@ function toNumber(value, fallback) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+function resolveSliceDurationSeconds(
+  overrides,
+  fps,
+  explicitLength,
+  fallbackSeconds,
+) {
+  if (overrides.durationSeconds !== undefined) {
+    const fromDuration = toNumber(overrides.durationSeconds, 0);
+    if (fromDuration > 0) return fromDuration;
+  }
+  if (explicitLength !== undefined) {
+    const frames = toPositiveInt(explicitLength, 0);
+    const useFps = Number(fps) > 0 ? Number(fps) : 16;
+    if (frames > 0 && useFps > 0) {
+      return frames / useFps;
+    }
+  }
+  return fallbackSeconds;
+}
+
 function cloneBaseWorkflow() {
   return JSON.parse(JSON.stringify(WORKFLOW_TEMPLATE));
 }
@@ -114,6 +134,16 @@ function WanVaceVideo2VideoWorkflow(overrides = {}) {
       ),
     );
     if (frames > 0) workflow["40"].inputs.length = frames;
+  }
+
+  if (workflow["92"]?.inputs) {
+    const fallbackSliceDuration = toNumber(workflow["92"].inputs.duration, 5);
+    workflow["92"].inputs.duration = resolveSliceDurationSeconds(
+      overrides,
+      fps,
+      explicitLength,
+      fallbackSliceDuration,
+    );
   }
 
   if (overrides.steps !== undefined) {

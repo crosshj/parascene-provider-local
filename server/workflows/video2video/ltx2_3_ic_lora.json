@@ -130,7 +130,7 @@
   },
   "697:40": {
     "inputs": {
-      "longer_edge": 2048,
+      "longer_edge": 1344,
       "images": [
         "697:70",
         0

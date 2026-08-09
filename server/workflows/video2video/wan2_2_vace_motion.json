@@ -11,13 +11,86 @@
   "11": {
     "inputs": {
       "video": [
-        "10",
+        "92",
         0
       ]
     },
     "class_type": "GetVideoComponents",
     "_meta": {
       "title": "Get Video Components"
+    }
+  },
+  "92": {
+    "inputs": {
+      "start_time": 0,
+      "duration": 5,
+      "strict_duration": false,
+      "video": [
+        "10",
+        0
+      ]
+    },
+    "class_type": "Video Slice",
+    "_meta": {
+      "title": "Trim Video"
+    }
+  },
+  "93": {
+    "inputs": {
+      "image": [
+        "11",
+        0
+      ]
+    },
+    "class_type": "GetImageSize",
+    "_meta": {
+      "title": "Get Image Size"
+    }
+  },
+  "94": {
+    "inputs": {
+      "expression": "a > 2048",
+      "values.a": [
+        "93",
+        0
+      ]
+    },
+    "class_type": "ComfyMathExpression",
+    "_meta": {
+      "title": "Math Expression"
+    }
+  },
+  "95": {
+    "inputs": {
+      "longer_edge": 1344,
+      "images": [
+        "11",
+        0
+      ]
+    },
+    "class_type": "ResizeImagesByLongerEdge",
+    "_meta": {
+      "title": "Resize Images by Longer Edge (DEPRECATED)"
+    }
+  },
+  "96": {
+    "inputs": {
+      "switch": [
+        "94",
+        2
+      ],
+      "on_false": [
+        "11",
+        0
+      ],
+      "on_true": [
+        "95",
+        0
+      ]
+    },
+    "class_type": "ComfySwitchNode",
+    "_meta": {
+      "title": "If/Else Switch"
     }
   },
   "20": {
@@ -106,7 +179,7 @@
       "batch_size": 1,
       "strength": 1,
       "control_video": [
-        "11",
+        "96",
         0
       ],
       "reference_image": [
