@@ -173,9 +173,53 @@ function parseOutputVideo(historyData, promptId) {
   throw new Error("Comfy history does not contain generated videos.");
 }
 
-async function pollHistoryForOutput(promptId, wantsVideo, timeoutMs = 600_000) {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
+const IMAGE_HISTORY_TIMEOUT_MS =
+  Number(process.env.COMFY_HISTORY_TIMEOUT_MS) || 600_000; // 10m
+const VIDEO_HISTORY_TIMEOUT_MS =
+  Number(process.env.COMFY_VIDEO_HISTORY_TIMEOUT_MS) ||
+  Number(process.env.COMFY_HISTORY_TIMEOUT_MS) ||
+  2_700_000; // 45m — video graphs often exceed 10m
+const HISTORY_HARD_CAP_MS =
+  Number(process.env.COMFY_HISTORY_MAX_MS) || 3_600_000; // 60m absolute ceiling
+
+function queueItemPromptId(item) {
+  // Comfy queue rows look like: [number, prompt_id, node_errors?, ...]
+  if (!Array.isArray(item) || item.length < 2) return null;
+  return item[1] != null ? String(item[1]) : null;
+}
+
+async function isPromptStillActiveInComfy(promptId) {
+  const id = String(promptId || "");
+  if (!id) return false;
+  try {
+    const queue = await requestJson("/queue", { method: "GET" });
+    const running = Array.isArray(queue?.queue_running)
+      ? queue.queue_running
+      : [];
+    const pending = Array.isArray(queue?.queue_pending)
+      ? queue.queue_pending
+      : [];
+    return [...running, ...pending].some(
+      (item) => queueItemPromptId(item) === id,
+    );
+  } catch {
+    // If queue probe fails, don't abort early — keep soft-waiting.
+    return true;
+  }
+}
+
+async function pollHistoryForOutput(promptId, wantsVideo, timeoutMs) {
+  const softTimeout =
+    timeoutMs != null
+      ? Number(timeoutMs)
+      : wantsVideo
+        ? VIDEO_HISTORY_TIMEOUT_MS
+        : IMAGE_HISTORY_TIMEOUT_MS;
+  const softDeadline = Date.now() + softTimeout;
+  const hardDeadline =
+    Date.now() + Math.max(softTimeout, HISTORY_HARD_CAP_MS);
+
+  while (Date.now() < hardDeadline) {
     const data = await requestJson(`/history/${encodeURIComponent(promptId)}`, {
       method: "GET",
     });
@@ -194,9 +238,23 @@ async function pollHistoryForOutput(promptId, wantsVideo, timeoutMs = 600_000) {
         // Fall through — image workflow may not emit video yet.
       }
     }
+
+    if (Date.now() >= softDeadline) {
+      const stillActive = await isPromptStillActiveInComfy(promptId);
+      if (!stillActive) {
+        throw new Error(
+          "Timed out waiting for Comfy history output (prompt no longer in queue). You can submit the job again.",
+        );
+      }
+      // Comfy is still working — keep waiting until the hard cap.
+    }
+
     await new Promise((resolve) => setTimeout(resolve, 1_000));
   }
-  throw new Error("Timed out waiting for Comfy history output.");
+
+  throw new Error(
+    "Timed out waiting for Comfy history output after the maximum wait. Comfy may still finish; you can submit again, or raise COMFY_VIDEO_HISTORY_TIMEOUT_MS / COMFY_HISTORY_MAX_MS.",
+  );
 }
 
 function defaultExtensionForKind(kind) {
@@ -245,11 +303,7 @@ async function runComfyGeneration(input, outDir) {
     workflowId.startsWith("video2video") ||
     workflowId.startsWith("reference2video");
 
-  const mediaRef = await pollHistoryForOutput(
-    String(promptId),
-    wantsVideo,
-    600_000,
-  );
+  const mediaRef = await pollHistoryForOutput(String(promptId), wantsVideo);
   const query = new URLSearchParams({
     filename: mediaRef.filename,
     subfolder: mediaRef.subfolder,
@@ -278,4 +332,39 @@ async function runComfyGeneration(input, outDir) {
   };
 }
 
-module.exports = { runComfyGeneration };
+/**
+ * Ask Comfy to stop the current execution and optionally clear the pending queue.
+ * Useful when a long video job is stuck after the API waiter has already timed out.
+ */
+async function interruptComfy({ clearQueue = true } = {}) {
+  await ensureManagedComfyReady();
+  const interrupted = await requestJson("/interrupt", { method: "POST" });
+  let queueCleared = false;
+  if (clearQueue) {
+    await requestJson("/queue", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clear: true }),
+    });
+    queueCleared = true;
+  }
+  let queue = null;
+  try {
+    queue = await requestJson("/queue", { method: "GET" });
+  } catch {
+    // best-effort status
+  }
+  return {
+    ok: true,
+    interrupted: interrupted ?? true,
+    queue_cleared: queueCleared,
+    queue_running: Array.isArray(queue?.queue_running)
+      ? queue.queue_running.length
+      : null,
+    queue_pending: Array.isArray(queue?.queue_pending)
+      ? queue.queue_pending.length
+      : null,
+  };
+}
+
+module.exports = { runComfyGeneration, interruptComfy };

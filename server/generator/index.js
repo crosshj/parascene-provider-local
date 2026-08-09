@@ -1,15 +1,18 @@
 "use strict";
 
-const { runComfyGeneration } = require("./client.js");
+const { runComfyGeneration, interruptComfy } = require("./client.js");
 const { hasWorkflow } = require("../workflows/_index.js");
 const {
   getManagedComfyStatus,
   ensureManagedComfyReady,
+  recycleManagedComfy,
 } = require("./managed-instance.js");
 
 module.exports = {
   runComfyGeneration,
+  interruptComfy,
   hasWorkflow,
   ensureManagedComfyReady,
   getManagedComfyStatus,
+  recycleManagedComfy,
 };

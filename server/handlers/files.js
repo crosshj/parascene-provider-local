@@ -154,12 +154,32 @@ async function handleFilesPost(req, res) {
   });
 }
 
+const EXT_TO_MIME = {
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".gif": "image/gif",
+  ".mp3": "audio/mpeg",
+  ".wav": "audio/wav",
+  ".flac": "audio/flac",
+  ".ogg": "audio/ogg",
+  ".m4a": "audio/mp4",
+  ".mp4": "video/mp4",
+  ".webm": "video/webm",
+  ".mov": "video/quicktime",
+};
+
 /**
  * GET /api/files/:filename — verify staged file exists, reset TTL, return metadata.
+ * Add ?raw=1 to stream the file bytes (for harness thumbnails / lightbox).
  */
 function handleFilesGet(req, res, ctx) {
   const rawPath = String(ctx?.path || req.url || "");
-  const base = rawPath.split("?")[0];
+  const qIndex = rawPath.indexOf("?");
+  const base = qIndex === -1 ? rawPath : rawPath.slice(0, qIndex);
+  const query = qIndex === -1 ? "" : rawPath.slice(qIndex + 1);
+  const wantRaw = /(?:^|&)raw=1(?:&|$)/.test(query);
   const prefix = "/api/files/";
   if (!base.startsWith(prefix)) {
     return sendJson(res, 404, { error: "Not found" });
@@ -187,6 +207,21 @@ function handleFilesGet(req, res, ctx) {
     // ignore
   }
   const kind = detectKind(null, filename);
+
+  if (wantRaw) {
+    const ext = path.extname(filename).toLowerCase();
+    const mime = EXT_TO_MIME[ext] || "application/octet-stream";
+    const headers = {
+      "Content-Type": mime,
+      "Cache-Control": "private, max-age=60",
+      "X-File-Expires-At": touched.expires_at || "",
+    };
+    if (bytes != null) headers["Content-Length"] = String(bytes);
+    res.writeHead(200, headers);
+    fs.createReadStream(full).pipe(res);
+    return;
+  }
+
   return sendJson(res, 200, {
     id: filename,
     filename,

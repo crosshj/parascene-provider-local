@@ -95,7 +95,7 @@
                 <label id="images-media-label">Images</label>
                 <div id="images-media-slots" class="media-slots"></div>
                 <button type="button" class="btn-secondary media-add-btn" id="images-media-add">
-                  Add image
+                  Add another image
                 </button>
                 <small class="field-hint" id="images-media-hint"></small>
               </div>
@@ -104,7 +104,7 @@
                 <label id="videos-media-label">Videos</label>
                 <div id="videos-media-slots" class="media-slots"></div>
                 <button type="button" class="btn-secondary media-add-btn" id="videos-media-add">
-                  Add video
+                  Add another video
                 </button>
                 <small class="field-hint" id="videos-media-hint"></small>
               </div>
@@ -113,18 +113,15 @@
                 <label id="audios-media-label">Audio</label>
                 <div id="audios-media-slots" class="media-slots"></div>
                 <button type="button" class="btn-secondary media-add-btn" id="audios-media-add">
-                  Add audio
+                  Add another audio
                 </button>
                 <small class="field-hint" id="audios-media-hint"></small>
               </div>
 
-              <div class="field" id="upload-library-field">
-                <label>Uploaded files (reuse while TTL allows)</label>
+              <details class="media-recent" id="upload-library-field" hidden>
+                <summary>Recent uploads</summary>
                 <div id="upload-library" class="upload-library"></div>
-                <small class="field-hint">
-                  Click a file to fill the next empty matching slot. Server TTL resets on use.
-                </small>
-              </div>
+              </details>
 
               <div class="field" id="denoise-field" style="display:none">
                 <label for="denoise">Denoise</label>
@@ -144,6 +141,19 @@
                 <select id="aspect_ratio" name="aspect_ratio">
                   <option value="1:1">1:1</option>
                 </select>
+              </div>
+
+              <div class="field" id="duration-field" style="display:none">
+                <label for="duration_seconds">Duration (seconds)</label>
+                <input
+                  id="duration_seconds"
+                  name="duration_seconds"
+                  type="number"
+                  min="1"
+                  max="15"
+                  step="0.5"
+                  placeholder="default"
+                />
               </div>
 
               <div class="actions">
@@ -181,6 +191,17 @@
 
             <div id="meta-row" class="meta-row"></div>
           </section>
+        </div>
+
+        <div id="media-lightbox" class="media-lightbox" hidden>
+          <button type="button" class="media-lightbox-backdrop" id="media-lightbox-close-bg" aria-label="Close"></button>
+          <div class="media-lightbox-dialog" role="dialog" aria-modal="true" aria-labelledby="media-lightbox-title">
+            <div class="media-lightbox-header">
+              <span id="media-lightbox-title" class="media-lightbox-title"></span>
+              <button type="button" class="media-lightbox-close" id="media-lightbox-close" aria-label="Close">✕</button>
+            </div>
+            <div class="media-lightbox-body" id="media-lightbox-body"></div>
+          </div>
         </div>
       </div>
 

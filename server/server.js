@@ -26,6 +26,7 @@ const {
   ensureAuthorized,
 } = require("./handlers/api.js");
 const { handleFilesPost, handleFilesGet } = require("./handlers/files.js");
+const { handleComfyInterrupt } = require("./handlers/comfy-control.js");
 const { startRetentionSweeper } = require("./lib/retention.js");
 const { getComfyInputDir } = require("./lib/comfy-paths.js");
 const {
@@ -57,6 +58,10 @@ app.post("/api/files", (req, res, c) => {
 app.get("/api/files/*", (req, res, c) => {
   if (!ensureAuthorized(req, res)) return;
   return handleFilesGet(req, res, c);
+});
+app.post("/api/comfy/interrupt", (req, res, c) => {
+  if (!ensureAuthorized(req, res)) return;
+  return handleComfyInterrupt(req, res, c);
 });
 app.get("/outputs/*", handleOutputImage);
 app.get("*", handlePublic);
