@@ -285,6 +285,30 @@ const VIDEO2VIDEO_MODEL_PRESETS = {
     requiresReferenceImage: true,
     capabilities: caps(["v2v", "control", "refVideo"]),
     nativeAudio: true,
+    videoInputProfile: {
+      targetFps: 25,
+      defaultDurationSeconds: 5,
+      maxLongerEdge: 1344,
+    },
+  },
+  wan_animate: {
+    managedWorkflowId: "video2video-wan2_2_animate_move",
+    family: "wan-animate",
+    loadKind: "diffusion_model",
+    modelFile: "Wan2_2-Animate-14B_fp8_e4m3fn_scaled_KJ.safetensors",
+    modelPath: "",
+    comfyCheckpointGroup: null,
+    diffusionModelComfyName:
+      "Wan2_2-Animate-14B_fp8_e4m3fn_scaled_KJ.safetensors",
+    checkpointBasename: undefined,
+    requiresReferenceImage: true,
+    capabilities: caps(["v2v", "motion", "refVideo"]),
+    nativeAudio: true,
+    videoInputProfile: {
+      targetFps: 16,
+      defaultDurationSeconds: 5,
+      maxLongerEdge: 960,
+    },
   },
 };
 

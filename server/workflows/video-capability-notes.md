@@ -2,33 +2,33 @@
 
 WAN / LTX / MiniMax — where we are, what’s sitting unused, how to grow.
 
-**Status checklist (done vs next):** [video-session-status.plan.md](video-session-status.plan.md)  
-**Next build:** [video2video/wan_animate_2_move.plan.md](video2video/wan_animate_2_move.plan.md)
+**Status:** [video-session-status.plan.md](video-session-status.plan.md)  
+**Platform media (do first):** [video-media-normalize.plan.md](video-media-normalize.plan.md)  
+**Then:** [video2video/wan_animate_2_move.plan.md](video2video/wan_animate_2_move.plan.md)
 
 ---
 
 ## Short term vs long term
 
-short term (near work / current plan todos)
-- ~~retention sweeper + TTLs~~ / ~~mixed media upload~~ / ~~MiniMax t2v·i2v·flf + Ref2VA~~ — largely landed
-- LTX duration `×fps+1` + TextGenerate max_length 2048 — done locally (see status doc)
-- Wan Fun VACE parked; aspect 640 fix kept for a possible revival
-- **WAN Animate 2 Move** — next (auto-chain blocks, fps/offset window); see Animate plan
+short term
+1. **Shared video input normalize** — landed (`prepareControlVideo` + `videoInputProfile`)
+2. **Delivery transcoder** — landed (H.264 `yuv420p` + AAC + faststart; preserve model fps)
+3. **WAN Animate 2 Move** — landed (`wan_animate`; 77/5 chain @ 16 fps)
 
-that cluster is shifting from “MiniMax + media plumbing” → **Animate Move as Wan video-in**
+already landed
+- retention / upload / MiniMax t2v·i2v·flf + Ref2VA
+- LTX `×fps+1` + TextGenerate max_length 2048
+- Wan Fun VACE parked (640 aspect fix kept)
+- platform media normalize + delivery + Animate Move
 
-long term (strategy in this doc; not all todod yet)
-- same verb set across families where each family can honestly support it
-- LTX advanced graduation: style_transition, id_lora, ic_lora video-in, ingredients
-- flf + user audio (first+last+caller audio) — aspiration; LTX merge candidate later, not phase 1
-- capability matrix so clients discover end-frame / multi-ref / video-ref / native audio per model
-- WAN Fun VACE video-in is parked; LTX IC-LoRA + MiniMax Ref2VA carry video-in for now
-- optional later: extend/continue, 2K regenerate, Context-IR-style prompt prep
-- API stays method+preset; may drift toward richer content roles over time
+long term
+- same verb set across families; Animate Mix; Director research
+- flf + user-audio; capability matrix polish
+- WAN Fun VACE unlikely soon; LTX IC-LoRA + MiniMax Ref2VA + Animate Move = video-in story
 
 rule of thumb
-- short term = MiniMax parity + media/retention foundations
-- long term = broad cross-family feature set from inbox + industry baseline (incl. flf+user-audio)
+- short term = **normalize in + standardize out + Animate Move**
+- long term = broader cross-family feature set
 
 ---
 
@@ -73,12 +73,21 @@ Why it feels like it sucks (working notes):
 - Silent video out only — weaker vs LTX IC-LoRA (AV) and MiniMax Ref2VA video-in
 - We spent cycles on trim/slice/resize/4n+1 just to make it survivable — still not confidence-inspiring
 
-Prefer for video-in / v2v for now:
-- LTX `ltx_ic_lora` (hooked video2video)
+Prefer for video-in / v2v:
+- LTX `ltx_ic_lora` (hooked video2video + shared preprocess)
+- Wan Animate Move `wan_animate` (pose transfer; shared preprocess @ 16 fps)
 - MiniMax Ref2VA `minimax_r2v` (reference2video, video refs)
-- Inbox: `video_wan2_2_14B_animate.json` if we revisit Wan video-in under a different node stack
 
-To re-enable: uncomment presets + API options; leave graphs as-is.
+To re-enable Fun VACE: uncomment presets + API options; leave graphs as-is.
+
+### Inbox vs v2v (scoped)
+
+| Inbox item | v2v relevance |
+|---|---|
+| `video_wan2_2_14B_animate.json` | Move shipped (`wan_animate`); Mix later |
+| `video_ltx2_3_ic_lora*.json` | Already production — stale copies |
+| MiniMax `*_h3_*.json` | Already shipped |
+| Director zip | Later research — not v1 |
 
 LTX
 - t2v, i2v (+ prompt magic), flf2v

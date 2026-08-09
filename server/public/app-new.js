@@ -158,6 +158,8 @@ function initApp() {
   const aspectRatioSel = document.getElementById("aspect_ratio");
   const durationField = document.getElementById("duration-field");
   const durationInput = document.getElementById("duration_seconds");
+  const startOffsetField = document.getElementById("start-offset-field");
+  const startOffsetInput = document.getElementById("start_offset_seconds");
   const uploadLibraryEl = document.getElementById("upload-library");
 
   const UPLOAD_LIBRARY_KEY = "local-image-generator.uploads.v1";
@@ -1322,6 +1324,9 @@ function initApp() {
       },
       aspect_ratio: aspectRatioSel ? aspectRatioSel.value : undefined,
       duration_seconds: durationInput ? durationInput.value : undefined,
+      start_offset_seconds: startOffsetInput
+        ? startOffsetInput.value
+        : undefined,
       perMethodModel,
     };
   }
@@ -1528,6 +1533,33 @@ function initApp() {
         }
       }
 
+      function rebuildStartOffsetForMethod(methodId, preferredOffset) {
+        if (!startOffsetInput || !startOffsetField) return;
+        const field = methods[methodId]?.fields?.start_offset_seconds;
+        if (!field || field.hidden) {
+          startOffsetField.style.display = "none";
+          startOffsetInput.value = "";
+          return;
+        }
+        startOffsetField.style.display = "";
+        if (field.min != null) startOffsetInput.min = String(field.min);
+        if (field.max != null) startOffsetInput.max = String(field.max);
+        if (field.step != null) startOffsetInput.step = String(field.step);
+        startOffsetInput.placeholder =
+          field.default != null ? String(field.default) : "0";
+        if (
+          preferredOffset != null &&
+          preferredOffset !== "" &&
+          !Number.isNaN(Number(preferredOffset))
+        ) {
+          startOffsetInput.value = String(preferredOffset);
+        } else if (field.default != null) {
+          startOffsetInput.value = String(field.default);
+        } else {
+          startOffsetInput.value = "";
+        }
+      }
+
       function rebuildModelsForMethod(methodId, preferredModelId) {
         const methodDef = methods[methodId];
         const modelField = methodDef?.fields?.model;
@@ -1582,6 +1614,12 @@ function initApp() {
         initialMethod,
         savedValues && savedValues.duration_seconds != null
           ? savedValues.duration_seconds
+          : null,
+      );
+      rebuildStartOffsetForMethod(
+        initialMethod,
+        savedValues && savedValues.start_offset_seconds != null
+          ? savedValues.start_offset_seconds
           : null,
       );
 
@@ -1640,6 +1678,7 @@ function initApp() {
         if (pick) perMethodModel[methodId] = pick;
         rebuildAspectRatioForMethod(methodId, null);
         rebuildDurationForMethod(methodId, null);
+        rebuildStartOffsetForMethod(methodId, null);
         saveFormValues();
         updateFamilyBadge();
         updateFieldVisibility();
@@ -1776,6 +1815,26 @@ function initApp() {
           return;
         }
         body.duration_seconds = dur;
+      }
+    }
+
+    if (
+      startOffsetInput &&
+      startOffsetField &&
+      startOffsetField.style.display !== "none"
+    ) {
+      const offRaw = startOffsetInput.value.trim();
+      if (offRaw !== "") {
+        const off = Number(offRaw);
+        if (!Number.isFinite(off) || off < 0) {
+          setPreviewIdle();
+          setStatusMessage(
+            "Error: Start offset must be zero or a positive number",
+            true,
+          );
+          return;
+        }
+        body.start_offset_seconds = off;
       }
     }
 

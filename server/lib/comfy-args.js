@@ -11,6 +11,10 @@ const { getComfyInputDir } = require("./comfy-paths.js");
 const { downloadAudioToComfyInput } = require("../generator/audio-input.js");
 const { downloadVideoToComfyInput } = require("../generator/video-input.js");
 const {
+  prepareControlVideo,
+  resolveStartOffsetSeconds,
+} = require("./video-prepare.js");
+const {
   getImage2videoPreset,
   getImage2imagePreset,
   getText2videoPreset,
@@ -437,10 +441,23 @@ async function buildComfyArgs(body, outputDir) {
       throw new Error("video2video requires input_video_urls to be provided.");
     }
     const videoFiles = await downloadVideoToComfyInput(inputVideoUrls);
-    const [inputVideoFilename] = videoFiles;
-    if (!inputVideoFilename) {
+    const [stagedVideoFilename] = videoFiles;
+    if (!stagedVideoFilename) {
       throw new Error("Failed to prepare input video for video2video.");
     }
+
+    const durationSeconds = resolveDurationSeconds(body);
+    const startOffsetSeconds = resolveStartOffsetSeconds(body);
+    const profile = preset.videoInputProfile || {
+      targetFps: 16,
+      defaultDurationSeconds: 5,
+    };
+    const prepared = await prepareControlVideo({
+      filename: stagedVideoFilename,
+      profile,
+      startOffsetSeconds,
+      durationSeconds,
+    });
 
     // Prefer template dims (VACE = 640²). Do not fall through to 1024 via
     // aspect-ratio tables when the workflow base is 640.
@@ -462,10 +479,12 @@ async function buildComfyArgs(body, outputDir) {
       height,
       steps: body.steps,
       cfg: body.cfg,
-      fps: body.fps,
+      fps: prepared.targetFps,
       length: body.length,
       strength: body.strength,
-      inputVideoFilename,
+      inputVideoFilename: prepared.filename,
+      startOffsetSeconds: prepared.startOffsetSeconds,
+      durationSeconds: prepared.effectiveDurationSeconds,
       expectVideo: true,
     };
 
@@ -489,11 +508,6 @@ async function buildComfyArgs(body, outputDir) {
       payload.inputImageFilename = resolved.inputFilename;
       payload.width = resolved.width;
       payload.height = resolved.height;
-    }
-
-    const durationSeconds = resolveDurationSeconds(body);
-    if (durationSeconds !== undefined) {
-      payload.durationSeconds = durationSeconds;
     }
 
     return { payload, entry, method };

@@ -312,12 +312,40 @@ async function runComfyGeneration(input, outDir) {
   const fileBuffer = await requestBuffer(`/view?${query.toString()}`);
 
   fs.mkdirSync(outDir, { recursive: true });
-  const fileName = makeOutputFilename(
-    input.seed,
-    mediaRef.kind || (wantsVideo ? "video" : "image"),
-    mediaRef.filename,
-  );
+  const kind = mediaRef.kind || (wantsVideo ? "video" : "image");
+  const fileName = makeOutputFilename(input.seed, kind, mediaRef.filename);
   const outPath = path.join(outDir, fileName);
+
+  if (kind === "video") {
+    const tmpRaw = path.join(
+      outDir,
+      `.raw-${path.basename(fileName, path.extname(fileName))}${extensionFromComfyFilename(mediaRef.filename) || ".mp4"}`,
+    );
+    fs.writeFileSync(tmpRaw, fileBuffer);
+    try {
+      const { transcodeToDeliveryMp4 } = require("../lib/video-delivery.js");
+      const deliveryName = fileName.replace(/\.[^.]+$/, ".mp4");
+      const deliveryPath = path.join(outDir, deliveryName);
+      await transcodeToDeliveryMp4(tmpRaw, deliveryPath);
+      return {
+        ok: true,
+        file_name: deliveryName,
+        file_path: deliveryPath,
+        family: input.family,
+        model: input.modelPath,
+        seed: input.seed,
+        elapsed_ms: Date.now() - started,
+        media_kind: "video",
+      };
+    } finally {
+      try {
+        if (fs.existsSync(tmpRaw)) fs.unlinkSync(tmpRaw);
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+
   fs.writeFileSync(outPath, fileBuffer);
 
   return {
@@ -328,7 +356,7 @@ async function runComfyGeneration(input, outDir) {
     model: input.modelPath,
     seed: input.seed,
     elapsed_ms: Date.now() - started,
-    media_kind: mediaRef.kind || (wantsVideo ? "video" : "image"),
+    media_kind: kind,
   };
 }
 

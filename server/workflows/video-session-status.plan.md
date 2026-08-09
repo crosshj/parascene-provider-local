@@ -1,63 +1,74 @@
 # Video session status (Aug 2026)
 
-Living checklist for work done around the harness / LTX / WAN v2v / Animate thread.
-Companion docs:
-- Strategy: [video-capability-notes.md](video-capability-notes.md)
-- Next: [video2video/wan_animate_2_move.plan.md](video2video/wan_animate_2_move.plan.md)
-- Older Cursor vision: `.cursor/plans/video_capability_vision_b6089069.plan.md`
+Living checklist. Platform media + Animate Move implemented (pending smoke on render host).
+
+| Doc | Role |
+|---|---|
+| [video-capability-notes.md](video-capability-notes.md) | Strategy / matrix |
+| [video-media-normalize.plan.md](video-media-normalize.plan.md) | Shared input + delivery encode |
+| [video2video/wan_animate_2_move.plan.md](video2video/wan_animate_2_move.plan.md) | WAN Animate 2 Move |
+| `.cursor/plans/v2v_media_normalize_83d83073.plan.md` | Cursor twin of media normalize |
 
 ---
 
-## Done (code present; some still uncommitted)
+## Done (committed `8a8a6bb`, may be unpushed)
 
-### Harness / media (earlier in thread; mostly committed as `92ed1ee` etc.)
-- [x] Multi-slot refs for reference2video (images / videos / audios)
-- [x] Upload library + TTL touch-on-use
-- [x] Media cards, thumbnails, lightbox
-- [x] Duration field on video models
-- [x] Auto aspect sync from primary image
-- [x] Comfy interrupt API + longer video history polling
+### Harness / ops
+- [x] Multi-slot refs, upload library, TTL touch-on-use
+- [x] Media cards / lightbox, duration field, aspect sync from image
+- [x] Comfy interrupt + longer video history polling
 - [x] Stronger Node rollout health / cutover
 
-### LTX timing + prompt magic (local / uncommitted unless committed later)
-- [x] Duration → frames = `duration × fps + 1` (`_ltx-duration.js`) for i2v / flf2v / t2v / ia2v
-- [x] Graph math `a * b + 1` on ia2v + ingredients
-- [x] Keep image-conditioned `TextGenerate` (not `TextGenerateLTX2Prompt`)
-- [x] Raise `TextGenerate` `max_length` 256 → **2048** (JSON + builders)
-- [x] Skipped `CreateVideo bit_depth: 8` (default already 8; schema risk on older Comfy)
+### LTX
+- [x] Duration → frames `duration × fps + 1` (`_ltx-duration.js`)
+- [x] Image-conditioned `TextGenerate` with `max_length` **2048**
+- [x] Skipped explicit `bit_depth: 8` (Comfy default)
 
-### WAN Fun VACE
-- [x] Commit `WAN v2v++` (`31e8c6d`): Video Slice + resize gate on control video; LTX IC-LoRA longer_edge tweak
-- [x] Fix accidental **640 → 1024** aspect blow-up (640 size table + VACE template defaults from node `40`)
-- [x] Wan length snap `4n+1` (`_wan-duration.js`) on VACE builders
-- [x] **Park** `wan_v2v` / `wan_motion` from API + presets (graphs kept); notes in capability doc
-- [x] Tests updated for parked presets + slice wiring `control_video → 96`
+### Wan Fun VACE
+- [x] Slice + resize gate (`31e8c6d`)
+- [x] 640 aspect table + template defaults from node `40`
+- [x] `4n+1` length helper; **parked** from API (`wan_v2v` / `wan_motion`)
 
-### Docs
-- [x] Parked VACE section in [video-capability-notes.md](video-capability-notes.md)
-- [x] Animate Move plan written: [wan_animate_2_move.plan.md](video2video/wan_animate_2_move.plan.md)
+### Docs (this pass)
+- [x] Platform media + Animate plans aligned; inbox v2v scoped to Animate only
 
 ---
 
-## In progress / next
+## Implemented this pass
 
-### WAN Animate 2 Move (planned, not implemented)
-See [wan_animate_2_move.plan.md](video2video/wan_animate_2_move.plan.md).
+### 1. Platform media — [video-media-normalize.plan.md](video-media-normalize.plan.md)
+- [x] Shared `prepareControlVideo` (probe, `start_offset_seconds`, `duration_seconds`, resample to profile fps, optional size)
+- [x] Per-preset `videoInputProfile` (Animate 16; LTX IC graph fps)
+- [x] Delivery transcoder: MP4 H.264 `yuv420p` + AAC + faststart; gate job completion
+- [x] FPS: in→model rate; out→preserve model rate
+- [x] Tests for prepare + delivery
 
-- [ ] Flatten Move-only API graph + max ~15s extend chain
-- [ ] Probe / `start_offset_seconds` + duration window / resample to 16 fps
-- [ ] Auto-chain 77-frame blocks (overlap 5); trim leftovers
-- [ ] Preset `wan_animate` on `video2video` + harness fields
-- [ ] Tests + capability-notes “hooked” update
+### 2. WAN Animate 2 Move — [wan_animate_2_move.plan.md](video2video/wan_animate_2_move.plan.md)
+- [x] Flatten Move-only API graph + ~15s extend chain
+- [x] `_wan-animate-duration.js` (77 / overlap 5)
+- [x] Builder + `_index` + preset `wan_animate` + harness (video+image+duration+offset)
+- [ ] Smoke: short clip, >5s chain, offset window (render host)
 
 ### Explicitly later
-- [ ] Animate **Mix** + mask strategy
-- [ ] Fancy offset scrubber UI
-- [ ] Revive Fun VACE (unlikely soon)
-- [ ] flf + user-audio merge candidate
+- [ ] Animate Mix + mask
+- [ ] Fancy offset scrubber; client output codecs
+- [ ] Director zip / revive Fun VACE
+- [ ] flf + user-audio
 
 ---
 
-## Working tree note
+## Inbox (v2v-relevant)
 
-As of last check, LTX duration/prompt-length, VACE park, aspect 640, and this status/Animate plan files may still be **uncommitted** relative to `31e8c6d`. Commit when ready as one or more focused commits (LTX timing / VACE park / Animate plan docs).
+| Item | Action |
+|---|---|
+| `video_wan2_2_14B_animate.json` | Move shipped (`wan_animate`); Mix later |
+| `video_ltx2_3_ic_lora*.json` | Already production — ignore or refresh later |
+| MiniMax inbox copies | Already shipped |
+| `ltx23AllInOne…Director…zip` | Research later — not v1 |
+
+---
+
+## Git
+
+- `8a8a6bb` — LTX timing, VACE park, early plans (local ahead of origin if unpushed)
+- Doc sync for media/Animate readiness — commit with implementation or as docs-only before coding

@@ -535,7 +535,7 @@ const BASE_PROVIDER_CAPABILITIES = {
       async: true,
       name: "Video To Video",
       description:
-        "Control / restyle from an input video (LTX IC-LoRA). Wan Fun VACE is parked — see video-capability-notes.md.",
+        "Control / pose-transfer from an input video (LTX IC-LoRA, Wan Animate Move). Wan Fun VACE is parked — see video-capability-notes.md.",
       intent: "video_generate",
       credits: 1,
       fields: {
@@ -560,6 +560,11 @@ const BASE_PROVIDER_CAPABILITIES = {
               value: "ltx_ic_lora",
               hint: "Structure/control from video + start image (IC-LoRA).",
             },
+            {
+              label: "Wan — Animate 2 Move",
+              value: "wan_animate",
+              hint: "Pose transfer: reference character image + motion video @ 16 fps (77-frame auto-chain).",
+            },
           ],
         },
         prompt: {
@@ -579,7 +584,7 @@ const BASE_PROVIDER_CAPABILITIES = {
           type: "image_url_array",
           required: false,
           description:
-            "Required for ltx_ic_lora: character/reference / start image.",
+            "Required for ltx_ic_lora and wan_animate: character/reference / start image.",
         },
         aspect_ratio: aspectRatioFieldDef(),
         duration_seconds: {
@@ -590,7 +595,17 @@ const BASE_PROVIDER_CAPABILITIES = {
           max: 15,
           step: 0.5,
           description:
-            "Output video length in seconds (default ~5). Clamped to 1–15.",
+            "Clip length in seconds from the source window (default ~5). Clamped to 1–15.",
+        },
+        start_offset_seconds: {
+          label: "Start offset (seconds)",
+          type: "number",
+          required: false,
+          min: 0,
+          step: 0.1,
+          default: 0,
+          description:
+            "Where to begin in the source video before taking duration_seconds.",
         },
         seed: {
           label: "Seed",

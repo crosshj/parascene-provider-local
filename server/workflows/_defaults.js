@@ -39,6 +39,22 @@ function _extractFromWorkflowJson(wf) {
     };
   }
 
+  // Wan Animate Move: WanAnimateToVideo "100", KSampler "101".
+  const animate = wf["100"] && wf["100"].inputs;
+  const animateSampler = wf["101"] && wf["101"].inputs;
+  if (
+    animate &&
+    Number.isFinite(Number(animate.width)) &&
+    String(wf["100"]?.class_type || "") === "WanAnimateToVideo"
+  ) {
+    return {
+      steps: Number(animateSampler?.steps) || 6,
+      cfg: Number(animateSampler?.cfg) || 1,
+      width: Number(animate.width),
+      height: Number(animate.height),
+    };
+  }
+
   return null;
 }
 

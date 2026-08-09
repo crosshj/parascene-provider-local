@@ -38,12 +38,21 @@ jest.mock("../server/generator/video-input.js", () => ({
   downloadVideoToComfyInput: jest.fn(),
 }));
 
+jest.mock("../server/lib/video-prepare.js", () => {
+  const actual = jest.requireActual("../server/lib/video-prepare.js");
+  return {
+    ...actual,
+    prepareControlVideo: jest.fn(),
+  };
+});
+
 const {
   downloadImagesToComfyInput,
 } = require("../server/generator/image-input.js");
 const {
   downloadVideoToComfyInput,
 } = require("../server/generator/video-input.js");
+const { prepareControlVideo } = require("../server/lib/video-prepare.js");
 const { buildComfyArgs } = require("../server/lib/comfy-args.js");
 const WanVaceVideo2VideoWorkflow = require("../server/workflows/video2video/wan2_2_vace_v2v.js");
 const WanVaceMotionTransferWorkflow = require("../server/workflows/video2video/wan2_2_vace_motion.js");
@@ -52,6 +61,7 @@ const OUTPUT_DIR = "/fake/output";
 const VIDEO_URL = "http://example.com/motion.mp4";
 const IMAGE_URL = "http://example.com/character.png";
 const FAKE_VIDEO = "video_123_abc.mp4";
+const FAKE_PREP = "prep_123_abcd.mp4";
 const FAKE_IMAGE = "input_123_abc.png";
 
 describe("video2video", () => {
@@ -59,6 +69,12 @@ describe("video2video", () => {
     jest.clearAllMocks();
     downloadVideoToComfyInput.mockResolvedValue([FAKE_VIDEO]);
     downloadImagesToComfyInput.mockResolvedValue([FAKE_IMAGE]);
+    prepareControlVideo.mockResolvedValue({
+      filename: FAKE_PREP,
+      effectiveDurationSeconds: 3,
+      targetFps: 25,
+      startOffsetSeconds: 0,
+    });
   });
 
   it("parked Wan VACE presets are rejected by the API", async () => {
@@ -85,6 +101,77 @@ describe("video2video", () => {
         OUTPUT_DIR,
       ),
     ).rejects.toThrow(/Unknown video2video model "wan_motion"/);
+  });
+
+  it("ltx_ic_lora runs shared prepareControlVideo before payload", async () => {
+    const { payload } = await buildComfyArgs(
+      {
+        prompt: "ruins walk",
+        model: "ltx_ic_lora",
+        method: "video2video",
+        input_video_urls: [VIDEO_URL],
+        input_images: [IMAGE_URL],
+        duration_seconds: 3,
+        start_offset_seconds: 1.5,
+        aspect_ratio: "1:1",
+      },
+      OUTPUT_DIR,
+    );
+    expect(downloadVideoToComfyInput).toHaveBeenCalledWith([VIDEO_URL]);
+    expect(prepareControlVideo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filename: FAKE_VIDEO,
+        startOffsetSeconds: 1.5,
+        durationSeconds: 3,
+        profile: expect.objectContaining({ targetFps: 25 }),
+      }),
+    );
+    expect(payload.inputVideoFilename).toBe(FAKE_PREP);
+    expect(payload.durationSeconds).toBe(3);
+    expect(payload.fps).toBe(25);
+    expect(payload.inputImageFilename).toBe(FAKE_IMAGE);
+  });
+
+  it("wan_animate requires reference image and uses 16fps prepare profile", async () => {
+    await expect(
+      buildComfyArgs(
+        {
+          prompt: "pose transfer",
+          model: "wan_animate",
+          method: "video2video",
+          input_video_urls: [VIDEO_URL],
+        },
+        OUTPUT_DIR,
+      ),
+    ).rejects.toThrow(/requires input_images/);
+
+    prepareControlVideo.mockResolvedValueOnce({
+      filename: FAKE_PREP,
+      effectiveDurationSeconds: 5,
+      targetFps: 16,
+      startOffsetSeconds: 0,
+    });
+    const { payload } = await buildComfyArgs(
+      {
+        prompt: "pose transfer",
+        model: "wan_animate",
+        method: "video2video",
+        input_video_urls: [VIDEO_URL],
+        input_images: [IMAGE_URL],
+        duration_seconds: 5,
+        aspect_ratio: "1:1",
+      },
+      OUTPUT_DIR,
+    );
+    expect(prepareControlVideo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        profile: expect.objectContaining({ targetFps: 16 }),
+      }),
+    );
+    expect(payload.managedWorkflowId).toBe("video2video-wan2_2_animate_move");
+    expect(payload.fps).toBe(16);
+    expect(payload.inputImageFilename).toBe(FAKE_IMAGE);
+    expect(payload.expectVideo).toBe(true);
   });
 
   // Builders kept for a possible VACE revival (presets commented out above).
