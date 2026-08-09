@@ -26,6 +26,16 @@ const EXPECTED_CHAIN = [
     continue: ["478:472", 0],
     offset: ["478:458", 5],
   },
+  {
+    wan: "480:458",
+    continue: ["479:472", 0],
+    offset: ["479:458", 5],
+  },
+  {
+    wan: "481:458",
+    continue: ["480:472", 0],
+    offset: ["480:458", 5],
+  },
 ];
 
 function assertAllBlocksPresent(wf) {
@@ -114,6 +124,9 @@ describe("WanAnimate2Workflow", () => {
     [10, 2],
     [12, 3],
     [15, 3],
+    [20, 4],
+    [25, 5],
+    [30, 6],
   ])("duration %is → %i active stage(s)", (seconds, expectedActive) => {
     it("enables output wiring without breaking inactive blocks", () => {
       const plan = stagesFor(Math.round(seconds * 16));
@@ -138,9 +151,9 @@ describe("WanAnimate2Workflow", () => {
         expect(wf[STAGES[0].wan].inputs.length).toBe(BLOCK_FRAMES);
       }
       // Shared driving video still reaches every extend GetVideoComponents.
-      expect(wf["477:466"].inputs.video).toEqual(["240", 0]);
-      expect(wf["478:466"].inputs.video).toEqual(["240", 0]);
-      expect(wf["479:466"].inputs.video).toEqual(["240", 0]);
+      for (const prefix of ["477", "478", "479", "480", "481"]) {
+        expect(wf[`${prefix}:466`].inputs.video).toEqual(["240", 0]);
+      }
     });
   });
 });

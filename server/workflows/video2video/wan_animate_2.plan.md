@@ -16,7 +16,7 @@ Reference image + driving video via **Wan-Animate-2** as `video2video` / `wan_an
 
 - Preset: `wan_animate` — “Wan — Animate 2”
 - Required: `input_video_urls[0]`, `input_images[0]`, `prompt`
-- Optional: `duration_seconds` (1–15), `start_offset_seconds` (≥0, default 0), `seed`, aspect via 640 table
+- Optional: `duration_seconds` (1–30), `start_offset_seconds` (≥0, default 0), `seed`, aspect via 640 table
 - Not v1: Mix / SAM2 / PointsEditor
 
 Parked Fun VACE stays commented out. Live video2video: `ltx_ic_lora` + `wan_animate`.

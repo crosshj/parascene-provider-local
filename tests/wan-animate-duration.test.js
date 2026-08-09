@@ -23,6 +23,8 @@ describe("wan-animate-duration (Animate 2)", () => {
     expect(durationSecondsToAnimateFrames(5, 16)).toBe(80);
     expect(durationSecondsToAnimateFrames(12, 16)).toBe(192);
     expect(durationSecondsToAnimateFrames(15, 16)).toBe(240);
+    expect(durationSecondsToAnimateFrames(30, 16)).toBe(480);
+    expect(durationSecondsToAnimateFrames(99, 16)).toBe(480); // clamped
   });
 
   it.each([
@@ -34,6 +36,9 @@ describe("wan-animate-duration (Animate 2)", () => {
     [10, 2],
     [12, 3],
     [15, 3],
+    [20, 4],
+    [25, 5],
+    [30, 6],
   ])("stagesFor %is → %i stage(s)", (seconds, expectedStages) => {
     const plan = stagesFor(durationSecondsToAnimateFrames(seconds, 16));
     expect(plan.stages).toHaveLength(expectedStages);
@@ -49,7 +54,7 @@ describe("wan-animate-duration (Animate 2)", () => {
     expect(plan.producedFrames).toBeGreaterThanOrEqual(plan.targetFrames);
   });
 
-  it("stride covers 15s within max stages", () => {
-    expect(BLOCK_FRAMES + 3 * STRIDE_FRAMES).toBeGreaterThanOrEqual(240);
+  it("stride covers 30s within max stages", () => {
+    expect(BLOCK_FRAMES + 5 * STRIDE_FRAMES).toBeGreaterThanOrEqual(480);
   });
 });

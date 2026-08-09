@@ -160,6 +160,9 @@ function initApp() {
   const durationInput = document.getElementById("duration_seconds");
   const startOffsetField = document.getElementById("start-offset-field");
   const startOffsetInput = document.getElementById("start_offset_seconds");
+  const seedField = document.getElementById("seed-field");
+  const showHiddenFieldsInput = document.getElementById("show-hidden-fields");
+  const SHOW_HIDDEN_FIELDS_KEY = "local-image-generator.showHiddenFields.v1";
   const uploadLibraryEl = document.getElementById("upload-library");
 
   const UPLOAD_LIBRARY_KEY = "local-image-generator.uploads.v1";
@@ -171,6 +174,37 @@ function initApp() {
   let mediaValues = { image: [""], video: [], audio: [] };
   /** @type {Map<string, string>} session preview object URLs / data URIs keyed by media value */
   const previewByUrl = new Map();
+
+  function loadShowHiddenFields() {
+    try {
+      return localStorage.getItem(SHOW_HIDDEN_FIELDS_KEY) === "1";
+    } catch {
+      return false;
+    }
+  }
+
+  function saveShowHiddenFields(on) {
+    try {
+      localStorage.setItem(SHOW_HIDDEN_FIELDS_KEY, on ? "1" : "0");
+    } catch {
+      // Ignore localStorage failures.
+    }
+  }
+
+  function showHiddenFieldsEnabled() {
+    return Boolean(showHiddenFieldsInput?.checked);
+  }
+
+  /** API field present and either not hidden, or tester opted into hidden fields. */
+  function isApiFieldShown(field) {
+    if (!field) return false;
+    if (field.hidden && !showHiddenFieldsEnabled()) return false;
+    return true;
+  }
+
+  if (showHiddenFieldsInput) {
+    showHiddenFieldsInput.checked = loadShowHiddenFields();
+  }
 
   function loadUploadLibrary() {
     try {
@@ -1509,12 +1543,17 @@ function initApp() {
       function rebuildDurationForMethod(methodId, preferredDuration) {
         if (!durationInput || !durationField) return;
         const field = methods[methodId]?.fields?.duration_seconds;
-        if (!field || field.hidden) {
+        if (!isApiFieldShown(field)) {
           durationField.style.display = "none";
-          durationInput.value = "";
+          if (!field) durationInput.value = "";
           return;
         }
         durationField.style.display = "";
+        if (field.hidden) {
+          durationField.dataset.apiHidden = "1";
+        } else {
+          delete durationField.dataset.apiHidden;
+        }
         if (field.min != null) durationInput.min = String(field.min);
         if (field.max != null) durationInput.max = String(field.max);
         if (field.step != null) durationInput.step = String(field.step);
@@ -1526,22 +1565,25 @@ function initApp() {
           !Number.isNaN(Number(preferredDuration))
         ) {
           durationInput.value = String(preferredDuration);
-        } else if (field.default != null) {
+        } else if (durationInput.value === "" && field.default != null) {
           durationInput.value = String(field.default);
-        } else {
-          durationInput.value = "";
         }
       }
 
       function rebuildStartOffsetForMethod(methodId, preferredOffset) {
         if (!startOffsetInput || !startOffsetField) return;
         const field = methods[methodId]?.fields?.start_offset_seconds;
-        if (!field || field.hidden) {
+        if (!isApiFieldShown(field)) {
           startOffsetField.style.display = "none";
-          startOffsetInput.value = "";
+          if (!field) startOffsetInput.value = "";
           return;
         }
         startOffsetField.style.display = "";
+        if (field.hidden) {
+          startOffsetField.dataset.apiHidden = "1";
+        } else {
+          delete startOffsetField.dataset.apiHidden;
+        }
         if (field.min != null) startOffsetInput.min = String(field.min);
         if (field.max != null) startOffsetInput.max = String(field.max);
         if (field.step != null) startOffsetInput.step = String(field.step);
@@ -1553,11 +1595,22 @@ function initApp() {
           !Number.isNaN(Number(preferredOffset))
         ) {
           startOffsetInput.value = String(preferredOffset);
-        } else if (field.default != null) {
+        } else if (startOffsetInput.value === "" && field.default != null) {
           startOffsetInput.value = String(field.default);
-        } else {
-          startOffsetInput.value = "";
         }
+      }
+
+      function rebuildSeedForMethod(methodId) {
+        if (!seedField || !form.seed) return;
+        const field = methods[methodId]?.fields?.seed;
+        // Seed control exists in the harness even when API omits the field.
+        if (field && !isApiFieldShown(field)) {
+          seedField.style.display = "none";
+          return;
+        }
+        seedField.style.display = "";
+        if (field?.hidden) seedField.dataset.apiHidden = "1";
+        else delete seedField.dataset.apiHidden;
       }
 
       function rebuildModelsForMethod(methodId, preferredModelId) {
@@ -1622,6 +1675,25 @@ function initApp() {
           ? savedValues.start_offset_seconds
           : null,
       );
+      rebuildSeedForMethod(initialMethod);
+
+      function refreshApiFieldsForCurrentMethod() {
+        const methodId = methodSel.value;
+        rebuildDurationForMethod(
+          methodId,
+          durationInput?.value !== "" ? durationInput.value : null,
+        );
+        rebuildStartOffsetForMethod(
+          methodId,
+          startOffsetInput?.value !== "" ? startOffsetInput.value : null,
+        );
+        rebuildSeedForMethod(methodId);
+      }
+
+      showHiddenFieldsInput?.addEventListener("change", () => {
+        saveShowHiddenFields(showHiddenFieldsInput.checked);
+        refreshApiFieldsForCurrentMethod();
+      });
 
       // Restore prompt, media slots, denoise
       if (savedValues && savedValues.prompt != null)
@@ -1679,6 +1751,7 @@ function initApp() {
         rebuildAspectRatioForMethod(methodId, null);
         rebuildDurationForMethod(methodId, null);
         rebuildStartOffsetForMethod(methodId, null);
+        rebuildSeedForMethod(methodId);
         saveFormValues();
         updateFamilyBadge();
         updateFieldVisibility();

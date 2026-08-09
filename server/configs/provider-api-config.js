@@ -616,10 +616,10 @@ const BASE_PROVIDER_CAPABILITIES = {
           required: false,
           hidden: true,
           min: 1,
-          max: 15,
+          max: 30,
           step: 0.5,
           description:
-            "Clip length in seconds from the source window (default ~5). Clamped to 1–15.",
+            "Clip length in seconds from the source window (default ~5). Clamped to 1–30.",
         },
         start_offset_seconds: {
           label: "Start offset (seconds)",

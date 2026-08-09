@@ -8,9 +8,9 @@ const BLOCK_FRAMES = 81;
 const OVERLAP_FRAMES = 1;
 const STRIDE_FRAMES = BLOCK_FRAMES - OVERLAP_FRAMES; // 80
 const DEFAULT_FPS = 16;
-/** Base + up to 3 extend clones ≈ 81+3×80 frames (>15s @ 16fps). */
-const MAX_STAGES = 4;
-const MAX_DURATION_SECONDS = 15;
+/** Base + up to 5 extend clones ≈ 81+5×80 frames (>30s @ 16fps). */
+const MAX_STAGES = 6;
+const MAX_DURATION_SECONDS = 30;
 
 /**
  * Animate lengths use step 4 (typically 4n+1, e.g. 81).

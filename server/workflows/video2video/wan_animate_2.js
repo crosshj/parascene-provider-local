@@ -15,7 +15,7 @@ const WORKFLOW_TEMPLATE = JSON.parse(
 );
 
 /**
- * Prebaked stages in wan_animate_2.json (base + 3 extends).
+ * Prebaked stages in wan_animate_2.json (base + 5 extends).
  * Unused stages stay in the graph but are left off the CreateVideo batch.
  */
 const STAGES = [
@@ -76,6 +76,36 @@ const STAGES = [
     scheduler: "479:462",
     continueFromDecode: "478:472",
     offsetFromWan: "478:458",
+  },
+  {
+    wan: "480:458",
+    sampler: "480:468",
+    decode: "480:472",
+    continued: "480:475",
+    contextSwitch: "480:459",
+    appearance: "480:453",
+    posePrompt: "480:456",
+    negative: "480:452",
+    poseResize: "480:471",
+    unet: "480:449",
+    scheduler: "480:462",
+    continueFromDecode: "479:472",
+    offsetFromWan: "479:458",
+  },
+  {
+    wan: "481:458",
+    sampler: "481:468",
+    decode: "481:472",
+    continued: "481:475",
+    contextSwitch: "481:459",
+    appearance: "481:453",
+    posePrompt: "481:456",
+    negative: "481:452",
+    poseResize: "481:471",
+    unet: "481:449",
+    scheduler: "481:462",
+    continueFromDecode: "480:472",
+    offsetFromWan: "480:458",
   },
 ];
 
