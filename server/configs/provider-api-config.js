@@ -625,6 +625,7 @@ const BASE_PROVIDER_CAPABILITIES = {
           label: "Start offset (seconds)",
           type: "number",
           required: false,
+          hidden: true,
           min: 0,
           step: 0.1,
           default: 0,

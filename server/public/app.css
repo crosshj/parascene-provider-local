@@ -561,6 +561,7 @@ button {
   font-size: 0.73rem;
   color: var(--muted);
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .field[data-api-hidden="1"] label::after {
