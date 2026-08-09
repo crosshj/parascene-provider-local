@@ -564,9 +564,9 @@ const BASE_PROVIDER_CAPABILITIES = {
               hint: "Structure/control from video + start image (IC-LoRA).",
             },
             {
-              label: "Wan — Animate 2 Move",
+              label: "Wan — Animate 2",
               value: "wan_animate",
-              hint: "Pose transfer: reference character image + motion video @ 16 fps (77-frame auto-chain).",
+              hint: "Wan-Animate-2: reference character + driving video @ 16 fps (81-frame chain / context windows).",
             },
           ],
         },

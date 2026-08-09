@@ -38,7 +38,7 @@ const WORKFLOWS = {
   // Video-to-video workflows
   "video2video-wan2_2_vace_v2v": require("./video2video/wan2_2_vace_v2v.js"),
   "video2video-wan2_2_vace_motion": require("./video2video/wan2_2_vace_motion.js"),
-  "video2video-wan2_2_animate_move": require("./video2video/wan2_2_animate_move.js"),
+  "video2video-wan_animate_2": require("./video2video/wan_animate_2.js"),
   "video2video-ltx2_3_ic_lora": require("./video2video/ltx2_3_ic_lora.js"),
 
   // Reference / omni-ref workflows

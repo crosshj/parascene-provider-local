@@ -2,7 +2,7 @@
 
 Implemented companion to Animate Move (prepare + delivery).
 Cursor copy: `.cursor/plans/v2v_media_normalize_83d83073.plan.md`  
-Animate: [video2video/wan_animate_2_move.plan.md](video2video/wan_animate_2_move.plan.md)  
+Animate: [video2video/wan_animate_2.plan.md](video2video/wan_animate_2.plan.md)  
 Status: [video-session-status.plan.md](video-session-status.plan.md)
 
 ## Rules
@@ -15,7 +15,7 @@ Status: [video-session-status.plan.md](video-session-status.plan.md)
 
 | Preset / family | targetFps | notes |
 |---|---|---|
-| `wan_animate` (Move) | 16 | + 77/5 block planner (Animate-specific) |
+| `wan_animate` (Animate 2) | 16 | + 81-frame / context-window planner |
 | `ltx_ic_lora` | graph fps (typ. 25) | already has Video Slice in graph; preprocess still owns offset/duration/fps consistency |
 | Parked VACE (if revived) | 16 | reuse 640 / longer-edge hints |
 
@@ -31,4 +31,4 @@ Apply delivery transcoder to **all** `expectVideo` methods (t2v/i2v/a2v/r2v/v2v)
 
 ## Inbox note (v2v)
 
-Only **`video_wan2_2_14B_animate.json`** is a new v2v product. LTX IC inbox copies are stale vs production. Director zip = later research. Animate **Mix** = later.
+Animate 2 lives in production as `wan_animate` (inbox twin: `video_wan_animate2.json`). LTX IC inbox copies are stale vs production. Director zip = later research. Animate **Mix** = later.

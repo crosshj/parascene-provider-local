@@ -39,20 +39,24 @@ function _extractFromWorkflowJson(wf) {
     };
   }
 
-  // Wan Animate Move: WanAnimateToVideo "100", KSampler "101".
-  const animate = wf["100"] && wf["100"].inputs;
-  const animateSampler = wf["101"] && wf["101"].inputs;
+  // Wan Animate 2: pose resize defaults + SamplerCustom / BasicScheduler.
+  const animate2Resize = wf["261:243"] && wf["261:243"].inputs;
+  const animate2Sampler = wf["261:19"] && wf["261:19"].inputs;
+  const animate2Sched = wf["261:18"] && wf["261:18"].inputs;
   if (
-    animate &&
-    Number.isFinite(Number(animate.width)) &&
-    String(wf["100"]?.class_type || "") === "WanAnimateToVideo"
+    animate2Resize &&
+    String(wf["261:247"]?.class_type || "") === "WanAnimate2ToVideo"
   ) {
-    return {
-      steps: Number(animateSampler?.steps) || 6,
-      cfg: Number(animateSampler?.cfg) || 1,
-      width: Number(animate.width),
-      height: Number(animate.height),
-    };
+    const width = Number(animate2Resize["resize_type.width"]);
+    const height = Number(animate2Resize["resize_type.height"]);
+    if (Number.isFinite(width) && Number.isFinite(height)) {
+      return {
+        steps: Number(animate2Sched?.steps) || 6,
+        cfg: Number(animate2Sampler?.cfg) || 1,
+        width,
+        height,
+      };
+    }
   }
 
   return null;

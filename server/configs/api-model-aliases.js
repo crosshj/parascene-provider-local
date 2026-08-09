@@ -292,14 +292,13 @@ const VIDEO2VIDEO_MODEL_PRESETS = {
     },
   },
   wan_animate: {
-    managedWorkflowId: "video2video-wan2_2_animate_move",
+    managedWorkflowId: "video2video-wan_animate_2",
     family: "wan-animate",
     loadKind: "diffusion_model",
-    modelFile: "Wan2_2-Animate-14B_fp8_e4m3fn_scaled_KJ.safetensors",
+    modelFile: "wan_animate_2_int8_convrot.safetensors",
     modelPath: "",
     comfyCheckpointGroup: null,
-    diffusionModelComfyName:
-      "Wan2_2-Animate-14B_fp8_e4m3fn_scaled_KJ.safetensors",
+    diffusionModelComfyName: "wan_animate_2_int8_convrot.safetensors",
     checkpointBasename: undefined,
     requiresReferenceImage: true,
     capabilities: caps(["v2v", "motion", "refVideo"]),

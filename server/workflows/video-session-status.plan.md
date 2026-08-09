@@ -6,7 +6,7 @@ Living checklist. Platform media + Animate Move implemented (pending smoke on re
 |---|---|
 | [video-capability-notes.md](video-capability-notes.md) | Strategy / matrix |
 | [video-media-normalize.plan.md](video-media-normalize.plan.md) | Shared input + delivery encode |
-| [video2video/wan_animate_2_move.plan.md](video2video/wan_animate_2_move.plan.md) | WAN Animate 2 Move |
+| [video2video/wan_animate_2.plan.md](video2video/wan_animate_2.plan.md) | WAN Animate 2 |
 | `.cursor/plans/v2v_media_normalize_83d83073.plan.md` | Cursor twin of media normalize |
 
 ---
@@ -43,11 +43,11 @@ Living checklist. Platform media + Animate Move implemented (pending smoke on re
 - [x] FPS: in→model rate; out→preserve model rate
 - [x] Tests for prepare + delivery
 
-### 2. WAN Animate 2 Move — [wan_animate_2_move.plan.md](video2video/wan_animate_2_move.plan.md)
-- [x] Flatten Move-only API graph + ~15s extend chain
-- [x] `_wan-animate-duration.js` (77 / overlap 5)
-- [x] Builder + `_index` + preset `wan_animate` + harness (video+image+duration+offset)
-- [ ] Smoke: short clip, >5s chain, offset window (render host)
+### 2. WAN Animate 2 — [wan_animate_2.plan.md](video2video/wan_animate_2.plan.md)
+- [x] Adopt `_inbox/video_wan_animate2.json` (`WanAnimate2ToVideo`)
+- [x] `_wan-animate-duration.js` (81 / overlap 1; context windows for long)
+- [x] Builder `wan_animate_2` + preset `wan_animate` + harness
+- [ ] Smoke: short clip, extend chain, long context-window (render host)
 
 ### Explicitly later
 - [ ] Animate Mix + mask
@@ -61,7 +61,7 @@ Living checklist. Platform media + Animate Move implemented (pending smoke on re
 
 | Item | Action |
 |---|---|
-| `video_wan2_2_14B_animate.json` | Move shipped (`wan_animate`); Mix later |
+| `video_wan_animate2.json` | Shipped as `wan_animate` |
 | `video_ltx2_3_ic_lora*.json` | Already production — ignore or refresh later |
 | MiniMax inbox copies | Already shipped |
 | `ltx23AllInOne…Director…zip` | Research later — not v1 |

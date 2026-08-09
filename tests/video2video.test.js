@@ -168,7 +168,7 @@ describe("video2video", () => {
         profile: expect.objectContaining({ targetFps: 16 }),
       }),
     );
-    expect(payload.managedWorkflowId).toBe("video2video-wan2_2_animate_move");
+    expect(payload.managedWorkflowId).toBe("video2video-wan_animate_2");
     expect(payload.fps).toBe(16);
     expect(payload.inputImageFilename).toBe(FAKE_IMAGE);
     expect(payload.expectVideo).toBe(true);

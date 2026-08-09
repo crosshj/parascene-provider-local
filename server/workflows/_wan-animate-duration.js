@@ -1,16 +1,19 @@
 "use strict";
 
-/** First / typical WanAnimateToVideo block length @ 16 fps. */
-const BLOCK_FRAMES = 77;
-/** continue_motion_max_frames — overlap between chained stages. */
-const OVERLAP_FRAMES = 5;
-const STRIDE_FRAMES = BLOCK_FRAMES - OVERLAP_FRAMES; // 72
+/**
+ * Wan Animate 2 (`WanAnimate2ToVideo`) block sizing.
+ * Inbox template uses length 81; extend skips 1 frame via ImageFromBatch.
+ */
+const BLOCK_FRAMES = 81;
+const OVERLAP_FRAMES = 1;
+const STRIDE_FRAMES = BLOCK_FRAMES - OVERLAP_FRAMES; // 80
 const DEFAULT_FPS = 16;
-const MAX_STAGES = 4;
+/** Inbox graph ships base + one extend. Longer clips use context windows. */
+const MAX_STAGES = 2;
 const MAX_DURATION_SECONDS = 15;
 
 /**
- * Wan Animate lengths use step 4 (and typically 4n+1, e.g. 77).
+ * Animate lengths use step 4 (typically 4n+1, e.g. 81).
  */
 function alignAnimateLength(frames) {
   const n = Math.max(1, Math.round(Number(frames) || 1));
@@ -34,15 +37,31 @@ function durationSecondsToAnimateFrames(
 }
 
 /**
- * Plan Move chain stages for a target frame count.
- * Stage 0 has no continue_motion; later stages overlap by OVERLAP_FRAMES.
+ * Plan Animate 2 stages for a target frame count.
  *
- * @returns {{ stages: Array<{ length: number }>, targetFrames: number, producedFrames: number }}
+ * @returns {{
+ *   stages: Array<{ length: number }>,
+ *   targetFrames: number,
+ *   producedFrames: number,
+ *   useContextWindows: boolean,
+ * }}
  */
 function stagesFor(targetFrames) {
   const raw = Math.max(1, Math.round(Number(targetFrames) || 1));
   const maxFrames = Math.round(MAX_DURATION_SECONDS * DEFAULT_FPS);
   const target = Math.min(raw, maxFrames);
+
+  // Longer than two 81-frame blocks: single pass with context windows.
+  const twoStageMax = BLOCK_FRAMES + STRIDE_FRAMES;
+  if (target > twoStageMax) {
+    const length = alignAnimateLength(target);
+    return {
+      stages: [{ length }],
+      targetFrames: target,
+      producedFrames: length,
+      useContextWindows: true,
+    };
+  }
 
   if (target <= BLOCK_FRAMES) {
     const length = alignAnimateLength(target);
@@ -50,12 +69,12 @@ function stagesFor(targetFrames) {
       stages: [{ length }],
       targetFrames: target,
       producedFrames: length,
+      useContextWindows: false,
     };
   }
 
   const stages = [{ length: BLOCK_FRAMES }];
   let produced = BLOCK_FRAMES;
-
   while (produced < target && stages.length < MAX_STAGES) {
     const remaining = target - produced;
     const need = remaining + OVERLAP_FRAMES;
@@ -68,6 +87,7 @@ function stagesFor(targetFrames) {
     stages,
     targetFrames: target,
     producedFrames: produced,
+    useContextWindows: false,
   };
 }
 

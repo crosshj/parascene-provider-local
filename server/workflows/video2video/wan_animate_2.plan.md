@@ -1,10 +1,10 @@
-# WAN Animate 2 (Move) — ready to implement
+# WAN Animate 2 — implemented
 
-Pose transfer (reference image + control video → video) as `video2video` / `wan_animate`.
+Reference image + driving video via **Wan-Animate-2** as `video2video` / `wan_animate`.
 
-**Depends on (do first):** [../video-media-normalize.plan.md](../video-media-normalize.plan.md)  
+**Depends on:** [../video-media-normalize.plan.md](../video-media-normalize.plan.md)  
 **Status board:** [../video-session-status.plan.md](../video-session-status.plan.md)  
-**Status:** implemented (unit tests); smoke on render host still open.
+**Status:** wired to Animate 2 inbox graph; smoke on render host still open.
 
 ## Platform rules (inherited)
 
@@ -14,28 +14,29 @@ Pose transfer (reference image + control video → video) as `video2video` / `wa
 
 ## Product surface
 
-- Preset: `wan_animate` — “Wan — Animate 2 Move”
+- Preset: `wan_animate` — “Wan — Animate 2”
 - Required: `input_video_urls[0]`, `input_images[0]`, `prompt`
 - Optional: `duration_seconds` (1–15), `start_offset_seconds` (≥0, default 0), `seed`, aspect via 640 table
 - Not v1: Mix / SAM2 / PointsEditor
 
 Parked Fun VACE stays commented out. Live video2video: `ltx_ic_lora` + `wan_animate`.
 
-## Animate-specific
+## Animate 2–specific
 
 | Item | Value |
 |---|---|
-| Source | [`_inbox/video_wan2_2_14B_animate.json`](../_inbox/video_wan2_2_14B_animate.json) |
-| Mode | Move — disconnect `background_video` + `character_mask` |
-| Block | 77 frames @ 16 fps; `continue_motion_max_frames` = 5 |
-| Chain | Max ~4 stages for 15s; enable first K; trim leftovers |
-| Helper | `_wan-animate-duration.js` — not VACE `4n+1` |
+| Source | [`_inbox/video_wan_animate2.json`](../_inbox/video_wan_animate2.json) |
+| Nodes | `WanAnimate2ToVideo` + `WanAnimate2Cache` (no DWPose) |
+| Weights | `wan_animate_2_int8_convrot.safetensors` |
+| Block | 81 frames @ 16 fps; extend overlap 1 |
+| Long | >~10s → single pass + `ContextWindowsManual` |
+| Helper | `_wan-animate-duration.js` |
 
 ```mermaid
 flowchart LR
   prep[prepareControlVideo 16fps]
   plan[stagesFor targetFrames]
-  run[Move chain K blocks]
+  run[Animate2 stages / context windows]
   comfy[Comfy SaveVideo]
   xcode[Delivery transcoder]
   done[Job completed]
@@ -44,12 +45,11 @@ flowchart LR
 
 ## Implementation checklist
 
-- [x] Flatten UI→API Move graph + max extend chain  
-- [x] Builder `wan2_2_animate_move.js` + JSON  
+- [x] Adopt Animate 2 API inbox graph (`wan_animate_2.{js,json}`)  
 - [x] Register `_index` + `wan_animate` preset + API option + harness fields  
 - [x] Wire profile into shared preprocess  
-- [x] Tests: stages 3s/5s/12s/15s; requires image+video; Move wiring  
-- [ ] Smoke on render host  
+- [x] Tests: stages / context windows; requires image+video; Animate2 wiring  
+- [ ] Smoke on render host (needs `wan_animate_2_int8_convrot` weights)  
 
 ## Later
 

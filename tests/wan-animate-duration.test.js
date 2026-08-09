@@ -9,9 +9,9 @@ const {
   stagesFor,
 } = require("../server/workflows/_wan-animate-duration.js");
 
-describe("wan-animate-duration", () => {
+describe("wan-animate-duration (Animate 2)", () => {
   it("aligns lengths to 4n+1", () => {
-    expect(alignAnimateLength(77)).toBe(77);
+    expect(alignAnimateLength(81)).toBe(81);
     expect(alignAnimateLength(48)).toBe(49);
     expect(alignAnimateLength(80)).toBe(81);
   });
@@ -27,25 +27,27 @@ describe("wan-animate-duration", () => {
     const plan = stagesFor(durationSecondsToAnimateFrames(3, 16));
     expect(plan.stages).toHaveLength(1);
     expect(plan.stages[0].length).toBe(49);
+    expect(plan.useContextWindows).toBe(false);
   });
 
-  it("stagesFor 5s uses base + extend", () => {
+  it("stagesFor 5s uses one block (80→81)", () => {
     const plan = stagesFor(durationSecondsToAnimateFrames(5, 16));
+    expect(plan.stages).toHaveLength(1);
+    expect(plan.stages[0].length).toBe(BLOCK_FRAMES);
+  });
+
+  it("stagesFor ~10s uses base + extend", () => {
+    const plan = stagesFor(120);
     expect(plan.stages).toHaveLength(2);
     expect(plan.stages[0].length).toBe(BLOCK_FRAMES);
     expect(plan.stages[1].length).toBeGreaterThan(OVERLAP_FRAMES);
+    expect(plan.useContextWindows).toBe(false);
   });
 
-  it("stagesFor 12s uses three stages", () => {
-    const plan = stagesFor(durationSecondsToAnimateFrames(12, 16));
-    expect(plan.stages).toHaveLength(3);
-    expect(plan.stages[0].length).toBe(BLOCK_FRAMES);
-  });
-
-  it("stagesFor 15s uses up to four stages", () => {
+  it("stagesFor 15s uses context-window single pass", () => {
     const plan = stagesFor(durationSecondsToAnimateFrames(15, 16));
-    expect(plan.stages.length).toBeGreaterThanOrEqual(3);
-    expect(plan.stages.length).toBeLessThanOrEqual(4);
-    expect(plan.producedFrames).toBeGreaterThanOrEqual(240);
+    expect(plan.stages).toHaveLength(1);
+    expect(plan.useContextWindows).toBe(true);
+    expect(plan.stages[0].length).toBeGreaterThan(BLOCK_FRAMES);
   });
 });

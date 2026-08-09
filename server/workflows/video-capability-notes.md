@@ -4,7 +4,7 @@ WAN / LTX / MiniMax — where we are, what’s sitting unused, how to grow.
 
 **Status:** [video-session-status.plan.md](video-session-status.plan.md)  
 **Platform media (do first):** [video-media-normalize.plan.md](video-media-normalize.plan.md)  
-**Then:** [video2video/wan_animate_2_move.plan.md](video2video/wan_animate_2_move.plan.md)
+**Then:** [video2video/wan_animate_2.plan.md](video2video/wan_animate_2.plan.md)
 
 ---
 
@@ -13,7 +13,7 @@ WAN / LTX / MiniMax — where we are, what’s sitting unused, how to grow.
 short term
 1. **Shared video input normalize** — landed (`prepareControlVideo` + `videoInputProfile`)
 2. **Delivery transcoder** — landed (H.264 `yuv420p` + AAC + faststart; preserve model fps)
-3. **WAN Animate 2 Move** — landed (`wan_animate`; 77/5 chain @ 16 fps)
+3. **WAN Animate 2** — landed (`wan_animate`; `WanAnimate2ToVideo` @ 16 fps)
 
 already landed
 - retention / upload / MiniMax t2v·i2v·flf + Ref2VA
@@ -75,7 +75,7 @@ Why it feels like it sucks (working notes):
 
 Prefer for video-in / v2v:
 - LTX `ltx_ic_lora` (hooked video2video + shared preprocess)
-- Wan Animate Move `wan_animate` (pose transfer; shared preprocess @ 16 fps)
+- Wan Animate 2 `wan_animate` (driving video + reference; shared preprocess @ 16 fps)
 - MiniMax Ref2VA `minimax_r2v` (reference2video, video refs)
 
 To re-enable Fun VACE: uncomment presets + API options; leave graphs as-is.
@@ -84,7 +84,7 @@ To re-enable Fun VACE: uncomment presets + API options; leave graphs as-is.
 
 | Inbox item | v2v relevance |
 |---|---|
-| `video_wan2_2_14B_animate.json` | Move shipped (`wan_animate`); Mix later |
+| `video_wan_animate2.json` | **Shipped** as `wan_animate` |
 | `video_ltx2_3_ic_lora*.json` | Already production — stale copies |
 | MiniMax `*_h3_*.json` | Already shipped |
 | Director zip | Later research — not v1 |
