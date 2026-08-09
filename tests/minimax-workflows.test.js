@@ -51,11 +51,16 @@ describe("MiniMax workflow builders", () => {
     expect(inputs["ref_images.ref_image_0"]).toEqual(["137", 0]);
     expect(inputs["ref_images.ref_image_1"]).toEqual(["139", 0]);
     expect(inputs["ref_images.ref_image_2"]).toBeUndefined();
-    expect(inputs["ref_videos.ref_video_0"]).toEqual(["140", 0]);
+    // LoadVideo → GetVideoComponents (IMAGE) → MiniMax ref_videos
+    expect(inputs["ref_videos.ref_video_0"]).toEqual(["160", 0]);
+    expect(wf["160"].inputs.video).toEqual(["140", 0]);
+    expect(wf["140"].inputs.file).toBe("m.mp4");
     expect(inputs["ref_videos.ref_video_1"]).toBeUndefined();
     expect(inputs["ref_audios.ref_audio_0"]).toEqual(["143", 0]);
     expect(wf["141"]).toBeUndefined();
+    expect(wf["161"]).toBeUndefined();
     expect(wf["150"]).toBeUndefined();
     expect(wf["138"].inputs.value).toContain("<Picture 1>");
   });
 });
+

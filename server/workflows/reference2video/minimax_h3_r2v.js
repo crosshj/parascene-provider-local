@@ -18,7 +18,9 @@ const ASPECT_TO_SELECTOR = {
 };
 
 const IMAGE_NODE_IDS = ["137", "139", "150", "151", "152", "153", "154", "155", "156"];
+/** LoadVideo nodes — MiniMax wants IMAGE frames, so builder wires GetVideoComponents. */
 const VIDEO_NODE_IDS = ["140", "141", "142"];
+const VIDEO_FRAME_NODE_IDS = ["160", "161", "162"];
 const AUDIO_NODE_IDS = ["143", "144", "145"];
 
 function toPositiveInt(value, fallback) {
@@ -87,12 +89,15 @@ function MinimaxReference2VideoWorkflow(overrides = {}) {
   }
 
   for (let i = 0; i < VIDEO_NODE_IDS.length; i++) {
-    const id = VIDEO_NODE_IDS[i];
-    if (i < videos.length && workflow[id]?.inputs) {
-      workflow[id].inputs.file = String(videos[i]);
-      node.inputs[`ref_videos.ref_video_${i}`] = [id, 0];
+    const loadId = VIDEO_NODE_IDS[i];
+    const framesId = VIDEO_FRAME_NODE_IDS[i];
+    if (i < videos.length && workflow[loadId]?.inputs) {
+      workflow[loadId].inputs.file = String(videos[i]);
+      // MiniMaxH3ReferenceToVideo.ref_videos.* expects IMAGE, not VIDEO.
+      node.inputs[`ref_videos.ref_video_${i}`] = [framesId, 0];
     } else {
-      delete workflow[id];
+      delete workflow[loadId];
+      delete workflow[framesId];
     }
   }
 

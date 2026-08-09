@@ -281,15 +281,15 @@
         0
       ],
       "ref_videos.ref_video_0": [
-        "140",
+        "160",
         0
       ],
       "ref_videos.ref_video_1": [
-        "141",
+        "161",
         0
       ],
       "ref_videos.ref_video_2": [
-        "142",
+        "162",
         0
       ],
       "ref_audios.ref_audio_0": [
@@ -362,6 +362,42 @@
     "class_type": "LoadVideo",
     "_meta": {
       "title": "Load Ref Video 2"
+    }
+  },
+  "160": {
+    "inputs": {
+      "video": [
+        "140",
+        0
+      ]
+    },
+    "class_type": "GetVideoComponents",
+    "_meta": {
+      "title": "Ref Video 0 Frames"
+    }
+  },
+  "161": {
+    "inputs": {
+      "video": [
+        "141",
+        0
+      ]
+    },
+    "class_type": "GetVideoComponents",
+    "_meta": {
+      "title": "Ref Video 1 Frames"
+    }
+  },
+  "162": {
+    "inputs": {
+      "video": [
+        "142",
+        0
+      ]
+    },
+    "class_type": "GetVideoComponents",
+    "_meta": {
+      "title": "Ref Video 2 Frames"
     }
   },
   "143": {
