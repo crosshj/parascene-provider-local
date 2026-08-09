@@ -224,6 +224,11 @@ const BASE_PROVIDER_CAPABILITIES = {
               hint: "OmniGen2 reference-latent edit (fixed workflow).",
             },
             {
+              label: "Wan — Bernini-R image edit",
+              value: "bernini_r_i2i",
+              hint: "Bernini-R image editing (high/low noise fp8 pair).",
+            },
+            {
               label: "sdxl: dreamshaperXL_turboDpmppSDE",
               value: "checkpoints/xl/dreamshaperXL_turboDpmppSDE.safetensors",
               hint: "Supports single image input. Low censorship.",
@@ -538,7 +543,7 @@ const BASE_PROVIDER_CAPABILITIES = {
       async: true,
       name: "Video To Video",
       description:
-        "Control / pose-transfer from an input video (LTX IC-LoRA, Wan Animate Move). Wan Fun VACE is parked — see video-capability-notes.md.",
+        "Video control / edit / character transfer (LTX IC-LoRA, Wan Animate 2, Bernini-R, SCAIL2). Wan Fun VACE is parked — see video-capability-notes.md.",
       intent: "video_generate",
       credits: 1,
       fields: {
@@ -566,7 +571,22 @@ const BASE_PROVIDER_CAPABILITIES = {
             {
               label: "Wan — Animate 2",
               value: "wan_animate",
-              hint: "Wan-Animate-2: reference character + driving video @ 16 fps (81-frame chain / context windows).",
+              hint: "Wan-Animate-2: reference character + driving video @ 16 fps (81-frame block chain).",
+            },
+            {
+              label: "Wan — Bernini-R video edit",
+              value: "bernini_r_v2v",
+              hint: "Bernini-R video editing from control video + prompt (no ref image).",
+            },
+            {
+              label: "Wan — SCAIL2 (int8)",
+              value: "wan_scail",
+              hint: "SCAIL2 character replacement: reference image + driving video (int8).",
+            },
+            {
+              label: "Wan — SCAIL2 (fp16)",
+              value: "wan_scail_fp16",
+              hint: "SCAIL2 character replacement (fp16 weights).",
             },
           ],
         },
@@ -587,7 +607,7 @@ const BASE_PROVIDER_CAPABILITIES = {
           type: "image_url_array",
           required: false,
           description:
-            "Required for ltx_ic_lora and wan_animate: character/reference / start image.",
+            "Required for ltx_ic_lora, wan_animate, and wan_scail*: character/reference image. Not used by bernini_r_v2v.",
         },
         aspect_ratio: aspectRatioFieldDef(),
         duration_seconds: {

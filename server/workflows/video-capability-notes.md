@@ -13,21 +13,23 @@ WAN / LTX / MiniMax — where we are, what’s sitting unused, how to grow.
 short term
 1. **Shared video input normalize** — landed (`prepareControlVideo` + `videoInputProfile`)
 2. **Delivery transcoder** — landed (H.264 `yuv420p` + AAC + faststart; preserve model fps)
-3. **WAN Animate 2** — landed (`wan_animate`; `WanAnimate2ToVideo` @ 16 fps)
+3. **WAN Animate 2** — landed (`wan_animate`; 81-frame block clones)
+4. **Bernini-R** — landed (`bernini_r_i2i` / `bernini_r_v2v`)
+5. **SCAIL2** — landed (`wan_scail` int8 + `wan_scail_fp16`)
 
 already landed
 - retention / upload / MiniMax t2v·i2v·flf + Ref2VA
 - LTX `×fps+1` + TextGenerate max_length 2048
 - Wan Fun VACE parked (640 aspect fix kept)
-- platform media normalize + delivery + Animate Move
+- platform media normalize + delivery + Animate 2 / Bernini / SCAIL
 
 long term
 - same verb set across families; Animate Mix; Director research
 - flf + user-audio; capability matrix polish
-- WAN Fun VACE unlikely soon; LTX IC-LoRA + MiniMax Ref2VA + Animate Move = video-in story
+- WAN Fun VACE unlikely soon
 
 rule of thumb
-- short term = **normalize in + standardize out + Animate Move**
+- short term = **normalize in + standardize out + new Wan inbox products**
 - long term = broader cross-family feature set
 
 ---
@@ -85,6 +87,9 @@ To re-enable Fun VACE: uncomment presets + API options; leave graphs as-is.
 | Inbox item | v2v relevance |
 |---|---|
 | `video_wan_animate2.json` | **Shipped** as `wan_animate` |
+| `video_bernini_r_image_editing.json` | **Shipped** as `bernini_r_i2i` |
+| `video_bernini_r_video_editing.json` | **Shipped** as `bernini_r_v2v` |
+| `video_wan21_scail2_character_replacement*.json` | **Shipped** as `wan_scail` / `wan_scail_fp16` |
 | `video_ltx2_3_ic_lora*.json` | Already production — stale copies |
 | MiniMax `*_h3_*.json` | Already shipped |
 | Director zip | Later research — not v1 |

@@ -45,14 +45,19 @@ Living checklist. Platform media + Animate Move implemented (pending smoke on re
 
 ### 2. WAN Animate 2 — [wan_animate_2.plan.md](video2video/wan_animate_2.plan.md)
 - [x] Adopt `_inbox/video_wan_animate2.json` (`WanAnimate2ToVideo`)
-- [x] `_wan-animate-duration.js` (81 / overlap 1; context windows for long)
+- [x] `_wan-animate-duration.js` (81 / overlap 1; clone extend blocks for long)
 - [x] Builder `wan_animate_2` + preset `wan_animate` + harness
-- [ ] Smoke: short clip, extend chain, long context-window (render host)
+- [ ] Smoke: short / mid / 15s multi-block (render host)
+
+### 3. Bernini-R + SCAIL2
+- [x] `bernini_r_i2i` + `bernini_r_v2v` (prepare + slice sync)
+- [x] `wan_scail` / `wan_scail_fp16` shared builder
+- [ ] Smoke on render host
 
 ### Explicitly later
 - [ ] Animate Mix + mask
 - [ ] Fancy offset scrubber; client output codecs
-- [ ] Director zip / revive Fun VACE
+- [ ] Director zip / revive Fun VACE / Smooth t2v
 - [ ] flf + user-audio
 
 ---
@@ -62,9 +67,11 @@ Living checklist. Platform media + Animate Move implemented (pending smoke on re
 | Item | Action |
 |---|---|
 | `video_wan_animate2.json` | Shipped as `wan_animate` |
+| `video_bernini_r_*.json` | Shipped as Bernini presets |
+| `video_wan21_scail2_*.json` | Shipped as SCAIL presets |
 | `video_ltx2_3_ic_lora*.json` | Already production — ignore or refresh later |
 | MiniMax inbox copies | Already shipped |
-| `ltx23AllInOne…Director…zip` | Research later — not v1 |
+| Smooth / Director zip | Parked |
 
 ---
 

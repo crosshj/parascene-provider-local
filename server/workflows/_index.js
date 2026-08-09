@@ -22,6 +22,7 @@ const WORKFLOWS = {
   "image2image-qwen-edit-4step": require("./image2image/qwen-edit-4step.js"),
   "image2image-qwen-rapid-aio": require("./image2image/qwen-rapid-aio.js"),
   "image2image-omnigen2-edit": require("./image2image/omnigen2-edit.js"),
+  "image2image-bernini_r": require("./image2image/bernini_r.js"),
 
   // Image-to-video workflows
   "image2video-wan2_2_14B": require("./image2video/wan2_2_14B.js"),
@@ -39,6 +40,8 @@ const WORKFLOWS = {
   "video2video-wan2_2_vace_v2v": require("./video2video/wan2_2_vace_v2v.js"),
   "video2video-wan2_2_vace_motion": require("./video2video/wan2_2_vace_motion.js"),
   "video2video-wan_animate_2": require("./video2video/wan_animate_2.js"),
+  "video2video-bernini_r": require("./video2video/bernini_r.js"),
+  "video2video-wan_scail_2": require("./video2video/wan_scail_2.js"),
   "video2video-ltx2_3_ic_lora": require("./video2video/ltx2_3_ic_lora.js"),
 
   // Reference / omni-ref workflows

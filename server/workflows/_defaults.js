@@ -59,6 +59,47 @@ function _extractFromWorkflowJson(wf) {
     }
   }
 
+  // Bernini-R image: longer-edge resize default.
+  const berniniResize = wf["116"] && wf["116"].inputs;
+  if (
+    berniniResize &&
+    String(wf["76:50"]?.class_type || "") === "BerniniConditioning"
+  ) {
+    const longer = Number(berniniResize["resize_type.longer_size"]) || 1280;
+    return {
+      steps: 6,
+      cfg: 1,
+      width: longer,
+      height: longer,
+    };
+  }
+
+  // Bernini-R video: conditioning literals.
+  const berniniVid = wf["298:278"] && wf["298:278"].inputs;
+  if (
+    berniniVid &&
+    String(wf["298:278"]?.class_type || "") === "BerniniConditioning"
+  ) {
+    return {
+      steps: 6,
+      cfg: 1,
+      width: Number(berniniVid.width) || 480,
+      height: Number(berniniVid.height) || 832,
+    };
+  }
+
+  // SCAIL2: pose resize defaults (640 table when builder patches).
+  if (String(wf["213:114"]?.class_type || "") === "WanSCAILToVideo") {
+    const w = Number(wf["213:156"]?.inputs?.["resize_type.width"]);
+    const h = Number(wf["213:156"]?.inputs?.["resize_type.height"]);
+    return {
+      steps: 6,
+      cfg: 1,
+      width: Number.isFinite(w) ? w : 640,
+      height: Number.isFinite(h) ? h : 640,
+    };
+  }
+
   return null;
 }
 

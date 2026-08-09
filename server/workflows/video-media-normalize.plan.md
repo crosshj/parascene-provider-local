@@ -15,7 +15,9 @@ Status: [video-session-status.plan.md](video-session-status.plan.md)
 
 | Preset / family | targetFps | notes |
 |---|---|---|
-| `wan_animate` (Animate 2) | 16 | + 81-frame / context-window planner |
+| `wan_animate` (Animate 2) | 16 | + 81-frame block-clone planner |
+| `bernini_r_v2v` | 16 | prepare + Video Slice duration sync |
+| `wan_scail` / `wan_scail_fp16` | 16 | driving video + ref image |
 | `ltx_ic_lora` | graph fps (typ. 25) | already has Video Slice in graph; preprocess still owns offset/duration/fps consistency |
 | Parked VACE (if revived) | 16 | reuse 640 / longer-edge hints |
 

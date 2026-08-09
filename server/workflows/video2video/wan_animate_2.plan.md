@@ -29,14 +29,14 @@ Parked Fun VACE stays commented out. Live video2video: `ltx_ic_lora` + `wan_anim
 | Nodes | `WanAnimate2ToVideo` + `WanAnimate2Cache` (no DWPose) |
 | Weights | `wan_animate_2_int8_convrot.safetensors` |
 | Block | 81 frames @ 16 fps; extend overlap 1 |
-| Long | >~10s → single pass + `ContextWindowsManual` |
+| Long | Prebaked extend blocks (enable via CreateVideo batch); unused stay unwired |
 | Helper | `_wan-animate-duration.js` |
 
 ```mermaid
 flowchart LR
   prep[prepareControlVideo 16fps]
   plan[stagesFor targetFrames]
-  run[Animate2 stages / context windows]
+  run[Animate2 cloned 81-frame blocks]
   comfy[Comfy SaveVideo]
   xcode[Delivery transcoder]
   done[Job completed]
@@ -48,7 +48,8 @@ flowchart LR
 - [x] Adopt Animate 2 API inbox graph (`wan_animate_2.{js,json}`)  
 - [x] Register `_index` + `wan_animate` preset + API option + harness fields  
 - [x] Wire profile into shared preprocess  
-- [x] Tests: stages / context windows; requires image+video; Animate2 wiring  
+- [x] Clone extend blocks for 12–15s (context windows stay off)  
+- [x] Tests: stages / multi-block; requires image+video; Animate2 wiring  
 - [ ] Smoke on render host (needs `wan_animate_2_int8_convrot` weights)  
 
 ## Later

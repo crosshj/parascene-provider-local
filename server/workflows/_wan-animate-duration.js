@@ -8,8 +8,8 @@ const BLOCK_FRAMES = 81;
 const OVERLAP_FRAMES = 1;
 const STRIDE_FRAMES = BLOCK_FRAMES - OVERLAP_FRAMES; // 80
 const DEFAULT_FPS = 16;
-/** Inbox graph ships base + one extend. Longer clips use context windows. */
-const MAX_STAGES = 2;
+/** Base + up to 3 extend clones ≈ 81+3×80 frames (>15s @ 16fps). */
+const MAX_STAGES = 4;
 const MAX_DURATION_SECONDS = 15;
 
 /**
@@ -37,31 +37,14 @@ function durationSecondsToAnimateFrames(
 }
 
 /**
- * Plan Animate 2 stages for a target frame count.
+ * Plan Animate 2 stages for a target frame count (clone-the-block chain).
  *
- * @returns {{
- *   stages: Array<{ length: number }>,
- *   targetFrames: number,
- *   producedFrames: number,
- *   useContextWindows: boolean,
- * }}
+ * @returns {{ stages: Array<{ length: number }>, targetFrames: number, producedFrames: number }}
  */
 function stagesFor(targetFrames) {
   const raw = Math.max(1, Math.round(Number(targetFrames) || 1));
   const maxFrames = Math.round(MAX_DURATION_SECONDS * DEFAULT_FPS);
   const target = Math.min(raw, maxFrames);
-
-  // Longer than two 81-frame blocks: single pass with context windows.
-  const twoStageMax = BLOCK_FRAMES + STRIDE_FRAMES;
-  if (target > twoStageMax) {
-    const length = alignAnimateLength(target);
-    return {
-      stages: [{ length }],
-      targetFrames: target,
-      producedFrames: length,
-      useContextWindows: true,
-    };
-  }
 
   if (target <= BLOCK_FRAMES) {
     const length = alignAnimateLength(target);
@@ -69,12 +52,12 @@ function stagesFor(targetFrames) {
       stages: [{ length }],
       targetFrames: target,
       producedFrames: length,
-      useContextWindows: false,
     };
   }
 
   const stages = [{ length: BLOCK_FRAMES }];
   let produced = BLOCK_FRAMES;
+
   while (produced < target && stages.length < MAX_STAGES) {
     const remaining = target - produced;
     const need = remaining + OVERLAP_FRAMES;
@@ -87,7 +70,6 @@ function stagesFor(targetFrames) {
     stages,
     targetFrames: target,
     producedFrames: produced,
-    useContextWindows: false,
   };
 }
 
