@@ -9,8 +9,16 @@ const {
   COMFY_PORT,
   ensureManagedComfyReady,
   recycleManagedComfy,
+  captureComfyLogCheckpoint,
+  comfyLogTextSince,
 } = require("./managed-instance.js");
 const { buildWorkflowByFamily } = require("../workflows/_index.js");
+const {
+  extractHistoryExecutionError,
+  historyHasPromptEntry,
+  missingOutputError,
+  retryAfterComfyRecycle,
+} = require("./comfy-errors.js");
 
 function _url(pathname) {
   return `http://${COMFY_HOST}:${COMFY_PORT}${pathname}`;
@@ -208,7 +216,19 @@ async function isPromptStillActiveInComfy(promptId) {
   }
 }
 
-async function pollHistoryForOutput(promptId, wantsVideo, timeoutMs) {
+function _missingOutputFromPoll(message, extra, logCheckpoint) {
+  const evidence = [
+    message,
+    extra && extra.traceback,
+    extra && extra.exceptionType,
+    comfyLogTextSince(logCheckpoint),
+  ]
+    .filter(Boolean)
+    .join("\n");
+  return missingOutputError(message, evidence, extra || {});
+}
+
+async function pollHistoryForOutput(promptId, wantsVideo, timeoutMs, logCheckpoint) {
   const softTimeout =
     timeoutMs != null
       ? Number(timeoutMs)
@@ -239,11 +259,29 @@ async function pollHistoryForOutput(promptId, wantsVideo, timeoutMs) {
       }
     }
 
+    // History is only written when Comfy finishes the prompt. No output file
+    // there means the expected artifact was not created.
+    if (historyHasPromptEntry(data, promptId)) {
+      const execErr = extractHistoryExecutionError(data, promptId);
+      throw _missingOutputFromPoll(
+        execErr && execErr.message
+          ? execErr.message
+          : "Comfy finished without an output file.",
+        {
+          exceptionType: execErr && execErr.exceptionType,
+          traceback: execErr && execErr.traceback,
+        },
+        logCheckpoint,
+      );
+    }
+
     if (Date.now() >= softDeadline) {
       const stillActive = await isPromptStillActiveInComfy(promptId);
       if (!stillActive) {
-        throw new Error(
+        throw _missingOutputFromPoll(
           "Timed out waiting for Comfy history output (prompt no longer in queue). You can submit the job again.",
+          {},
+          logCheckpoint,
         );
       }
       // Comfy is still working — keep waiting until the hard cap.
@@ -252,8 +290,10 @@ async function pollHistoryForOutput(promptId, wantsVideo, timeoutMs) {
     await new Promise((resolve) => setTimeout(resolve, 1_000));
   }
 
-  throw new Error(
+  throw _missingOutputFromPoll(
     "Timed out waiting for Comfy history output after the maximum wait. Comfy may still finish; you can submit again, or raise COMFY_VIDEO_HISTORY_TIMEOUT_MS / COMFY_HISTORY_MAX_MS.",
+    {},
+    logCheckpoint,
   );
 }
 
@@ -277,9 +317,9 @@ function makeOutputFilename(seed, kind, sourceFilename) {
   return `${prefix}-${stamp}-${seed}-${rand}${ext}`;
 }
 
-async function runComfyGeneration(input, outDir) {
-  const started = Date.now();
+async function _runComfyGenerationOnce(input, outDir, started) {
   await ensureManagedComfyReady();
+  const logCheckpoint = captureComfyLogCheckpoint();
 
   const workflow = buildWorkflowByFamily(input);
   const queued = await requestJson("/prompt", {
@@ -303,7 +343,12 @@ async function runComfyGeneration(input, outDir) {
     workflowId.startsWith("video2video") ||
     workflowId.startsWith("reference2video");
 
-  const mediaRef = await pollHistoryForOutput(String(promptId), wantsVideo);
+  const mediaRef = await pollHistoryForOutput(
+    String(promptId),
+    wantsVideo,
+    undefined,
+    logCheckpoint,
+  );
   const query = new URLSearchParams({
     filename: mediaRef.filename,
     subfolder: mediaRef.subfolder,
@@ -358,6 +403,14 @@ async function runComfyGeneration(input, outDir) {
     elapsed_ms: Date.now() - started,
     media_kind: kind,
   };
+}
+
+async function runComfyGeneration(input, outDir) {
+  const started = Date.now();
+  return retryAfterComfyRecycle(
+    () => _runComfyGenerationOnce(input, outDir, started),
+    recycleManagedComfy,
+  );
 }
 
 /**

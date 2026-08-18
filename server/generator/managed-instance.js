@@ -77,6 +77,7 @@ let _lastSpawnError = null;
 let _lastExit = null;
 const _recentComfyLogs = [];
 const RECENT_COMFY_LOG_LIMIT = 200;
+let _logSeq = 0;
 
 function _url(pathname) {
   return `http://${COMFY_HOST}:${COMFY_PORT}${pathname}`;
@@ -90,7 +91,8 @@ function _rememberComfyLog(stream, chunk) {
     .filter(Boolean);
   const now = new Date().toISOString();
   for (const line of lines) {
-    _recentComfyLogs.push({ at: now, stream, line });
+    _logSeq += 1;
+    _recentComfyLogs.push({ seq: _logSeq, at: now, stream, line });
   }
   if (_recentComfyLogs.length > RECENT_COMFY_LOG_LIMIT) {
     _recentComfyLogs.splice(0, _recentComfyLogs.length - RECENT_COMFY_LOG_LIMIT);
@@ -104,6 +106,18 @@ function _tailComfyLogs(limit = 25, stream = null) {
   return source
     .slice(Math.max(0, source.length - limit))
     .map((item) => `[${item.at}] [${item.stream}] ${item.line}`);
+}
+
+function captureComfyLogCheckpoint() {
+  return _logSeq;
+}
+
+function comfyLogTextSince(checkpoint) {
+  const start = Number(checkpoint) || 0;
+  return _recentComfyLogs
+    .filter((item) => item.seq > start)
+    .map((item) => item.line)
+    .join("\n");
 }
 
 function _makeStartupDiagnostics(reason) {
@@ -391,4 +405,6 @@ module.exports = {
   recycleManagedComfy,
   getManagedComfyStatus,
   getEnginePidFilePath,
+  captureComfyLogCheckpoint,
+  comfyLogTextSince,
 };
