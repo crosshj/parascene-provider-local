@@ -1,6 +1,6 @@
 # parascene-provider-local
 
-a local provider for parascene
+a local provider for parascene.
 
 ### current state
 
