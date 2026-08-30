@@ -288,6 +288,7 @@ function startNodeApp({ releaseRoot, port, dataRoot, log, skipOrphanCleanup = fa
   if (dataRoot != null && dataRoot !== "") {
     env.DATA_ROOT = dataRoot;
     env.OUTPUT_DIR = path.join(dataRoot, "outputs");
+    env.CDN_DIR = path.join(dataRoot, "cdn");
   }
 
   const child = spawn("node", [serverPath], {

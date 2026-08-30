@@ -26,8 +26,10 @@ const {
   ensureAuthorized,
 } = require("./handlers/api.js");
 const { handleFilesPost, handleFilesGet } = require("./handlers/files.js");
+const { registerCdnRoutes } = require("./handlers/cdn.js");
 const { handleComfyInterrupt } = require("./handlers/comfy-control.js");
 const { startRetentionSweeper } = require("./lib/retention.js");
+const { startCdnSweeper } = require("./lib/cdn-store.js");
 const { getComfyInputDir } = require("./lib/comfy-paths.js");
 const {
   getAllJobs,
@@ -63,6 +65,7 @@ app.post("/api/comfy/interrupt", (req, res, c) => {
   if (!ensureAuthorized(req, res)) return;
   return handleComfyInterrupt(req, res, c);
 });
+registerCdnRoutes(app);
 app.get("/outputs/*", handleOutputImage);
 app.get("*", handlePublic);
 
@@ -74,6 +77,7 @@ app.listen(Number(PORT), HOST, () => {
     markDataRemoved,
     removeExpiredJobs,
   });
+  startCdnSweeper();
   if (!ctx.outputDir) {
     console.warn("[comfy] warm start skipped: OUTPUT_DIR not configured");
     return;

@@ -23,7 +23,10 @@ function setCorsHeaders(res, req) {
   if (origin === CORS_ALLOWED_ORIGIN) {
     res.setHeader("Access-Control-Allow-Origin", origin);
   }
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, DELETE, OPTIONS",
+  );
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   res.setHeader("Access-Control-Max-Age", "86400");
 }
@@ -89,7 +92,10 @@ function logRequest(req) {
   if (["/api/health", "/api/models", "/api/gpu"].includes(url)) {
     return;
   }
-  const mt = req.method === "GET" || req.method === "POST" ? C.g : C.y;
+  const mt =
+    req.method === "GET" || req.method === "POST" || req.method === "PUT"
+      ? C.g
+      : C.y;
   console.log(
     `${C.c}[${new Date().toISOString()}]${C.r} ${mt}${req.method}${C.r}` +
       ` ${C.m}${req.url}${C.r} ${C.y}ip=${ip}${C.r}` +
@@ -124,6 +130,14 @@ function createApp(ctx) {
     },
     post(pattern, handler) {
       routes.push({ method: "POST", pattern, handler });
+      return this;
+    },
+    put(pattern, handler) {
+      routes.push({ method: "PUT", pattern, handler });
+      return this;
+    },
+    delete(pattern, handler) {
+      routes.push({ method: "DELETE", pattern, handler });
       return this;
     },
     listen(port, host, cb) {
