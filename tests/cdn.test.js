@@ -95,6 +95,47 @@ describe("cdn appendage", () => {
     expect(res.status).toBe(404);
   });
 
+  it("keeps CORS on OPTIONS and PUT for possession upload URLs", async () => {
+    const origin = "https://www.parascene.com";
+    const mint = await jsonReq(`${base}/cdn/uploads`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${KEY}`,
+      },
+      body: JSON.stringify({
+        pin: false,
+        content_type: "text/plain",
+        filename: "cors.txt",
+      }),
+    });
+    expect(mint.res.status).toBe(201);
+    const uploadUrl = mint.json.upload_url;
+
+    const preflight = await fetch(uploadUrl, {
+      method: "OPTIONS",
+      headers: {
+        Origin: origin,
+        "Access-Control-Request-Method": "PUT",
+        "Access-Control-Request-Headers": "content-type",
+      },
+    });
+    expect(preflight.status).toBe(204);
+    expect(preflight.headers.get("access-control-allow-origin")).toBe(origin);
+    expect(preflight.headers.get("access-control-allow-methods")).toMatch(/PUT/);
+
+    const put = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: {
+        Origin: origin,
+        "Content-Type": "text/plain",
+      },
+      body: Buffer.from("cors-body"),
+    });
+    expect(put.status).toBe(201);
+    expect(put.headers.get("access-control-allow-origin")).toBe(origin);
+  });
+
   it("mints upload URL, accepts unauthed PUT, denies object id GET, serves fetch link", async () => {
     const mint = await jsonReq(`${base}/cdn/uploads`, {
       method: "POST",

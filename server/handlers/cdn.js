@@ -253,12 +253,11 @@ function mimeFor(meta, filePath) {
 
 function sendFile(res, filePath, mime) {
   const stat = fs.statSync(filePath);
-  res.writeHead(200, {
-    "Content-Type": mime,
-    "Content-Length": String(stat.size),
-    "Accept-Ranges": "bytes",
-    "Cache-Control": "private, max-age=60",
-  });
+  res.setHeader("Content-Type", mime);
+  res.setHeader("Content-Length", String(stat.size));
+  res.setHeader("Accept-Ranges", "bytes");
+  res.setHeader("Cache-Control", "private, max-age=60");
+  res.writeHead(200);
   fs.createReadStream(filePath).pipe(res);
 }
 
