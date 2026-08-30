@@ -50,6 +50,9 @@ function setCorsHeaders(res, req) {
   if (origin && (isOpenCorsPath(req) || originAllowed(origin))) {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Vary", "Origin");
+    if (isOpenCorsPath(req)) {
+      res.setHeader("Access-Control-Allow-Credentials", "true");
+    }
   }
   res.setHeader(
     "Access-Control-Allow-Methods",
