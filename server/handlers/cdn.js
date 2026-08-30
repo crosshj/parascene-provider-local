@@ -26,7 +26,8 @@ const MIME_EXT = {
 };
 
 function cdnMintKey() {
-  return process.env.PARASCENE_CDN_API_KEY || process.env.PARASCENE_API_KEY || "";
+  // Same bearer as /api and /api/files (PARASCENE_API_KEY).
+  return process.env.PARASCENE_API_KEY || "parascene-local-dev-token";
 }
 
 function getBearerToken(req) {
@@ -43,7 +44,7 @@ function ensureCdnMintAuthorized(req, res) {
   if (!expected || !token || token !== expected) {
     sendJson(res, 401, {
       error: "Unauthorized",
-      message: "Missing or invalid CDN mint token.",
+      message: "Missing or invalid bearer token.",
     });
     return false;
   }

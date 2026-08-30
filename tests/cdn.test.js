@@ -59,14 +59,12 @@ describe("cdn appendage", () => {
     for (const key of [
       "CDN_DIR",
       "CDN_PUBLIC_BASE_URL",
-      "PARASCENE_CDN_API_KEY",
       "PARASCENE_API_KEY",
     ]) {
       prev[key] = process.env[key];
     }
     process.env.CDN_DIR = tmp;
-    process.env.PARASCENE_CDN_API_KEY = KEY;
-    delete process.env.PARASCENE_API_KEY;
+    process.env.PARASCENE_API_KEY = KEY;
     const listened = await listenCdn();
     server = listened.server;
     base = listened.base;
