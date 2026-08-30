@@ -203,4 +203,139 @@ describe("cdn appendage", () => {
     expect(dur).toBeGreaterThan(0.7);
     expect(dur).toBeLessThan(1.4);
   }, 30000);
+
+  async function uploadAndLink(filePath, contentType, linkBody = {}) {
+    const mint = await jsonReq(`${base}/cdn/uploads`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${KEY}`,
+      },
+      body: JSON.stringify({ pin: true, content_type: contentType }),
+    });
+    expect(mint.res.status).toBe(201);
+    const put = await fetch(mint.json.upload_url, {
+      method: "PUT",
+      headers: { "Content-Type": contentType },
+      body: fs.readFileSync(filePath),
+    });
+    expect(put.status).toBe(201);
+    const link = await jsonReq(
+      `${base}/cdn/objects/${mint.json.object_id}/links`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${KEY}`,
+        },
+        body: JSON.stringify(linkBody),
+      },
+    );
+    expect(link.res.status).toBe(201);
+    return link.json.url.split("?")[0];
+  }
+
+  it("cover=1 is 404 when the file has no artwork", async () => {
+    if (!hasFfmpeg()) return;
+    const src = path.join(tmp, "no-art.wav");
+    execFileSync(
+      "ffmpeg",
+      [
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        "sine=frequency=440:duration=1",
+        "-c:a",
+        "pcm_s16le",
+        src,
+      ],
+      { stdio: "ignore" },
+    );
+    const fetchUrl = await uploadAndLink(src, "audio/wav");
+    const { res, json } = await jsonReq(`${fetchUrl}?cover=1`);
+    expect(res.status).toBe(404);
+    expect(json.error).toMatch(/artwork/i);
+  }, 30000);
+
+  it("cover=1 returns jpeg when the file has an attached picture", async () => {
+    if (!hasFfmpeg()) return;
+    const jpg = path.join(tmp, "art.jpg");
+    execFileSync(
+      "ffmpeg",
+      [
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        "color=c=red:s=64x64:d=1",
+        "-frames:v",
+        "1",
+        jpg,
+      ],
+      { stdio: "ignore" },
+    );
+    const withArt = path.join(tmp, "with-art.mp3");
+    try {
+      execFileSync(
+        "ffmpeg",
+        [
+          "-y",
+          "-f",
+          "lavfi",
+          "-i",
+          "sine=frequency=440:duration=1",
+          "-i",
+          jpg,
+          "-map",
+          "0:a",
+          "-map",
+          "1:v",
+          "-c:a",
+          "libmp3lame",
+          "-c:v",
+          "mjpeg",
+          "-disposition:v",
+          "attached_pic",
+          "-id3v2_version",
+          "3",
+          withArt,
+        ],
+        { stdio: "ignore" },
+      );
+    } catch {
+      execFileSync(
+        "ffmpeg",
+        [
+          "-y",
+          "-f",
+          "lavfi",
+          "-i",
+          "sine=frequency=440:duration=1",
+          "-i",
+          jpg,
+          "-map",
+          "0:a",
+          "-map",
+          "1:v",
+          "-c:a",
+          "aac",
+          "-c:v",
+          "mjpeg",
+          "-shortest",
+          withArt.replace(/\.mp3$/, ".m4a"),
+        ],
+        { stdio: "ignore" },
+      );
+      fs.renameSync(withArt.replace(/\.mp3$/, ".m4a"), withArt);
+    }
+    const fetchUrl = await uploadAndLink(withArt, "audio/mpeg");
+    const got = await fetch(`${fetchUrl}?cover=1`);
+    expect(got.status).toBe(200);
+    expect(got.headers.get("content-type")).toMatch(/image\/jpeg/);
+    const buf = Buffer.from(await got.arrayBuffer());
+    expect(buf.length).toBeGreaterThan(100);
+    expect(buf[0]).toBe(0xff);
+    expect(buf[1]).toBe(0xd8);
+  }, 30000);
 });

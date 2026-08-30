@@ -4,7 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const { sendJson, readJson } = require("../lib/http.js");
 const store = require("../lib/cdn-store.js");
-const { parseWindow, extractWindow } = require("../lib/cdn-ffmpeg.js");
+const { parseWindow, extractWindow, extractCover } = require("../lib/cdn-ffmpeg.js");
 
 const UPLOAD_MAX_BYTES = Number(process.env.CDN_UPLOAD_MAX_BYTES) || 50 * 1024 * 1024;
 
@@ -290,6 +290,21 @@ async function handleCdnGet(req, res, ctx) {
   }
 
   const q = queryOf(req);
+  const cover = q.get("cover");
+  if (cover === "1" || cover === "true") {
+    try {
+      const still = await extractCover({
+        srcPath: src,
+        objectId: meta.id,
+      });
+      return sendFile(res, still.path, "image/jpeg");
+    } catch (err) {
+      return sendJson(res, err.status || 404, {
+        error: err.message || "No embedded artwork.",
+      });
+    }
+  }
+
   const soQ = q.get("so");
   const duQ = q.get("du");
   let so = link.so;

@@ -3,7 +3,7 @@
 const { execFile } = require("child_process");
 const { promisify } = require("util");
 const fs = require("fs");
-const { derivedPath } = require("./cdn-store.js");
+const { derivedPath, derivedCoverPath } = require("./cdn-store.js");
 
 const execFileAsync = promisify(execFile);
 
@@ -108,8 +108,55 @@ async function extractWindow({ srcPath, objectId, so, du, ext }) {
   }
 }
 
+async function extractCover({ srcPath, objectId }) {
+  const outPath = derivedCoverPath(objectId);
+  try {
+    const st = fs.statSync(outPath);
+    if (st.size > 0) return { path: outPath };
+  } catch {
+    // cache miss
+  }
+  try {
+    await execFileAsync(
+      FFMPEG,
+      [
+        "-y",
+        "-i",
+        srcPath,
+        "-an",
+        "-map",
+        "0:v:0",
+        "-frames:v",
+        "1",
+        "-q:v",
+        "2",
+        outPath,
+      ],
+      { maxBuffer: 8 * 1024 * 1024 },
+    );
+  } catch (err) {
+    const stderr = String(err.stderr || err.message || "");
+    const missing =
+      stderr.includes("Stream map '0:v:0'") ||
+      stderr.includes("matches no streams") ||
+      stderr.includes("Output file does not contain any stream");
+    const e = new Error(missing ? "No embedded artwork." : "Cover extract failed.");
+    e.status = missing ? 404 : 400;
+    throw e;
+  }
+  try {
+    if (fs.statSync(outPath).size > 0) return { path: outPath };
+  } catch {
+    // fall through
+  }
+  const e = new Error("No embedded artwork.");
+  e.status = 404;
+  throw e;
+}
+
 module.exports = {
   probeDurationSeconds,
   parseWindow,
   extractWindow,
+  extractCover,
 };

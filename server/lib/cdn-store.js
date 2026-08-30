@@ -325,6 +325,12 @@ function derivedPath(objectId, so, du, ext) {
   return path.join(dir, key);
 }
 
+function derivedCoverPath(objectId) {
+  const dir = path.join(dirs().derived, objectId);
+  fs.mkdirSync(dir, { recursive: true });
+  return path.join(dir, "cover.jpg");
+}
+
 module.exports = {
   OBJECT_ID_RE,
   TOKEN_RE,
@@ -348,5 +354,6 @@ module.exports = {
   sweepCdn,
   startCdnSweeper,
   derivedPath,
+  derivedCoverPath,
   isExpired,
 };
