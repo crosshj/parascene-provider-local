@@ -108,6 +108,11 @@ async function extractWindow({ srcPath, objectId, so, du, ext }) {
   }
 }
 
+// Video still-at-time / last-frame is not here yet. When adding it, port
+// desktop `extract_video_jpeg` (parascene-desktop docs/PLAN-blue-cdn-frames.md).
+// Do not seek to duration-0.05 with -frames:v 1 — container duration often
+// outlasts the last video packet (empty JPEG). Last visible frame is at-or-
+// before the requested source time; only untrimmed/sentinel reads to EOF.
 async function extractCover({ srcPath, objectId }) {
   const outPath = derivedCoverPath(objectId);
   try {
