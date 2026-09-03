@@ -2,8 +2,35 @@
 
 const http = require("http");
 
-const CORS_ALLOWED_ORIGIN =
-  process.env.CORS_ALLOWED_ORIGIN || "https://www.parascene.com";
+const DEFAULT_ALLOWED_ORIGINS = [
+  "https://www.parascene.com",
+  "https://parascene.com",
+  "http://localhost:2367",
+  "http://127.0.0.1:2367",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+];
+
+function extraAllowedOrigins() {
+  return String(process.env.CORS_ALLOWED_ORIGIN || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function originAllowed(origin) {
+  if (!origin) return false;
+  if (DEFAULT_ALLOWED_ORIGINS.includes(origin)) return true;
+  return extraAllowedOrigins().includes(origin);
+}
+
+/** Possession URLs: browser PUT/GET from www (or anywhere with the token). Mint stays allowlisted. */
+function isOpenCorsPath(req) {
+  const p = String(req.url || "").split("?")[0];
+  if (p.startsWith("/cdn/u/")) return true;
+  if (/^\/cdn\/[a-f0-9]{48}\/?$/i.test(p)) return true;
+  return false;
+}
 
 const CSP = [
   "default-src 'self'",
@@ -20,10 +47,17 @@ const CSP = [
 
 function setCorsHeaders(res, req) {
   const origin = req.headers.origin;
-  if (origin === CORS_ALLOWED_ORIGIN) {
+  if (origin && (isOpenCorsPath(req) || originAllowed(origin))) {
     res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+    if (isOpenCorsPath(req)) {
+      res.setHeader("Access-Control-Allow-Credentials", "true");
+    }
   }
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, DELETE, OPTIONS",
+  );
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   res.setHeader("Access-Control-Max-Age", "86400");
 }
@@ -40,9 +74,9 @@ function setSecurityHeaders(res, req) {
 }
 
 function sendJson(res, status, body) {
-  res.writeHead(status, {
-    "Content-Type": "application/json; charset=utf-8",
-  });
+  // setHeader (not writeHead headers object) so CORS from setSecurityHeaders is kept.
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.writeHead(status);
   res.end(JSON.stringify(body));
 }
 
@@ -89,7 +123,10 @@ function logRequest(req) {
   if (["/api/health", "/api/models", "/api/gpu"].includes(url)) {
     return;
   }
-  const mt = req.method === "GET" || req.method === "POST" ? C.g : C.y;
+  const mt =
+    req.method === "GET" || req.method === "POST" || req.method === "PUT"
+      ? C.g
+      : C.y;
   console.log(
     `${C.c}[${new Date().toISOString()}]${C.r} ${mt}${req.method}${C.r}` +
       ` ${C.m}${req.url}${C.r} ${C.y}ip=${ip}${C.r}` +
@@ -126,6 +163,14 @@ function createApp(ctx) {
       routes.push({ method: "POST", pattern, handler });
       return this;
     },
+    put(pattern, handler) {
+      routes.push({ method: "PUT", pattern, handler });
+      return this;
+    },
+    delete(pattern, handler) {
+      routes.push({ method: "DELETE", pattern, handler });
+      return this;
+    },
     listen(port, host, cb) {
       const server = http.createServer((req, res) => {
         setSecurityHeaders(res, req);
@@ -146,7 +191,8 @@ function createApp(ctx) {
           return hit.handler(req, res, { ...ctx, path: hit.path });
         }
 
-        res.writeHead(404, { "Content-Type": "text/plain" });
+        res.setHeader("Content-Type", "text/plain");
+        res.writeHead(404);
         res.end("404 Not Found");
       });
 
