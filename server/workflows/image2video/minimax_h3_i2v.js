@@ -2,20 +2,11 @@
 
 const path = require("path");
 const fs = require("fs");
+const { resolveAspectRatioDimensions } = require("../../lib/aspect-ratio.js");
 
 const WORKFLOW_TEMPLATE = JSON.parse(
   fs.readFileSync(path.join(__dirname, "minimax_h3_i2v.json"), "utf8"),
 );
-
-const ASPECT_TO_SELECTOR = {
-  "1:1": "1:1 (Square)",
-  "16:9": "16:9 (Widescreen)",
-  "9:16": "9:16 (Portrait Widescreen)",
-  "4:5": "4:5 (Portrait)",
-  "4:3": "4:3 (Standard)",
-  "3:4": "3:4 (Portrait)",
-  "21:9": "21:9 (Ultra-Widescreen)",
-};
 
 function toPositiveInt(value, fallback) {
   const n = Number(value);
@@ -36,7 +27,7 @@ function cloneBaseWorkflow() {
  *
  * Overrides: prompt, seed, durationSeconds, aspectRatio,
  * inputImageFilename (first_frame), endImageFilename (last_frame),
- * diffusionModelComfyName, megapixels.
+ * diffusionModelComfyName.
  *
  * When endImageFilename is omitted, last_frame is removed from the node
  * (single-image i2v). When both omitted, behaves like t2v on this graph.
@@ -91,19 +82,13 @@ function MinimaxImage2VideoWorkflow(overrides = {}) {
 
   const aspect =
     overrides.aspectRatio || overrides.aspect_ratio || overrides.aspect;
-  if (aspect && workflow["115"]?.inputs) {
+  if (aspect && node?.inputs) {
     const key = String(aspect).trim();
-    workflow["115"].inputs.aspect_ratio =
-      ASPECT_TO_SELECTOR[key] || workflow["115"].inputs.aspect_ratio;
+    const dims = resolveAspectRatioDimensions(key, 1024, 1024);
+    node.inputs.width = dims.width;
+    node.inputs.height = dims.height;
+    delete workflow["115"];
   }
-  if (
-    overrides.megapixels !== undefined &&
-    workflow["115"]?.inputs &&
-    Number.isFinite(Number(overrides.megapixels))
-  ) {
-    workflow["115"].inputs.megapixels = Number(overrides.megapixels);
-  }
-
   if (overrides.diffusionModelComfyName && workflow["105:6"]?.inputs) {
     workflow["105:6"].inputs.unet_name = String(
       overrides.diffusionModelComfyName,

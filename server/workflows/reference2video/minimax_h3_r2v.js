@@ -2,20 +2,11 @@
 
 const path = require("path");
 const fs = require("fs");
+const { resolveAspectRatioDimensions } = require("../../lib/aspect-ratio.js");
 
 const WORKFLOW_TEMPLATE = JSON.parse(
   fs.readFileSync(path.join(__dirname, "minimax_h3_r2v.json"), "utf8"),
 );
-
-const ASPECT_TO_SELECTOR = {
-  "1:1": "1:1 (Square)",
-  "16:9": "16:9 (Widescreen)",
-  "9:16": "9:16 (Portrait Widescreen)",
-  "4:5": "4:5 (Portrait)",
-  "4:3": "4:3 (Standard)",
-  "3:4": "3:4 (Portrait)",
-  "21:9": "21:9 (Ultra-Widescreen)",
-};
 
 const IMAGE_NODE_IDS = ["137", "139", "150", "151", "152", "153", "154", "155", "156"];
 /** LoadVideo nodes — MiniMax wants IMAGE frames, so builder wires GetVideoComponents. */
@@ -129,10 +120,12 @@ function MinimaxReference2VideoWorkflow(overrides = {}) {
 
   const aspect =
     overrides.aspectRatio || overrides.aspect_ratio || overrides.aspect;
-  if (aspect && workflow["115"]?.inputs) {
+  if (aspect && node?.inputs) {
     const key = String(aspect).trim();
-    workflow["115"].inputs.aspect_ratio =
-      ASPECT_TO_SELECTOR[key] || workflow["115"].inputs.aspect_ratio;
+    const dims = resolveAspectRatioDimensions(key, 1024, 1024);
+    node.inputs.width = dims.width;
+    node.inputs.height = dims.height;
+    delete workflow["115"];
   }
 
   if (overrides.ref_image_size && node.inputs) {

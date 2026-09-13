@@ -14,17 +14,6 @@
       "title": "Save Video"
     }
   },
-  "115": {
-    "inputs": {
-      "aspect_ratio": "16:9 (Widescreen)",
-      "megapixels": 0.4,
-      "multiple": 32
-    },
-    "class_type": "ResolutionSelector",
-    "_meta": {
-      "title": "Resolution Selector (Size)"
-    }
-  },
   "119": {
     "inputs": {
       "vae_name": "minimax_h3_video_vae_fp16.safetensors"
@@ -219,14 +208,8 @@
         "138",
         0
       ],
-      "width": [
-        "115",
-        0
-      ],
-      "height": [
-        "115",
-        1
-      ],
+      "width": 1344,
+      "height": 768,
       "length": [
         "131",
         1
