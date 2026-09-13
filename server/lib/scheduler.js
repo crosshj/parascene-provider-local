@@ -8,6 +8,10 @@ const {
   BASE_PROVIDER_CAPABILITIES,
 } = require("../configs/provider-api-config.js");
 const { OUTPUT_TTL_SECONDS, expiresAtFromNow } = require("./retention.js");
+const {
+  rebuildInflightFromJobs,
+  releaseInflightJob,
+} = require("./generation-uniqueness.js");
 
 // Job state is persisted under DATA_ROOT/runtime so it survives rollouts.
 const dataRoot = process.env.DATA_ROOT || process.cwd();
@@ -91,11 +95,13 @@ function _loadState() {
       typeof parsed.currentModelKey === "string"
         ? parsed.currentModelKey
         : null;
+    rebuildInflightFromJobs(Array.from(jobs.values()));
   } catch {
     // ignore corrupted state; start fresh
     jobs = new Map();
     pendingOrder = [];
     currentModelKey = null;
+    rebuildInflightFromJobs([]);
   }
 }
 
@@ -197,6 +203,7 @@ async function _processLoop() {
         }
       } finally {
         pendingOrder = pendingOrder.filter((id) => id !== job.id);
+        releaseInflightJob(job.id);
         _writeState();
       }
     }
@@ -209,7 +216,7 @@ function generateJobId() {
   return `job_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function enqueueGenerationJob({ payload, entry, method }, outputDir) {
+function enqueueGenerationJob({ payload, entry, method, fingerprint }, outputDir) {
   const id = generateJobId();
   const job = {
     id,
@@ -238,6 +245,9 @@ function enqueueGenerationJob({ payload, entry, method }, outputDir) {
     },
     payload,
     outputDir,
+    ...(typeof fingerprint === "string" && fingerprint
+      ? { fingerprint }
+      : {}),
   };
   jobs.set(id, job);
   pendingOrder.push(id);

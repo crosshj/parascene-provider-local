@@ -154,6 +154,9 @@ function fakeRes() {
     statusCode: null,
     _headers: {},
     _body: null,
+    setHeader(key, value) {
+      this._headers[key] = value;
+    },
     writeHead(code, headers) {
       this.statusCode = code;
       this._headers = headers;

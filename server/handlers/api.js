@@ -6,6 +6,7 @@ const path = require("path");
 const { sendJson, readJson } = require("../lib/http.js");
 const { enqueueGenerationJob, getJob } = require("../lib/scheduler.js");
 const { buildComfyArgs } = require("../lib/comfy-args.js");
+const { startOrJoin } = require("../lib/generation-uniqueness.js");
 const {
   BASE_PROVIDER_CAPABILITIES,
 } = require("../configs/provider-api-config.js");
@@ -301,25 +302,38 @@ async function handleApiPost(req, res, ctx = {}) {
     if (!ctx.outputDir) {
       return sendJson(res, 503, { error: "OUTPUT_DIR not configured" });
     }
-    let comfyArgs;
+    const resolvedArgs = applyMethodFieldDefaults(method, args);
+    let started;
     try {
-      const resolvedArgs = applyMethodFieldDefaults(method, args);
-      comfyArgs = await buildComfyArgs(
-        { ...resolvedArgs, method },
-        ctx.outputDir,
-      );
+      started = await startOrJoin({
+        method,
+        args: resolvedArgs,
+        getJob,
+        create: async ({ fingerprint }) => {
+          const comfyArgs = await buildComfyArgs(
+            { ...resolvedArgs, method },
+            ctx.outputDir,
+          );
+          return enqueueGenerationJob(
+            fingerprint ? { ...comfyArgs, fingerprint } : comfyArgs,
+            ctx.outputDir,
+          );
+        },
+      });
     } catch (err) {
       return sendJson(res, 400, { error: err.message });
     }
-    const job = enqueueGenerationJob(comfyArgs, ctx.outputDir);
-    if (job.error) {
-      return sendJson(res, 400, { error: job.error });
+    if (started.error) {
+      return sendJson(res, 400, { error: started.error });
     }
     return sendJson(res, 202, {
       async: true,
-      status: job.status,
-      job_id: job.id,
-      expires_at: expiresAtFromNow(OUTPUT_TTL_SECONDS),
+      status: started.job.status,
+      job_id: started.job.id,
+      expires_at:
+        started.job.result?.expires_at ||
+        expiresAtFromNow(OUTPUT_TTL_SECONDS),
+      ...started.fields,
     });
   }
 
