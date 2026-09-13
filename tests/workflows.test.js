@@ -37,16 +37,18 @@ describe("managed workflows", () => {
     "image2video-minimax_h3_i2v",
     "reference2video-minimax_h3_r2v",
   ])("bypasses ResolutionSelector for %s when aspectRatio is 4:5", (id) => {
-    const wf = buildWorkflowByFamily({ managedWorkflowId: id, aspectRatio: "4:5" });
+    const wf = buildWorkflowByFamily({
+      managedWorkflowId: id,
+      aspectRatio: "4:5",
+    });
     const selectorNodes = Object.values(wf).filter(
       (node) => node?.class_type === "ResolutionSelector",
     );
-    const targetNode =
-      id.startsWith("text2video")
+    const targetNode = id.startsWith("text2video")
+      ? wf["105:104"]
+      : id.startsWith("image2video")
         ? wf["105:104"]
-        : id.startsWith("image2video")
-          ? wf["105:104"]
-          : wf["136"];
+        : wf["136"];
 
     expect(selectorNodes).toHaveLength(0);
     expect(targetNode.inputs.width).toBe(896);
@@ -69,4 +71,3 @@ describe("managed workflows", () => {
     }
   });
 });
-

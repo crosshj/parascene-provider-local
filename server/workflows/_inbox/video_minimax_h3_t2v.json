@@ -4,10 +4,7 @@
       "filename_prefix": "video/MiniMax_H3",
       "format": "auto",
       "codec": "auto",
-      "video": [
-        "105:91",
-        0
-      ]
+      "video": ["105:91", 0]
     },
     "class_type": "SaveVideo",
     "_meta": {
@@ -34,14 +31,8 @@
   },
   "105:23": {
     "inputs": {
-      "samples": [
-        "105:14",
-        0
-      ],
-      "vae": [
-        "105:24",
-        0
-      ]
+      "samples": ["105:14", 0],
+      "vae": ["105:24", 0]
     },
     "class_type": "VAEDecodeAudio",
     "_meta": {
@@ -50,14 +41,8 @@
   },
   "105:10": {
     "inputs": {
-      "samples": [
-        "105:14",
-        0
-      ],
-      "vae": [
-        "105:11",
-        0
-      ]
+      "samples": ["105:14", 0],
+      "vae": ["105:11", 0]
     },
     "class_type": "VAEDecode",
     "_meta": {
@@ -78,10 +63,7 @@
       "scheduler": "simple",
       "steps": 20,
       "denoise": 1,
-      "model": [
-        "105:6",
-        0
-      ]
+      "model": ["105:6", 0]
     },
     "class_type": "BasicScheduler",
     "_meta": {
@@ -90,26 +72,11 @@
   },
   "105:14": {
     "inputs": {
-      "noise": [
-        "105:15",
-        0
-      ],
-      "guider": [
-        "105:16",
-        0
-      ],
-      "sampler": [
-        "105:17",
-        0
-      ],
-      "sigmas": [
-        "105:9",
-        0
-      ],
-      "latent_image": [
-        "105:104",
-        1
-      ]
+      "noise": ["105:15", 0],
+      "guider": ["105:16", 0],
+      "sampler": ["105:17", 0],
+      "sigmas": ["105:9", 0],
+      "latent_image": ["105:104", 1]
     },
     "class_type": "SamplerCustomAdvanced",
     "_meta": {
@@ -118,14 +85,8 @@
   },
   "105:16": {
     "inputs": {
-      "model": [
-        "105:6",
-        0
-      ],
-      "conditioning": [
-        "105:104",
-        0
-      ]
+      "model": ["105:6", 0],
+      "conditioning": ["105:104", 0]
     },
     "class_type": "BasicGuider",
     "_meta": {
@@ -166,14 +127,8 @@
     "inputs": {
       "fps": 24,
       "bit_depth": 8,
-      "images": [
-        "105:10",
-        0
-      ],
-      "audio": [
-        "105:23",
-        0
-      ]
+      "images": ["105:10", 0],
+      "audio": ["105:23", 0]
     },
     "class_type": "CreateVideo",
     "_meta": {
@@ -185,18 +140,9 @@
       "prompt": "Realistic live-action cinematic look, action movie trailer: practical film photography style, a post-rain dusk metropolis, anamorphic lens, shallow depth of field, film grain, city volumetric fog, flying-car traffic between the towers, restrained grading for a premium feel, powerful natural movement.\n\nScene overview: at dusk on a cluster of skyscrapers, the protagonist is being chased, sprinting and leaping across rooftops, jumping from one building's roof to the next with pursuers closing in behind. This is the escape sequence of an action movie trailer: every leap is life-or-death, thrilling and fluid.\n\nStoryboard (each shot a separate scene, rapid cuts, all landing on the musical beats):\n[0s-1.5s] Shot 1: high side angle: the protagonist sprinting at the roof edge, pursuers appearing in the rooftop doorway behind him, wind catching his coat.\n[1s-2.5s] Shot 2: the protagonist leaps across the gap between buildings, body stretching mid-air, towers and flying-car light trails behind him, a slight slow-motion feel.\n[2.5s-4s] Shot 3: he lands, rolls and rises, low-angle shot, tower shadows and fog behind him, he keeps running.\n[4s-5s] Shot 4: freeze: the instant he hits the edge of the next roof and launches into the jump, silhouette, holding.\n\nCamera: each shot its own angle, cuts clean and hard, no dissolves, a slight frame jitter on the jumps.\n\nAudio: wind, rapid footsteps, city ambience, low score underneath, an accent hit on each leap, the score bursting at 4s, closing the last 1s.\n\nNo text, subtitles, logos or watermarks of any kind, no animation or cartoon rendering, no overly-CG look, keep the live-action texture.",
       "width": 1344,
       "height": 768,
-      "length": [
-        "105:107",
-        1
-      ],
-      "clip": [
-        "105:13",
-        0
-      ],
-      "vae": [
-        "105:11",
-        0
-      ]
+      "length": ["105:107", 1],
+      "clip": ["105:13", 0],
+      "vae": ["105:11", 0]
     },
     "class_type": "MiniMaxH3ImageToVideo",
     "_meta": {
@@ -206,10 +152,7 @@
   "105:107": {
     "inputs": {
       "expression": "max(5, round(a * 24)) + (5 - (max(5, round(a * 24)) % 17)) % 17",
-      "values.a": [
-        "105:111",
-        0
-      ]
+      "values.a": ["105:111", 0]
     },
     "class_type": "ComfyMathExpression",
     "_meta": {

@@ -8,7 +8,17 @@ const WORKFLOW_TEMPLATE = JSON.parse(
   fs.readFileSync(path.join(__dirname, "minimax_h3_r2v.json"), "utf8"),
 );
 
-const IMAGE_NODE_IDS = ["137", "139", "150", "151", "152", "153", "154", "155", "156"];
+const IMAGE_NODE_IDS = [
+  "137",
+  "139",
+  "150",
+  "151",
+  "152",
+  "153",
+  "154",
+  "155",
+  "156",
+];
 /** LoadVideo nodes — MiniMax wants IMAGE frames, so builder wires GetVideoComponents. */
 const VIDEO_NODE_IDS = ["140", "141", "142"];
 const VIDEO_FRAME_NODE_IDS = ["160", "161", "162"];
