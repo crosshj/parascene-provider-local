@@ -3,6 +3,7 @@
 WAN / LTX / MiniMax — where we are, what’s sitting unused, how to grow.
 
 **Status:** [video-session-status.plan.md](video-session-status.plan.md)  
+**Uniqueness (retry storms):** [generation-uniqueness.md](generation-uniqueness.md)  
 **Platform media (do first):** [video-media-normalize.plan.md](video-media-normalize.plan.md)  
 **Then:** [video2video/wan_animate_2.plan.md](video2video/wan_animate_2.plan.md)
 
