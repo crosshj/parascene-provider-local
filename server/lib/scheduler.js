@@ -256,6 +256,13 @@ function enqueueGenerationJob({ payload, entry, method, fingerprint }, outputDir
   return job;
 }
 
+/** 1-based place in the pending line. Null when not pending. */
+function linePlace(jobId) {
+  const i = pendingOrder.indexOf(jobId);
+  if (i < 0) return null;
+  return { place: i + 1, ahead: i };
+}
+
 function getJob(jobId) {
   if (!jobId) return null;
   return jobs.get(jobId) || null;
@@ -330,4 +337,5 @@ module.exports = {
   markDataRemoved,
   removeExpiredJobs,
   getSummary,
+  linePlace,
 };

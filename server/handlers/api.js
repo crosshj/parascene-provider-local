@@ -4,7 +4,20 @@ const fs = require("fs");
 const path = require("path");
 
 const { sendJson, readJson } = require("../lib/http.js");
-const { enqueueGenerationJob, getJob } = require("../lib/scheduler.js");
+const { enqueueGenerationJob, getJob, linePlace } = require("../lib/scheduler.js");
+
+function inFlightPollBody(job) {
+  const body = {
+    async: true,
+    status: job.status,
+    job_id: job.id,
+  };
+  if (job.status === "pending") {
+    const line = linePlace(job.id);
+    if (line) Object.assign(body, line);
+  }
+  return body;
+}
 const { buildComfyArgs } = require("../lib/comfy-args.js");
 const { startOrJoin } = require("../lib/generation-uniqueness.js");
 const {
@@ -203,11 +216,7 @@ async function handleApiPost(req, res, ctx = {}) {
       });
     }
     if (job.status === "pending" || job.status === "running") {
-      return sendJson(res, 202, {
-        async: true,
-        status: job.status,
-        job_id: job.id,
-      });
+      return sendJson(res, 202, inFlightPollBody(job));
     }
     if (job.status === "failed") {
       return sendJson(res, 200, {
@@ -327,9 +336,7 @@ async function handleApiPost(req, res, ctx = {}) {
       return sendJson(res, 400, { error: started.error });
     }
     return sendJson(res, 202, {
-      async: true,
-      status: started.job.status,
-      job_id: started.job.id,
+      ...inFlightPollBody(started.job),
       expires_at:
         started.job.result?.expires_at ||
         expiresAtFromNow(OUTPUT_TTL_SECONDS),
@@ -338,11 +345,7 @@ async function handleApiPost(req, res, ctx = {}) {
   }
 
   const job = createStubJob({ method, args });
-  return sendJson(res, 202, {
-    async: true,
-    status: job.status,
-    job_id: job.id,
-  });
+  return sendJson(res, 202, inFlightPollBody(job));
 }
 
 module.exports = {

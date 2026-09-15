@@ -535,6 +535,9 @@ describe("api start path joins in-flight jobs", () => {
   it("returns miss then joins a duplicate start to the same job_id", async () => {
     const first = await startVideo();
     expect(first.statusCode).toBe(202);
+    expect(first.body.status).toBe("pending");
+    expect(first.body.place).toBe(1);
+    expect(first.body.ahead).toBe(0);
     expect(first.body.dedupe_state).toBe("miss");
     expect(first.body.job_id).toMatch(/^job_/);
     expect(first.body.dedupe_fingerprint_prefix).toHaveLength(12);
