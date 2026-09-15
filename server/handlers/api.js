@@ -4,7 +4,12 @@ const fs = require("fs");
 const path = require("path");
 
 const { sendJson, readJson } = require("../lib/http.js");
-const { enqueueGenerationJob, getJob, linePlace } = require("../lib/scheduler.js");
+const {
+  enqueueGenerationJob,
+  getJob,
+  linePlace,
+  occupancyPeek,
+} = require("../lib/scheduler.js");
 
 function inFlightPollBody(job) {
   const body = {
@@ -128,6 +133,24 @@ function applyMethodFieldDefaults(method, args) {
   return out;
 }
 
+function occupancyQueryBody(queryMethod, args) {
+  const targetMethod =
+    typeof args?.method === "string" ? args.method.trim() : "";
+  const methodDef = targetMethod
+    ? BASE_PROVIDER_CAPABILITIES?.methods?.[targetMethod]
+    : null;
+  const supported =
+    queryMethod === "advanced_query" ? true : targetMethod ? Boolean(methodDef) : true;
+  let cost = 0;
+  if (typeof methodDef?.credits === "number") cost = methodDef.credits;
+  else if (queryMethod === "advanced_query") cost = 0.1;
+  return {
+    supported,
+    cost,
+    ...occupancyPeek(),
+  };
+}
+
 function ensureAuthorized(req, res) {
   const token = getBearerToken(req);
   if (!token || token !== PARASCENE_API_KEY) {
@@ -202,6 +225,11 @@ async function handleApiPost(req, res, ctx = {}) {
 
   if (!method) {
     return sendJson(res, 400, { error: "Missing required field: method" });
+  }
+
+  // Occupancy peek: no job, no charge. `query` (Direct) and `advanced_query` (Parascene).
+  if (method === "query" || method === "advanced_query") {
+    return sendJson(res, 200, occupancyQueryBody(method, args));
   }
 
   // Poll: args.job_id present — return current status or final result.

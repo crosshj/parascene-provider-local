@@ -361,6 +361,70 @@ function removeExpiredJobs(metaTtlSeconds) {
   return removed;
 }
 
+const VIDEO_METHODS = new Set([
+  "text2video",
+  "image2video",
+  "audio2video",
+  "video2video",
+  "reference2video",
+]);
+const TYPICAL_STILL_S = 45;
+const TYPICAL_VIDEO_S = 480;
+
+function methodKind(method) {
+  return VIDEO_METHODS.has(String(method || "")) ? "video" : "still";
+}
+
+function typicalSeconds(method) {
+  return methodKind(method) === "video" ? TYPICAL_VIDEO_S : TYPICAL_STILL_S;
+}
+
+function remainingSeconds(job) {
+  const typical = typicalSeconds(job?.method);
+  if (!job || job.status !== "running") return typical;
+  const startedMs = Date.parse(job.started_at || 0);
+  const elapsed = Number.isFinite(startedMs)
+    ? Math.max(0, (Date.now() - startedMs) / 1000)
+    : 0;
+  return Math.max(Math.round(typical * 0.2), Math.round(typical - elapsed));
+}
+
+function runningPublic(job) {
+  if (!job) return null;
+  const family = String(job.family || "").trim();
+  return {
+    kind: methodKind(job.method),
+    ...(family ? { family } : {}),
+  };
+}
+
+/** Live line before enqueue. No job_id. Honest ranges. */
+function occupancyPeek() {
+  _ensureDraining();
+  const pending = pendingOrder
+    .map((id) => jobs.get(id))
+    .filter((j) => j && j.status === "pending");
+  let running = null;
+  for (const job of jobs.values()) {
+    if (job && job.status === "running") {
+      running = job;
+      break;
+    }
+  }
+  const ahead = pending.length;
+  const idle = !running && ahead === 0;
+  let eta_s = 0;
+  if (running) eta_s += remainingSeconds(running);
+  for (const job of pending) eta_s += typicalSeconds(job.method);
+  if (eta_s > 3 * 3600) eta_s = 3 * 3600;
+  return {
+    idle,
+    running: runningPublic(running),
+    ahead,
+    eta_s,
+  };
+}
+
 function getSummary() {
   _ensureDraining();
   const all = Array.from(jobs.values());
@@ -395,6 +459,7 @@ module.exports = {
   markDataRemoved,
   removeExpiredJobs,
   getSummary,
+  occupancyPeek,
   linePlace,
   resumePersistedQueue,
   rehydratePersistedQueue,
