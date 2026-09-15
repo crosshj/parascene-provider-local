@@ -30,3 +30,5 @@ done when
 - GET /api exposes image2video method with selectable models
 - POST /api {method:image2video,args:{...}} creates non-stub job
 - polling returns completed real media output and metadata
+
+BUMP
