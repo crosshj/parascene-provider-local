@@ -288,8 +288,31 @@ async function handleApiPost(req, res, ctx = {}) {
           res.end(data);
         });
       }
+      // Other succeeded files (video methods without media_kind, etc.): still stream bytes.
+      return fs.readFile(filePath, (err, data) => {
+        if (err) {
+          return sendJson(res, 500, {
+            async: true,
+            error: "Output file missing",
+            job_id: job.id,
+            status: job.status,
+          });
+        }
+        const ct = contentTypeForArtifactFilename(job.result.file_name);
+        const headers = {
+          "Content-Type":
+            ct.startsWith("video/") || ct.startsWith("image/")
+              ? ct
+              : "application/octet-stream",
+          "Content-Length": String(data.length),
+          "Cache-Control": "no-cache",
+          "X-Credits": String(job.credits ?? resolveMethodCredits(job.method)),
+        };
+        res.writeHead(200, headers);
+        res.end(data);
+      });
     }
-    // Fallback: succeeded but not image (e.g. stub method) — return JSON.
+    // Fallback: succeeded but no file on disk — return JSON.
     return sendJson(res, 200, {
       async: true,
       status: job.status,
