@@ -48,16 +48,41 @@ function _isConnectionRefusedError(err) {
   return code.toUpperCase() === "ECONNREFUSED";
 }
 
+const COMFY_HTTP_TIMEOUT_MS =
+  Number(process.env.COMFY_HTTP_TIMEOUT_MS) || 60_000;
+// Media download of the finished output must never be cut off by the
+// control-plane timeout; a large video can legitimately take minutes.
+const COMFY_VIEW_TIMEOUT_MS =
+  Number(process.env.COMFY_VIEW_TIMEOUT_MS) || 900_000; // 15m
+
+function _fetchOnce(pathname, fetchOptions, timeoutMs) {
+  const opts = { ...fetchOptions };
+  if (
+    timeoutMs > 0 &&
+    !opts.signal &&
+    typeof AbortSignal !== "undefined" &&
+    AbortSignal.timeout
+  ) {
+    // Fresh signal per attempt — a signal created before a recycle would
+    // already be aborted by the time the retry runs.
+    opts.signal = AbortSignal.timeout(timeoutMs);
+  }
+  return fetch(_url(pathname), opts);
+}
+
 async function _fetchWithRecovery(pathname, options = {}) {
+  const { timeoutMs, ...fetchOptions } = options;
+  const effectiveTimeoutMs =
+    timeoutMs === undefined ? COMFY_HTTP_TIMEOUT_MS : Number(timeoutMs);
   try {
-    return await fetch(_url(pathname), options);
+    return await _fetchOnce(pathname, fetchOptions, effectiveTimeoutMs);
   } catch (err) {
     if (!_isConnectionRefusedError(err)) throw err;
     console.warn(
       `[comfy] ECONNREFUSED on ${pathname}; recycling managed process and retrying once`,
     );
     await recycleManagedComfy(`connection refused on ${pathname}`);
-    return fetch(_url(pathname), options);
+    return _fetchOnce(pathname, fetchOptions, effectiveTimeoutMs);
   }
 }
 
@@ -80,7 +105,10 @@ async function requestJson(pathname, options = {}) {
 async function requestBuffer(pathname) {
   let res;
   try {
-    res = await _fetchWithRecovery(pathname, { method: "GET" });
+    res = await _fetchWithRecovery(pathname, {
+      method: "GET",
+      timeoutMs: COMFY_VIEW_TIMEOUT_MS,
+    });
   } catch (err) {
     throw new Error(_formatFetchError(pathname, err));
   }
@@ -210,8 +238,11 @@ async function isPromptStillActiveInComfy(promptId) {
     return [...running, ...pending].some(
       (item) => queueItemPromptId(item) === id,
     );
-  } catch {
-    // If queue probe fails, don't abort early — keep soft-waiting.
+  } catch (err) {
+    if (_isConnectionRefusedError(err)) return false;
+    const msg = String(err && err.message ? err.message : "");
+    if (/ECONNREFUSED|network error/i.test(msg)) return false;
+    // Transient queue probe failure — keep soft-waiting.
     return true;
   }
 }
@@ -238,11 +269,28 @@ async function pollHistoryForOutput(promptId, wantsVideo, timeoutMs, logCheckpoi
   const softDeadline = Date.now() + softTimeout;
   const hardDeadline =
     Date.now() + Math.max(softTimeout, HISTORY_HARD_CAP_MS);
+  // Consecutive observations of "no history entry AND not in Comfy's queue".
+  // Requires several in a row so the moment between queue-exit and
+  // history-write can never be mistaken for a lost prompt.
+  let goneStreak = 0;
+  const GONE_STREAK_THRESHOLD = 3;
 
   while (Date.now() < hardDeadline) {
-    const data = await requestJson(`/history/${encodeURIComponent(promptId)}`, {
-      method: "GET",
-    });
+    let data;
+    try {
+      data = await requestJson(`/history/${encodeURIComponent(promptId)}`, {
+        method: "GET",
+      });
+    } catch (err) {
+      // Transient poll failure (request timeout, engine mid-restart).
+      // ECONNREFUSED already recycled inside the fetch layer; anything else
+      // is not evidence about the job, so keep waiting within the deadlines.
+      console.warn(
+        `[comfy] history poll failed (${err.message}); still waiting`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, 1_000));
+      continue;
+    }
     try {
       if (wantsVideo) {
         return parseOutputVideo(data, promptId);
@@ -275,15 +323,21 @@ async function pollHistoryForOutput(promptId, wantsVideo, timeoutMs, logCheckpoi
       );
     }
 
-    if (Date.now() >= softDeadline) {
-      const stillActive = await isPromptStillActiveInComfy(promptId);
-      if (!stillActive) {
+    // No history entry: either still executing/queued, or the engine
+    // restarted and the prompt is simply gone. Detect "gone" quickly so a
+    // crash does not park the job until the soft timeout expires.
+    const stillActive = await isPromptStillActiveInComfy(promptId);
+    if (!stillActive) {
+      goneStreak += 1;
+      if (goneStreak >= GONE_STREAK_THRESHOLD || Date.now() >= softDeadline) {
         throw _missingOutputFromPoll(
           "Timed out waiting for Comfy history output (prompt no longer in queue). You can submit the job again.",
           {},
           logCheckpoint,
         );
       }
+    } else {
+      goneStreak = 0;
       // Comfy is still working — keep waiting until the hard cap.
     }
 
@@ -317,7 +371,7 @@ function makeOutputFilename(seed, kind, sourceFilename) {
   return `${prefix}-${stamp}-${seed}-${rand}${ext}`;
 }
 
-async function _runComfyGenerationOnce(input, outDir, started) {
+async function _runComfyGenerationOnce(input, outDir, started, opts = {}) {
   await ensureManagedComfyReady();
   const logCheckpoint = captureComfyLogCheckpoint();
 
@@ -331,6 +385,13 @@ async function _runComfyGenerationOnce(input, outDir, started) {
   const promptId = queued?.prompt_id;
   if (!promptId) {
     throw new Error("Comfy did not return prompt_id.");
+  }
+  if (typeof opts.onQueued === "function") {
+    try {
+      opts.onQueued(String(promptId));
+    } catch (err) {
+      console.warn(`[comfy] onQueued failed: ${err.message}`);
+    }
   }
 
   const workflowId =
@@ -405,12 +466,36 @@ async function _runComfyGenerationOnce(input, outDir, started) {
   };
 }
 
-async function runComfyGeneration(input, outDir) {
-  const started = Date.now();
-  return retryAfterComfyRecycle(
-    () => _runComfyGenerationOnce(input, outDir, started),
-    recycleManagedComfy,
+function isComfyGoneError(err) {
+  const msg = String(err && err.message ? err.message : "");
+  return (
+    /prompt no longer in queue/i.test(msg) ||
+    /ECONNREFUSED/i.test(msg) ||
+    /network error/i.test(msg) ||
+    /operation was aborted/i.test(msg)
   );
+}
+
+async function runComfyGeneration(input, outDir, opts = {}) {
+  const started = Date.now();
+  const runOnce = () =>
+    retryAfterComfyRecycle(
+      () => _runComfyGenerationOnce(input, outDir, started, opts),
+      recycleManagedComfy,
+    );
+  try {
+    return await runOnce();
+  } catch (err) {
+    if (!isComfyGoneError(err)) throw err;
+    console.warn(
+      "[comfy] generation lost after engine restart; submitting again",
+    );
+    await ensureManagedComfyReady();
+    return retryAfterComfyRecycle(
+      () => _runComfyGenerationOnce(input, outDir, started, opts),
+      recycleManagedComfy,
+    );
+  }
 }
 
 /**
@@ -448,4 +533,4 @@ async function interruptComfy({ clearQueue = true } = {}) {
   };
 }
 
-module.exports = { runComfyGeneration, interruptComfy };
+module.exports = { runComfyGeneration, interruptComfy, isComfyGoneError };

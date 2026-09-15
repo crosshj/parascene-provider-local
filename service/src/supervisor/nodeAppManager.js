@@ -165,6 +165,164 @@ async function assertPortServesReleaseOrFree(
 }
 
 const WORKER_PID_FILE = "runtime/.worker.pid";
+const SCHEDULER_HOLD_FILE = "runtime/scheduler.hold";
+const DEFAULT_COMFY_DRAIN_TIMEOUT_MS = 2_700_000; // 45m — one video job
+// After the GPU finishes, the Node still downloads/transcodes the output.
+// Wait a bounded extra window for that tail instead of killing a done job.
+const DEFAULT_COMFY_DRAIN_TAIL_TIMEOUT_MS = 600_000; // 10m
+const COMFY_DRAIN_POLL_MS = 2000;
+const DRAIN_HEALTH_FAILURE_THRESHOLD = 3;
+
+function schedulerHoldPath(dataRoot) {
+  return path.join(dataRoot || "", SCHEDULER_HOLD_FILE);
+}
+
+function writeSchedulerHold(dataRoot, log) {
+  if (!dataRoot) return null;
+  const holdPath = schedulerHoldPath(dataRoot);
+  try {
+    fs.mkdirSync(path.dirname(holdPath), { recursive: true });
+    fs.writeFileSync(holdPath, `${new Date().toISOString()}\n`);
+    if (log) log.info("orchestrator.scheduler.hold", { path: holdPath });
+  } catch (err) {
+    if (log) {
+      log.warn("orchestrator.scheduler.hold_failed", { error: err.message });
+    }
+  }
+  return holdPath;
+}
+
+function clearSchedulerHold(dataRoot, log) {
+  if (!dataRoot) return;
+  const holdPath = schedulerHoldPath(dataRoot);
+  try {
+    fs.unlinkSync(holdPath);
+    if (log) log.info("orchestrator.scheduler.release", { path: holdPath });
+  } catch (err) {
+    if (err && err.code !== "ENOENT" && log) {
+      log.warn("orchestrator.scheduler.release_failed", { error: err.message });
+    }
+  }
+}
+
+/**
+ * True when Comfy reports a running or queued prompt.
+ * Unknown queue while Comfy is up is treated as busy so we do not cut over mid-job.
+ */
+function isComfyBusyFromHealth(health) {
+  const comfy = health && health.comfy;
+  if (!comfy || comfy.running !== true) return false;
+  const q = comfy.queue;
+  if (comfy.queue_http_status !== 200 || !q || typeof q !== "object") {
+    return true;
+  }
+  const running = Array.isArray(q.queue_running) ? q.queue_running.length : 0;
+  const pending = Array.isArray(q.queue_pending) ? q.queue_pending.length : 0;
+  return running + pending > 0;
+}
+
+/** In-flight job count from the Node scheduler as reported by /api/health. */
+function schedulerRunningCount(health) {
+  const n = health && health.jobs && health.jobs.runningCount;
+  return typeof n === "number" && n > 0 ? n : 0;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Wait until the current generation is fully finished before a cutover.
+ *
+ * Two phases:
+ * - Comfy busy (prompt on the GPU): wait up to timeoutMs.
+ * - Comfy idle but scheduler still has a running job (Node is downloading /
+ *   transcoding the output): wait up to tailTimeoutMs from the moment the
+ *   GPU went idle. This bounds a stuck scheduler row so deploys cannot hang.
+ *
+ * timeoutMs <= 0 skips waiting entirely (used by GPU-degraded escalation,
+ * which must never wait on the engine it is trying to recover).
+ * Node unreachable (several consecutive probe failures) counts as idle.
+ */
+async function waitForComfyIdle(host, port, opts = {}) {
+  const timeoutMs =
+    opts.timeoutMs != null
+      ? Number(opts.timeoutMs)
+      : Number(process.env.COMFY_DRAIN_TIMEOUT_MS || DEFAULT_COMFY_DRAIN_TIMEOUT_MS);
+  const tailTimeoutMs =
+    opts.tailTimeoutMs != null
+      ? Number(opts.tailTimeoutMs)
+      : Number(
+          process.env.COMFY_DRAIN_TAIL_TIMEOUT_MS ||
+            DEFAULT_COMFY_DRAIN_TAIL_TIMEOUT_MS,
+        );
+  const pollMs = opts.pollMs != null ? Number(opts.pollMs) : COMFY_DRAIN_POLL_MS;
+  const log = opts.log;
+  const deadline = Date.now() + timeoutMs;
+  let tailDeadline = null;
+  let healthFailures = 0;
+
+  while (Date.now() < deadline) {
+    let health;
+    try {
+      health = await getHealthJson(host, port, opts.healthTimeoutMs || 3000);
+      healthFailures = 0;
+    } catch (err) {
+      healthFailures += 1;
+      if (healthFailures >= DRAIN_HEALTH_FAILURE_THRESHOLD) {
+        if (log) {
+          log.info("orchestrator.drain.node_unreachable", {
+            error: err.message,
+            port,
+          });
+        }
+        return { idle: true, reason: "node_unreachable" };
+      }
+      await sleep(pollMs);
+      continue;
+    }
+
+    const comfyBusy = isComfyBusyFromHealth(health);
+    const runningJobs = schedulerRunningCount(health);
+    if (!comfyBusy && runningJobs === 0) {
+      return { idle: true, reason: "idle" };
+    }
+
+    if (comfyBusy) {
+      tailDeadline = null;
+    } else {
+      // GPU done; Node is finishing the job (download / transcode).
+      if (tailDeadline == null) tailDeadline = Date.now() + tailTimeoutMs;
+      if (Date.now() >= tailDeadline) {
+        if (log) {
+          log.warn("orchestrator.drain.tail_timeout", { port, tailTimeoutMs });
+        }
+        return { idle: true, reason: "tail_timeout" };
+      }
+    }
+
+    const q = health && health.comfy && health.comfy.queue;
+    if (log) {
+      log.info("orchestrator.drain.waiting", {
+        port,
+        comfyBusy,
+        runningJobs,
+        queueRunning: Array.isArray(q?.queue_running)
+          ? q.queue_running.length
+          : null,
+        queuePending: Array.isArray(q?.queue_pending)
+          ? q.queue_pending.length
+          : null,
+      });
+    }
+    await sleep(pollMs);
+  }
+
+  if (timeoutMs > 0 && log) {
+    log.warn("orchestrator.drain.timeout", { port, timeoutMs });
+  }
+  return { idle: false, reason: "timeout" };
+}
 
 /**
  * If an engine PID file exists under dataRoot, kill that process (orphan from a
@@ -322,4 +480,10 @@ module.exports = {
   killOrphanWorker,
   cleanupWorkerPid,
   getHealthJson,
+  schedulerHoldPath,
+  writeSchedulerHold,
+  clearSchedulerHold,
+  isComfyBusyFromHealth,
+  schedulerRunningCount,
+  waitForComfyIdle,
 };

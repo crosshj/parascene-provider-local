@@ -12,11 +12,11 @@ process.env.DATA_ROOT = fs.mkdtempSync(
 jest.mock("../server/generator/index.js", () => ({
   runComfyGeneration: jest.fn(),
   hasWorkflow: jest.fn(() => true),
-  ensureManagedComfyReady: jest.fn(),
+  ensureManagedComfyReady: jest.fn(async () => ({ running: true })),
   getManagedComfyStatus: jest.fn(),
 }));
 
-const { runComfyGeneration } = require("../server/generator/index.js");
+const { runComfyGeneration, ensureManagedComfyReady } = require("../server/generator/index.js");
 const {
   enqueueGenerationJob,
   getJob,
@@ -25,6 +25,9 @@ const {
   loadPersistedStateForTests,
   reloadPersistedQueueForTests,
   resumePersistedQueue,
+  rehydratePersistedQueue,
+  writeSchedulerHoldForTests,
+  clearSchedulerHoldForTests,
 } = require("../server/lib/scheduler.js");
 
 const OUTPUT_DIR = path.join(process.env.DATA_ROOT, "out");
@@ -66,17 +69,19 @@ function writeState(payload) {
 }
 
 async function flushScheduler() {
-  for (let i = 0; i < 12; i += 1) {
+  for (let i = 0; i < 40; i += 1) {
     await new Promise((resolve) => setImmediate(resolve));
   }
 }
 
 describe("persisted queue resume", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     runComfyGeneration.mockReset();
     runComfyGeneration.mockResolvedValue(okResult());
+    ensureManagedComfyReady.mockReset();
+    ensureManagedComfyReady.mockResolvedValue({ running: true });
     writeState({ jobs: [], pendingOrder: [], currentModelKey: null });
-    reloadPersistedQueueForTests();
+    await reloadPersistedQueueForTests();
   });
 
   it("resumes persisted pending jobs without a new enqueue", async () => {
@@ -88,7 +93,7 @@ describe("persisted queue resume", () => {
       pendingOrder: ["job_old_a", "job_old_b"],
       currentModelKey: null,
     });
-    reloadPersistedQueueForTests();
+    await reloadPersistedQueueForTests();
     await flushScheduler();
 
     expect(runComfyGeneration).toHaveBeenCalledTimes(2);
@@ -110,7 +115,7 @@ describe("persisted queue resume", () => {
       pendingOrder: ["job_wait"],
       currentModelKey: "sdxl:other",
     });
-    reloadPersistedQueueForTests();
+    await reloadPersistedQueueForTests();
     await flushScheduler();
 
     expect(runComfyGeneration.mock.calls.map((call) => call[0].prompt)).toEqual(
@@ -131,7 +136,7 @@ describe("persisted queue resume", () => {
       pendingOrder: ["job_old"],
       currentModelKey: "sdxl:newer",
     });
-    reloadPersistedQueueForTests();
+    await reloadPersistedQueueForTests();
 
     const newer = enqueueGenerationJob(
       {
@@ -174,7 +179,7 @@ describe("persisted queue resume", () => {
       pendingOrder: ["job_ltx_a", "job_sdxl_b"],
       currentModelKey: "sdxl:newer",
     });
-    reloadPersistedQueueForTests();
+    await reloadPersistedQueueForTests();
 
     expect(linePlace("job_ltx_a").place).toBe(1);
     expect(linePlace("job_sdxl_b").place).toBe(2);
@@ -206,5 +211,56 @@ describe("persisted queue resume", () => {
 
     expect(runComfyGeneration).toHaveBeenCalledTimes(1);
     expect(getJob("job_stuck").status).toBe("succeeded");
+  });
+
+  it("does not start Comfy work while held, then runs the line after release", async () => {
+    writeState({
+      jobs: [
+        persistedJob("job_hold_a", { created_at: "2026-01-01T00:00:00.000Z" }),
+        persistedJob("job_hold_b", { created_at: "2026-01-01T00:01:00.000Z" }),
+      ],
+      pendingOrder: ["job_hold_a", "job_hold_b"],
+      currentModelKey: null,
+    });
+    loadPersistedStateForTests();
+    writeSchedulerHoldForTests();
+    const pending = rehydratePersistedQueue();
+    await flushScheduler();
+    expect(runComfyGeneration).not.toHaveBeenCalled();
+
+    clearSchedulerHoldForTests();
+    await pending;
+    await flushScheduler();
+    expect(runComfyGeneration.mock.calls.map((call) => call[0].prompt)).toEqual(
+      ["job_hold_a", "job_hold_b"],
+    );
+  });
+
+  it("does not submit to Comfy until the engine is ready", async () => {
+    let releaseComfy;
+    ensureManagedComfyReady.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          releaseComfy = resolve;
+        }),
+    );
+    writeState({
+      jobs: [
+        persistedJob("job_wait_comfy", {
+          created_at: "2026-01-01T00:00:00.000Z",
+        }),
+      ],
+      pendingOrder: ["job_wait_comfy"],
+      currentModelKey: null,
+    });
+    const pending = rehydratePersistedQueue();
+    await flushScheduler();
+    expect(runComfyGeneration).not.toHaveBeenCalled();
+
+    releaseComfy({ running: true });
+    await pending;
+    await flushScheduler();
+    expect(runComfyGeneration).toHaveBeenCalledTimes(1);
+    expect(runComfyGeneration.mock.calls[0][0].prompt).toBe("job_wait_comfy");
   });
 });

@@ -3,7 +3,10 @@
 const fs = require("fs");
 const path = require("path");
 
-const { runComfyGeneration } = require("../generator/index.js");
+const {
+  runComfyGeneration,
+  ensureManagedComfyReady,
+} = require("../generator/index.js");
 const {
   BASE_PROVIDER_CAPABILITIES,
 } = require("../configs/provider-api-config.js");
@@ -22,6 +25,8 @@ let jobs = new Map(); // job_id -> job record
 let pendingOrder = []; // array of job_ids, pending only
 let currentModelKey = null; // `${family}:${modelName}`
 let processing = false;
+let rehydrating = false;
+const holdPath = path.join(runtimeDir, "scheduler.hold");
 
 function _logJobFailure(job, message, err = null) {
   const details = {
@@ -152,21 +157,93 @@ function _selectNextJobId() {
   return eligible[0];
 }
 
+function isSchedulerHeld() {
+  try {
+    return fs.existsSync(holdPath);
+  } catch {
+    return false;
+  }
+}
+
+function writeSchedulerHoldForTests() {
+  _ensureRuntimeDir();
+  fs.writeFileSync(holdPath, `${new Date().toISOString()}\n`);
+}
+
+function clearSchedulerHoldForTests() {
+  try {
+    fs.unlinkSync(holdPath);
+  } catch {
+    // missing is fine
+  }
+}
+
+function _sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitForSchedulerRelease() {
+  const maxMs = Number(process.env.SCHEDULER_HOLD_WAIT_MS || 3_600_000);
+  const deadline = Date.now() + maxMs;
+  while (isSchedulerHeld()) {
+    if (Date.now() >= deadline) {
+      console.warn("[jobs] scheduler hold wait timed out; starting anyway");
+      break;
+    }
+    await _sleep(250);
+  }
+}
+
+let holdRetryTimer = null;
+
+/** Re-check the line shortly; self-rearms until unblocked. */
+function _scheduleHoldRetry() {
+  if (holdRetryTimer) return;
+  holdRetryTimer = setTimeout(() => {
+    holdRetryTimer = null;
+    _ensureDraining();
+  }, 1000);
+  if (typeof holdRetryTimer.unref === "function") holdRetryTimer.unref();
+}
+
 function _ensureDraining() {
   if (pendingOrder.length === 0 || processing) return;
+  if (isSchedulerHeld()) {
+    _scheduleHoldRetry();
+    return;
+  }
   _schedule();
 }
 
-function rehydratePersistedQueue() {
+async function rehydratePersistedQueue() {
   if (processing) {
     console.log("[jobs] rehydrate skipped: scheduler already processing");
     return;
   }
-  _loadState();
-  if (pendingOrder.length === 0) return;
-  _resetStaleModelAffinity();
-  console.log(`[jobs] rehydrated ${pendingOrder.length} persisted job(s)`);
-  _schedule();
+  if (rehydrating) {
+    console.log("[jobs] rehydrate skipped: already waiting to start");
+    return;
+  }
+  rehydrating = true;
+  try {
+    await waitForSchedulerRelease();
+    await ensureManagedComfyReady();
+    if (processing || isSchedulerHeld()) return;
+    _loadState();
+    if (pendingOrder.length === 0) return;
+    _resetStaleModelAffinity();
+    console.log(`[jobs] rehydrated ${pendingOrder.length} persisted job(s)`);
+    _schedule();
+  } catch (err) {
+    console.warn(
+      `[jobs] rehydrate waiting for Comfy: ${err && err.message ? err.message : err}`,
+    );
+    setTimeout(() => {
+      rehydratePersistedQueue().catch(() => {});
+    }, 5000);
+  } finally {
+    rehydrating = false;
+  }
 }
 
 function resumePersistedQueue() {
@@ -178,17 +255,23 @@ function resumePersistedQueue() {
 
 function loadPersistedStateForTests() {
   processing = false;
+  rehydrating = false;
   _loadState();
 }
 
-function reloadPersistedQueueForTests() {
+async function reloadPersistedQueueForTests() {
   loadPersistedStateForTests();
-  _schedule();
+  clearSchedulerHoldForTests();
+  await rehydratePersistedQueue();
 }
 
 function _schedule() {
   if (processing) return;
   if (pendingOrder.length === 0) return;
+  if (isSchedulerHeld()) {
+    _scheduleHoldRetry();
+    return;
+  }
   processing = true;
   setImmediate(_processLoop);
 }
@@ -196,12 +279,29 @@ function _schedule() {
 async function _processLoop() {
   try {
     while (pendingOrder.length > 0) {
+      if (isSchedulerHeld()) {
+        console.log("[jobs] held for rollout; not starting the next job");
+        break;
+      }
       const nextId = _selectNextJobId();
       if (!nextId) break;
       const job = jobs.get(nextId);
       if (!job || job.status !== "pending") {
         pendingOrder = pendingOrder.filter((id) => id !== nextId);
         continue;
+      }
+
+      try {
+        await ensureManagedComfyReady();
+      } catch (err) {
+        console.warn(
+          `[jobs] Comfy not ready (${err.message}); leaving ${job.id} pending`,
+        );
+        break;
+      }
+      if (isSchedulerHeld()) {
+        console.log("[jobs] held for rollout; not starting the next job");
+        break;
       }
 
       job.status = "running";
@@ -215,8 +315,15 @@ async function _processLoop() {
       }
 
       try {
-        // Pass the full payload as built by the API handler (supports all workflows)
-        const result = await runComfyGeneration(job.payload, job.outputDir);
+        const result = await runComfyGeneration(job.payload, job.outputDir, {
+          onQueued: (promptId) => {
+            const current = jobs.get(job.id);
+            if (!current) return;
+            current.comfy_prompt_id = String(promptId);
+            jobs.set(job.id, current);
+            _writeState();
+          },
+        });
         const current = jobs.get(job.id);
         if (!current) {
           // Job removed externally; skip.
@@ -256,13 +363,21 @@ async function _processLoop() {
           _logJobFailure(job, `Generation exception: ${current.error}`, err);
         }
       } finally {
-        pendingOrder = pendingOrder.filter((id) => id !== job.id);
-        releaseInflightJob(job.id);
+        const current = jobs.get(job.id);
+        if (current && current.status === "pending") {
+          _rebuildPendingOrder();
+        } else {
+          pendingOrder = pendingOrder.filter((id) => id !== job.id);
+          releaseInflightJob(job.id);
+        }
         _writeState();
       }
     }
   } finally {
     processing = false;
+    // If jobs remain (hold, or Comfy not ready), keep re-checking so the
+    // line restarts on its own instead of waiting for an external poll.
+    if (pendingOrder.length > 0) _scheduleHoldRetry();
   }
 }
 
@@ -307,7 +422,6 @@ function enqueueGenerationJob(
   jobs.set(id, job);
   pendingOrder.push(id);
   _writeState();
-  rehydratePersistedQueue();
   _schedule();
   return job;
 }
@@ -465,4 +579,7 @@ module.exports = {
   rehydratePersistedQueue,
   loadPersistedStateForTests,
   reloadPersistedQueueForTests,
+  isSchedulerHeld,
+  writeSchedulerHoldForTests,
+  clearSchedulerHoldForTests,
 };

@@ -86,9 +86,11 @@ app.listen(Number(PORT), HOST, () => {
     removeExpiredJobs,
   });
   startCdnSweeper();
-  rehydratePersistedQueue();
   if (!ctx.outputDir) {
     console.warn("[comfy] warm start skipped: OUTPUT_DIR not configured");
+    rehydratePersistedQueue().catch((err) => {
+      console.warn(`[jobs] rehydrate skipped: ${err.message}`);
+    });
     return;
   }
   ensureManagedComfyReady()
@@ -96,8 +98,13 @@ app.listen(Number(PORT), HOST, () => {
       console.log(
         `[comfy] warm start ready managed=${status.managed} pid=${status.pid ?? "n/a"}`,
       );
+      return rehydratePersistedQueue();
     })
     .catch((err) => {
       console.warn(`[comfy] warm start skipped: ${err.message}`);
+      return rehydratePersistedQueue();
+    })
+    .catch((err) => {
+      console.warn(`[jobs] rehydrate skipped: ${err.message}`);
     });
 });

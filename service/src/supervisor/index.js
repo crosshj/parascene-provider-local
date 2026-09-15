@@ -20,6 +20,9 @@ const {
   getHealthJson,
   cleanupWorkerPid,
   assertPortServesReleaseOrFree,
+  writeSchedulerHold,
+  clearSchedulerHold,
+  waitForComfyIdle,
 } = require("./nodeAppManager");
 const { readDeployState, writeDeployState } = require("./deployState");
 
@@ -132,7 +135,11 @@ function pollGpuAndEscalate() {
       gpuStatus: gpu.status,
       gpuLastError: gpu.lastError,
     });
-    performNodeRollout(resolveReleaseRoot(config.dataRoot)).catch((err) => {
+    // Recovery from a degraded GPU must not wait on the engine it is
+    // recovering — a hung prompt would block the drain for its full timeout.
+    performNodeRollout(resolveReleaseRoot(config.dataRoot), {
+      drainTimeoutMs: 0,
+    }).catch((err) => {
       log.error("gpu.probe.escalate.nodeapp.failed", { error: err.message });
     });
   });
@@ -177,6 +184,10 @@ function requestServiceRestart(details = {}) {
 function main() {
   ensureDirs();
 
+  // A rollout that died mid-drain leaves runtime/scheduler.hold behind, which
+  // would freeze job starts. Any hold predating this process is stale.
+  clearSchedulerHold(config.dataRoot || serviceRoot, log);
+
   const serviceAccount = process.env.USERNAME || process.env.USER || "unknown";
   const workingDir = process.cwd();
   const hostname = os.hostname();
@@ -193,95 +204,110 @@ function main() {
   const nodeAppActivePort = config.ports?.nodeAppActive ?? 3091;
   const nodeAppStagingPort = config.ports?.nodeAppStaging ?? 3092;
 
-  const POST_ROLLOUT_CLEANUP_DELAY_MS = Number(
-    process.env.POST_ROLLOUT_CLEANUP_DELAY_MS || "2000",
-    10,
-  );
-
-  async function performNodeRollout(releaseDir) {
+  async function performNodeRollout(releaseDir, rolloutOpts = {}) {
     const stagingPort =
       (activeNodeTarget?.port === nodeAppActivePort
         ? nodeAppStagingPort
         : nodeAppActivePort);
     const releaseRoot = releaseDir || resolveReleaseRoot(config.dataRoot);
+    const dataRoot = config.dataRoot || serviceRoot;
 
-    // Get previous server's generation engine PID (Comfy) so we can clean it up after we tear down the old process.
-    let previousWorkerPid = null;
-    if (activeNodeTarget) {
-      try {
-        const health = await getHealthJson(
-          activeNodeTarget.host,
-          activeNodeTarget.port,
-          3000,
-        );
-        const pid = health?.worker?.pid;
-        if (pid != null && Number.isInteger(pid)) {
-          previousWorkerPid = pid;
-        }
-      } catch (err) {
-        log.warn("orchestrator.rollout.health_fetch", {
-          error: err.message,
-          port: activeNodeTarget.port,
-        });
-      }
-    }
-
-    // Fail closed if staging already has a different release (avoids silent cutover to a stale listener).
-    await assertPortServesReleaseOrFree(
-      "127.0.0.1",
-      stagingPort,
-      releaseRoot,
-    );
-
-    const child = startNodeApp({
-      releaseRoot,
-      port: stagingPort,
-      dataRoot: config.dataRoot || serviceRoot,
-      log,
-      skipOrphanCleanup: true,
-    });
+    // Stop taking the next GPU job, then wait for the one already in Comfy.
+    writeSchedulerHold(dataRoot, log);
     try {
-      await waitForHealth("127.0.0.1", stagingPort, undefined, {
-        expectedReleaseRoot: releaseRoot,
-        child,
+      if (activeNodeTarget) {
+        try {
+          const drain = await waitForComfyIdle(
+            activeNodeTarget.host,
+            activeNodeTarget.port,
+            { log, timeoutMs: rolloutOpts.drainTimeoutMs },
+          );
+          log.info("orchestrator.rollout.drain", drain);
+        } catch (err) {
+          log.warn("orchestrator.rollout.drain_failed", { error: err.message });
+        }
+      }
+
+      // Get previous server's generation engine PID (Comfy) so we can clean it up after we tear down the old process.
+      let previousWorkerPid = null;
+      if (activeNodeTarget) {
+        try {
+          const health = await getHealthJson(
+            activeNodeTarget.host,
+            activeNodeTarget.port,
+            3000,
+          );
+          const pid = health?.worker?.pid;
+          if (pid != null && Number.isInteger(pid)) {
+            previousWorkerPid = pid;
+          }
+        } catch (err) {
+          log.warn("orchestrator.rollout.health_fetch", {
+            error: err.message,
+            port: activeNodeTarget.port,
+          });
+        }
+      }
+
+      // Fail closed if staging already has a different release (avoids silent cutover to a stale listener).
+      await assertPortServesReleaseOrFree(
+        "127.0.0.1",
+        stagingPort,
+        releaseRoot,
+      );
+
+      const child = startNodeApp({
+        releaseRoot,
+        port: stagingPort,
+        dataRoot,
+        log,
+        skipOrphanCleanup: true,
       });
-    } catch (err) {
       try {
-        child.kill("SIGTERM");
-      } catch (_) {}
-      throw err;
-    }
+        await waitForHealth("127.0.0.1", stagingPort, undefined, {
+          expectedReleaseRoot: releaseRoot,
+          child,
+        });
+      } catch (err) {
+        try {
+          child.kill("SIGTERM");
+        } catch (_) {}
+        throw err;
+      }
 
-    const oldProcess = nodeAppProcess;
-    activeNodeTarget = { host: "127.0.0.1", port: stagingPort };
-    nodeAppProcess = child;
-    if (oldProcess && oldProcess !== child) {
-      try {
-        oldProcess.kill("SIGTERM");
-      } catch (_) {}
-    }
+      const oldProcess = nodeAppProcess;
+      activeNodeTarget = { host: "127.0.0.1", port: stagingPort };
+      nodeAppProcess = child;
+      if (oldProcess && oldProcess !== child) {
+        try {
+          oldProcess.kill("SIGTERM");
+        } catch (_) {}
+      }
 
-    if (previousWorkerPid != null) {
-      setTimeout(() => {
+      if (previousWorkerPid != null) {
         cleanupWorkerPid(previousWorkerPid, log);
-      }, POST_ROLLOUT_CLEANUP_DELAY_MS);
-    }
+      }
 
-    writeDeployState(config.dataRoot, {
-      currentReleaseDir: releaseRoot,
-      activeNodePort: stagingPort,
-    });
-    log.info("orchestrator.nodeapp.rolled", {
-      port: stagingPort,
-      releaseDir: releaseRoot,
-      previousWorkerPid: previousWorkerPid ?? undefined,
-    });
+      writeDeployState(dataRoot, {
+        currentReleaseDir: releaseRoot,
+        activeNodePort: stagingPort,
+      });
+      log.info("orchestrator.nodeapp.rolled", {
+        port: stagingPort,
+        releaseDir: releaseRoot,
+        previousWorkerPid: previousWorkerPid ?? undefined,
+      });
+    } finally {
+      // New Node waits on this file. Drop it after cutover (or on failure so
+      // the live scheduler is not left paused).
+      clearSchedulerHold(dataRoot, log);
+    }
   }
 
   function performEngineRecycle() {
     log.info("orchestrator.engine.recycle.requested", {});
-    // Comfy is server-owned; after a Node rollout the new process warms Comfy on boot.
-    // Full Comfy restart is heavier than the old Python worker—avoid redundant recycle here unless you add explicit restart logic.
+    // Node rollout drains the current Comfy prompt, then SIGTERM of Node
+    // stops Comfy. The new process warms Comfy and replays persisted jobs.
   }
 
   updateQueue = new UpdateQueue({
@@ -402,6 +428,23 @@ function main() {
       type: isDeploymentRestart ? "deployment_restart" : "shutdown",
       timestamp: new Date().toISOString(),
     });
+    if (isDeploymentRestart && activeNodeTarget) {
+      // A service-code deploy restarts the whole supervisor, which tears down
+      // Node and Comfy. Same rule as a rolling deploy: never kill a prompt on
+      // the GPU. Hold the scheduler and let the in-flight generation finish.
+      // The hold file is intentionally left behind; the next boot clears it.
+      writeSchedulerHold(config.dataRoot || serviceRoot, log);
+      try {
+        const drain = await waitForComfyIdle(
+          activeNodeTarget.host,
+          activeNodeTarget.port,
+          { log },
+        );
+        log.info("service.stop.drain", drain);
+      } catch (err) {
+        log.warn("service.stop.drain_failed", { error: err.message });
+      }
+    }
     if (nodeAppProcess) {
       try {
         nodeAppProcess.kill("SIGTERM");

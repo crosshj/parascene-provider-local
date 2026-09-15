@@ -41,7 +41,7 @@ jest.mock("../server/lib/model-registry.js", () => ({
 jest.mock("../server/generator/index.js", () => ({
   runComfyGeneration: jest.fn(() => new Promise(() => {})),
   hasWorkflow: jest.fn(() => true),
-  ensureManagedComfyReady: jest.fn(),
+  ensureManagedComfyReady: jest.fn(async () => ({ running: true })),
   getManagedComfyStatus: jest.fn(),
 }));
 
@@ -123,15 +123,15 @@ async function postApi(body) {
 }
 
 async function flush() {
-  for (let i = 0; i < 12; i += 1) {
+  for (let i = 0; i < 40; i += 1) {
     await new Promise((resolve) => setImmediate(resolve));
   }
 }
 
 describe("occupancy query", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     writeState({ jobs: [], pendingOrder: [], currentModelKey: null });
-    reloadPersistedQueueForTests();
+    await reloadPersistedQueueForTests();
   });
   it("returns idle with method cost and does not enqueue", async () => {
     const idle = occupancyPeek();
