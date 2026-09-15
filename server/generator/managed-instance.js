@@ -78,6 +78,23 @@ let _lastExit = null;
 const _recentComfyLogs = [];
 const RECENT_COMFY_LOG_LIMIT = 200;
 let _logSeq = 0;
+const _comfyReadyListeners = new Set();
+
+function registerComfyReadyListener(listener) {
+  if (typeof listener !== "function") return () => {};
+  _comfyReadyListeners.add(listener);
+  return () => _comfyReadyListeners.delete(listener);
+}
+
+function notifyComfyReady() {
+  for (const listener of Array.from(_comfyReadyListeners)) {
+    try {
+      listener();
+    } catch (err) {
+      console.warn(`[comfy] ready listener failed: ${err.message}`);
+    }
+  }
+}
 
 function _url(pathname) {
   return `http://${COMFY_HOST}:${COMFY_PORT}${pathname}`;
@@ -95,7 +112,10 @@ function _rememberComfyLog(stream, chunk) {
     _recentComfyLogs.push({ seq: _logSeq, at: now, stream, line });
   }
   if (_recentComfyLogs.length > RECENT_COMFY_LOG_LIMIT) {
-    _recentComfyLogs.splice(0, _recentComfyLogs.length - RECENT_COMFY_LOG_LIMIT);
+    _recentComfyLogs.splice(
+      0,
+      _recentComfyLogs.length - RECENT_COMFY_LOG_LIMIT,
+    );
   }
 }
 
@@ -320,7 +340,9 @@ function _spawnComfy() {
       _proc = null;
       clearEnginePid();
     }
-    console.warn(`[comfy] process exited (code=${code}, signal=${signal ?? "n/a"})`);
+    console.warn(
+      `[comfy] process exited (code=${code}, signal=${signal ?? "n/a"})`,
+    );
   });
 
   _proc = child;
@@ -332,7 +354,12 @@ function _spawnComfy() {
 async function ensureManagedComfyReady() {
   if (await _healthcheck()) {
     const managed = !!(_proc && _proc.exitCode === null);
-    return { running: true, managed, pid: managed ? (_proc.pid ?? null) : null };
+    notifyComfyReady();
+    return {
+      running: true,
+      managed,
+      pid: managed ? (_proc.pid ?? null) : null,
+    };
   }
   if (_proc && _proc.exitCode === null) {
     console.warn("[comfy] managed instance unhealthy; recycling");
@@ -343,7 +370,9 @@ async function ensureManagedComfyReady() {
   if (!_startingPromise) {
     _startingPromise = (async () => {
       _spawnComfy();
-      return _waitForHealthy(90_000);
+      const ready = await _waitForHealthy(90_000);
+      notifyComfyReady();
+      return ready;
     })().finally(() => {
       _startingPromise = null;
     });
@@ -364,7 +393,9 @@ async function recycleManagedComfy(reason = "unspecified") {
   _stopManagedComfyProcess();
   _killListenersOnComfyPort();
   _spawnComfy();
-  return _waitForHealthy(90_000);
+  const ready = await _waitForHealthy(90_000);
+  notifyComfyReady();
+  return ready;
 }
 
 async function getManagedComfyStatus() {

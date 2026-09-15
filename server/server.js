@@ -32,11 +32,18 @@ const { startRetentionSweeper } = require("./lib/retention.js");
 const { startCdnSweeper } = require("./lib/cdn-store.js");
 const { getComfyInputDir } = require("./lib/comfy-paths.js");
 const {
+  registerComfyReadyListener,
+} = require("./generator/managed-instance.js");
+const {
   getAllJobs,
   markDataRemoved,
   removeExpiredJobs,
-  resumePersistedQueue,
+  rehydratePersistedQueue,
 } = require("./lib/scheduler.js");
+
+registerComfyReadyListener(() => {
+  rehydratePersistedQueue();
+});
 
 const ctx = {
   outputDir: process.env.OUTPUT_DIR || null,
@@ -79,7 +86,7 @@ app.listen(Number(PORT), HOST, () => {
     removeExpiredJobs,
   });
   startCdnSweeper();
-  resumePersistedQueue();
+  rehydratePersistedQueue();
   if (!ctx.outputDir) {
     console.warn("[comfy] warm start skipped: OUTPUT_DIR not configured");
     return;

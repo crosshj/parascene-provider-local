@@ -132,7 +132,9 @@ function _resetStaleModelAffinity() {
   if (!currentModelKey) return;
   const hasMatchingPending = pendingOrder.some((id) => {
     const job = jobs.get(id);
-    return job && job.status === "pending" && _jobModelKey(job) === currentModelKey;
+    return (
+      job && job.status === "pending" && _jobModelKey(job) === currentModelKey
+    );
   });
   if (!hasMatchingPending) {
     currentModelKey = null;
@@ -153,6 +155,19 @@ function _selectNextJobId() {
 function _ensureDraining() {
   if (pendingOrder.length === 0 || processing) return;
   _schedule();
+}
+
+function rehydratePersistedQueue() {
+  const wasRunning = processing;
+  processing = false;
+  _loadState();
+  if (pendingOrder.length === 0) return;
+  _resetStaleModelAffinity();
+  console.log(`[jobs] rehydrated ${pendingOrder.length} persisted job(s)`);
+  _schedule();
+  if (wasRunning) {
+    console.log("[jobs] scheduler resumed after Comfy-ready rehydration");
+  }
 }
 
 function resumePersistedQueue() {
@@ -256,7 +271,10 @@ function generateJobId() {
   return `job_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function enqueueGenerationJob({ payload, entry, method, fingerprint }, outputDir) {
+function enqueueGenerationJob(
+  { payload, entry, method, fingerprint },
+  outputDir,
+) {
   const id = generateJobId();
   const job = {
     id,
@@ -285,13 +303,12 @@ function enqueueGenerationJob({ payload, entry, method, fingerprint }, outputDir
     },
     payload,
     outputDir,
-    ...(typeof fingerprint === "string" && fingerprint
-      ? { fingerprint }
-      : {}),
+    ...(typeof fingerprint === "string" && fingerprint ? { fingerprint } : {}),
   };
   jobs.set(id, job);
   pendingOrder.push(id);
   _writeState();
+  rehydratePersistedQueue();
   _schedule();
   return job;
 }
@@ -381,6 +398,7 @@ module.exports = {
   getSummary,
   linePlace,
   resumePersistedQueue,
+  rehydratePersistedQueue,
   loadPersistedStateForTests,
   reloadPersistedQueueForTests,
 };

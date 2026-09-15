@@ -28,7 +28,11 @@ const {
 } = require("../server/lib/scheduler.js");
 
 const OUTPUT_DIR = path.join(process.env.DATA_ROOT, "out");
-const STATE_PATH = path.join(process.env.DATA_ROOT, "runtime", "jobs-state.json");
+const STATE_PATH = path.join(
+  process.env.DATA_ROOT,
+  "runtime",
+  "jobs-state.json",
+);
 
 function okResult() {
   return {
@@ -109,10 +113,9 @@ describe("persisted queue resume", () => {
     reloadPersistedQueueForTests();
     await flushScheduler();
 
-    expect(runComfyGeneration.mock.calls.map((call) => call[0].prompt)).toEqual([
-      "job_wait",
-      "job_was_running",
-    ]);
+    expect(runComfyGeneration.mock.calls.map((call) => call[0].prompt)).toEqual(
+      ["job_wait", "job_was_running"],
+    );
   });
 
   it("keeps a later enqueue behind restored jobs even when models differ", async () => {
@@ -147,10 +150,9 @@ describe("persisted queue resume", () => {
     expect(linePlace(newer.id).place).toBe(2);
 
     await flushScheduler();
-    expect(runComfyGeneration.mock.calls.map((call) => call[0].prompt)).toEqual([
-      "job_old",
-      "job_new",
-    ]);
+    expect(runComfyGeneration.mock.calls.map((call) => call[0].prompt)).toEqual(
+      ["job_old", "job_new"],
+    );
   });
 
   it("restart resume keeps FIFO order instead of stale model affinity", async () => {
@@ -178,10 +180,9 @@ describe("persisted queue resume", () => {
     expect(linePlace("job_sdxl_b").place).toBe(2);
 
     await flushScheduler();
-    expect(runComfyGeneration.mock.calls.map((call) => call[0].prompt)).toEqual([
-      "job_ltx_a",
-      "job_sdxl_b",
-    ]);
+    expect(runComfyGeneration.mock.calls.map((call) => call[0].prompt)).toEqual(
+      ["job_ltx_a", "job_sdxl_b"],
+    );
   });
 
   it("resumePersistedQueue is a no-op when the line is empty", () => {

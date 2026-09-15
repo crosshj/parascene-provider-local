@@ -98,7 +98,9 @@ function _resetStaleModelAffinity() {
   if (!currentModelKey) return;
   const hasMatchingPending = pendingOrder.some((id) => {
     const job = jobs.get(id);
-    return job && job.status === "pending" && _jobModelKey(job) === currentModelKey;
+    return (
+      job && job.status === "pending" && _jobModelKey(job) === currentModelKey
+    );
   });
   if (!hasMatchingPending) {
     currentModelKey = null;
