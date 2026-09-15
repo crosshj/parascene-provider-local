@@ -75,6 +75,7 @@ let _proc = null;
 let _startingPromise = null;
 let _lastSpawnError = null;
 let _lastExit = null;
+let _readyNotified = false;
 const _recentComfyLogs = [];
 const RECENT_COMFY_LOG_LIMIT = 200;
 let _logSeq = 0;
@@ -94,6 +95,12 @@ function notifyComfyReady() {
       console.warn(`[comfy] ready listener failed: ${err.message}`);
     }
   }
+}
+
+function _notifyComfyReadyOnTransition() {
+  if (_readyNotified) return;
+  _readyNotified = true;
+  notifyComfyReady();
 }
 
 function _url(pathname) {
@@ -331,6 +338,7 @@ function _spawnComfy() {
     });
   });
   child.on("exit", (code, signal) => {
+    _readyNotified = false;
     _lastExit = {
       at: new Date().toISOString(),
       code: code ?? null,
@@ -354,13 +362,14 @@ function _spawnComfy() {
 async function ensureManagedComfyReady() {
   if (await _healthcheck()) {
     const managed = !!(_proc && _proc.exitCode === null);
-    notifyComfyReady();
+    _notifyComfyReadyOnTransition();
     return {
       running: true,
       managed,
       pid: managed ? (_proc.pid ?? null) : null,
     };
   }
+  _readyNotified = false;
   if (_proc && _proc.exitCode === null) {
     console.warn("[comfy] managed instance unhealthy; recycling");
     _stopManagedComfyProcess();
@@ -371,7 +380,7 @@ async function ensureManagedComfyReady() {
     _startingPromise = (async () => {
       _spawnComfy();
       const ready = await _waitForHealthy(90_000);
-      notifyComfyReady();
+      _notifyComfyReadyOnTransition();
       return ready;
     })().finally(() => {
       _startingPromise = null;
@@ -390,11 +399,12 @@ async function recycleManagedComfy(reason = "unspecified") {
     }
   }
   console.warn(`[comfy] recycling managed instance: ${reason}`);
+  _readyNotified = false;
   _stopManagedComfyProcess();
   _killListenersOnComfyPort();
   _spawnComfy();
   const ready = await _waitForHealthy(90_000);
-  notifyComfyReady();
+  _notifyComfyReadyOnTransition();
   return ready;
 }
 

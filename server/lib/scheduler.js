@@ -158,16 +158,15 @@ function _ensureDraining() {
 }
 
 function rehydratePersistedQueue() {
-  const wasRunning = processing;
-  processing = false;
+  if (processing) {
+    console.log("[jobs] rehydrate skipped: scheduler already processing");
+    return;
+  }
   _loadState();
   if (pendingOrder.length === 0) return;
   _resetStaleModelAffinity();
   console.log(`[jobs] rehydrated ${pendingOrder.length} persisted job(s)`);
   _schedule();
-  if (wasRunning) {
-    console.log("[jobs] scheduler resumed after Comfy-ready rehydration");
-  }
 }
 
 function resumePersistedQueue() {
