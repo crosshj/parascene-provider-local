@@ -432,6 +432,7 @@ process.on("SIGINT", () => {
 module.exports = {
   COMFY_HOST,
   COMFY_PORT,
+  registerComfyReadyListener,
   ensureManagedComfyReady,
   recycleManagedComfy,
   getManagedComfyStatus,
