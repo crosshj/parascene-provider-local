@@ -374,8 +374,19 @@ async function handleApiPost(req, res, ctx = {}) {
             { ...resolvedArgs, method },
             ctx.outputDir,
           );
+          const alwaysNext = resolvedArgs.always_next === true;
+          const maxBid = Number(resolvedArgs.max_bid);
           return enqueueGenerationJob(
-            fingerprint ? { ...comfyArgs, fingerprint } : comfyArgs,
+            {
+              ...comfyArgs,
+              ...(fingerprint ? { fingerprint } : {}),
+              always_next: alwaysNext,
+              max_bid: alwaysNext
+                ? 51
+                : Number.isFinite(maxBid)
+                  ? maxBid
+                  : 0,
+            },
             ctx.outputDir,
           );
         },

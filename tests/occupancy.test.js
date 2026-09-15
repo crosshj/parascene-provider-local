@@ -139,6 +139,8 @@ describe("occupancy query", () => {
     expect(idle.ahead).toBe(0);
     expect(idle.running).toBeNull();
     expect(idle.eta_s).toBe(0);
+    expect(idle.pending).toEqual([]);
+    expect(idle.highest_max).toBe(0);
 
     const res = await postApi({
       method: "query",

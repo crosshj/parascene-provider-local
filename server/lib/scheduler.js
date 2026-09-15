@@ -116,9 +116,18 @@ function _jobModelKey(job) {
   return null;
 }
 
+const ALWAYS_NEXT_MAX = 51;
+const PRODUCT_MAX_CAP = 50;
+
 function _createdAtMs(job) {
   const ms = Date.parse(job?.created_at || 0);
   return Number.isFinite(ms) ? ms : 0;
+}
+
+function jobEffectiveMax(job) {
+  if (job?.always_next === true) return ALWAYS_NEXT_MAX;
+  const n = Number(job?.max_bid);
+  return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
 function _rebuildPendingOrder() {
@@ -127,6 +136,8 @@ function _rebuildPendingOrder() {
     if (job && job.status === "pending") pending.push(job);
   }
   pending.sort((a, b) => {
+    const byMax = jobEffectiveMax(b) - jobEffectiveMax(a);
+    if (byMax !== 0) return byMax;
     const byTime = _createdAtMs(a) - _createdAtMs(b);
     return byTime !== 0 ? byTime : String(a.id).localeCompare(String(b.id));
   });
@@ -386,14 +397,26 @@ function generateJobId() {
 }
 
 function enqueueGenerationJob(
-  { payload, entry, method, fingerprint },
+  { payload, entry, method, fingerprint, max_bid, always_next },
   outputDir,
 ) {
   const id = generateJobId();
+  const alwaysNext = always_next === true;
+  const rawBid = Number(max_bid);
+  const maxBid = alwaysNext
+    ? ALWAYS_NEXT_MAX
+    : Number.isFinite(rawBid) && rawBid > 0
+      ? rawBid
+      : 0;
+  const cleanPayload =
+    payload && typeof payload === "object" ? { ...payload } : {};
+  delete cleanPayload.max_bid;
+  delete cleanPayload.always_next;
+  delete cleanPayload.credits_boost;
   const job = {
     id,
     method,
-    args: payload, // store the built payload as args for reference
+    args: cleanPayload, // store the built payload as args for reference
     family: entry.family,
     modelId: entry.modelId,
     modelName: entry.modelName,
@@ -401,10 +424,12 @@ function enqueueGenerationJob(
     created_at: new Date().toISOString(),
     result: null,
     error: null,
-    imageWidth: payload.width ?? 1024,
-    imageHeight: payload.height ?? 1024,
+    imageWidth: cleanPayload.width ?? 1024,
+    imageHeight: cleanPayload.height ?? 1024,
     credits: resolveMethodCredits(method),
-    seed: payload.seed,
+    max_bid: maxBid,
+    always_next: alwaysNext,
+    seed: cleanPayload.seed,
     modelEntry: {
       modelId: entry.modelId,
       file: entry.file,
@@ -415,12 +440,12 @@ function enqueueGenerationJob(
       comfyCheckpointGroup: entry.comfyCheckpointGroup,
       diffusionModelComfyName: entry.diffusionModelComfyName,
     },
-    payload,
+    payload: cleanPayload,
     outputDir,
     ...(typeof fingerprint === "string" && fingerprint ? { fingerprint } : {}),
   };
   jobs.set(id, job);
-  pendingOrder.push(id);
+  _rebuildPendingOrder();
   _writeState();
   _schedule();
   return job;
@@ -525,17 +550,33 @@ function occupancyPeek() {
       break;
     }
   }
+  const pendingPublic = pending.map((job) => {
+    const max = jobEffectiveMax(job);
+    return {
+      max,
+      boost: max,
+      eta_s: typicalSeconds(job.method),
+      kind: methodKind(job.method),
+    };
+  });
+  const highest_max = pendingPublic.reduce(
+    (high, row) => Math.max(high, row.max),
+    0,
+  );
+  const running_eta_s = running ? remainingSeconds(running) : 0;
   const ahead = pending.length;
   const idle = !running && ahead === 0;
-  let eta_s = 0;
-  if (running) eta_s += remainingSeconds(running);
-  for (const job of pending) eta_s += typicalSeconds(job.method);
+  let eta_s = running_eta_s;
+  for (const row of pendingPublic) eta_s += row.eta_s;
   if (eta_s > 3 * 3600) eta_s = 3 * 3600;
   return {
     idle,
     running: runningPublic(running),
+    running_eta_s,
     ahead,
     eta_s,
+    pending: pendingPublic,
+    highest_max,
   };
 }
 
@@ -572,6 +613,9 @@ function ensureQueueDraining() {
 }
 
 module.exports = {
+  ALWAYS_NEXT_MAX,
+  PRODUCT_MAX_CAP,
+  jobEffectiveMax,
   enqueueGenerationJob,
   getJob,
   getAllJobs,
