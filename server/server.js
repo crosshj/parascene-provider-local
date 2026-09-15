@@ -35,6 +35,7 @@ const {
   getAllJobs,
   markDataRemoved,
   removeExpiredJobs,
+  resumePersistedQueue,
 } = require("./lib/scheduler.js");
 
 const ctx = {
@@ -78,6 +79,7 @@ app.listen(Number(PORT), HOST, () => {
     removeExpiredJobs,
   });
   startCdnSweeper();
+  resumePersistedQueue();
   if (!ctx.outputDir) {
     console.warn("[comfy] warm start skipped: OUTPUT_DIR not configured");
     return;

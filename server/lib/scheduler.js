@@ -85,17 +85,13 @@ function _loadState() {
       map.set(job.id, normalized);
     }
     jobs = map;
-    const order = Array.isArray(parsed.pendingOrder)
-      ? parsed.pendingOrder.filter(
-          (id) => jobs.has(id) && jobs.get(id).status === "pending",
-        )
-      : [];
-    pendingOrder = order;
     currentModelKey =
       typeof parsed.currentModelKey === "string"
         ? parsed.currentModelKey
         : null;
+    _rebuildPendingOrder();
     rebuildInflightFromJobs(Array.from(jobs.values()));
+    _writeState();
   } catch {
     // ignore corrupted state; start fresh
     jobs = new Map();
@@ -115,21 +111,50 @@ function _jobModelKey(job) {
   return null;
 }
 
-function _selectNextJobId() {
-  if (pendingOrder.length === 0) return null;
-  if (!currentModelKey) {
-    return pendingOrder[0];
+function _createdAtMs(job) {
+  const ms = Date.parse(job?.created_at || 0);
+  return Number.isFinite(ms) ? ms : 0;
+}
+
+function _rebuildPendingOrder() {
+  const pending = [];
+  for (const job of jobs.values()) {
+    if (job && job.status === "pending") pending.push(job);
   }
-  // Prefer jobs that match the current model key to minimize reloads.
+  pending.sort((a, b) => {
+    const byTime = _createdAtMs(a) - _createdAtMs(b);
+    return byTime !== 0 ? byTime : String(a.id).localeCompare(String(b.id));
+  });
+  pendingOrder = pending.map((job) => job.id);
+}
+
+function _selectNextJobId() {
   for (const id of pendingOrder) {
     const job = jobs.get(id);
-    if (!job || job.status !== "pending") continue;
-    if (_jobModelKey(job) === currentModelKey) {
-      return id;
-    }
+    if (job && job.status === "pending") return id;
   }
-  // Fallback: oldest pending job.
-  return pendingOrder[0];
+  return null;
+}
+
+function _ensureDraining() {
+  if (pendingOrder.length === 0 || processing) return;
+  _schedule();
+}
+
+function resumePersistedQueue() {
+  if (pendingOrder.length === 0) return;
+  console.log(`[jobs] resuming ${pendingOrder.length} persisted job(s)`);
+  _schedule();
+}
+
+function loadPersistedStateForTests() {
+  processing = false;
+  _loadState();
+}
+
+function reloadPersistedQueueForTests() {
+  loadPersistedStateForTests();
+  _schedule();
 }
 
 function _schedule() {
@@ -264,6 +289,7 @@ function linePlace(jobId) {
 }
 
 function getJob(jobId) {
+  _ensureDraining();
   if (!jobId) return null;
   return jobs.get(jobId) || null;
 }
@@ -305,6 +331,7 @@ function removeExpiredJobs(metaTtlSeconds) {
 }
 
 function getSummary() {
+  _ensureDraining();
   const all = Array.from(jobs.values());
   const pending = all.filter((j) => j.status === "pending");
   const running = all.filter((j) => j.status === "running");
@@ -338,4 +365,7 @@ module.exports = {
   removeExpiredJobs,
   getSummary,
   linePlace,
+  resumePersistedQueue,
+  loadPersistedStateForTests,
+  reloadPersistedQueueForTests,
 };
