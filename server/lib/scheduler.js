@@ -128,12 +128,26 @@ function _rebuildPendingOrder() {
   pendingOrder = pending.map((job) => job.id);
 }
 
-function _selectNextJobId() {
-  for (const id of pendingOrder) {
+function _resetStaleModelAffinity() {
+  if (!currentModelKey) return;
+  const hasMatchingPending = pendingOrder.some((id) => {
     const job = jobs.get(id);
-    if (job && job.status === "pending") return id;
+    return job && job.status === "pending" && _jobModelKey(job) === currentModelKey;
+  });
+  if (!hasMatchingPending) {
+    currentModelKey = null;
   }
-  return null;
+}
+
+function _selectNextJobId() {
+  const eligible = pendingOrder.filter((id) => {
+    const job = jobs.get(id);
+    return job && job.status === "pending";
+  });
+  if (eligible.length === 0) return null;
+
+  _resetStaleModelAffinity();
+  return eligible[0];
 }
 
 function _ensureDraining() {
@@ -143,6 +157,7 @@ function _ensureDraining() {
 
 function resumePersistedQueue() {
   if (pendingOrder.length === 0) return;
+  _resetStaleModelAffinity();
   console.log(`[jobs] resuming ${pendingOrder.length} persisted job(s)`);
   _schedule();
 }

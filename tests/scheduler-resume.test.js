@@ -153,6 +153,37 @@ describe("persisted queue resume", () => {
     ]);
   });
 
+  it("restart resume keeps FIFO order instead of stale model affinity", async () => {
+    writeState({
+      jobs: [
+        persistedJob("job_ltx_a", {
+          created_at: "2026-01-01T00:00:00.000Z",
+          family: "ltx",
+          modelId: "ltx_t2v",
+          modelName: "ltx_t2v",
+        }),
+        persistedJob("job_sdxl_b", {
+          created_at: "2026-01-01T00:00:10.000Z",
+          family: "sdxl",
+          modelId: "newer",
+          modelName: "newer",
+        }),
+      ],
+      pendingOrder: ["job_ltx_a", "job_sdxl_b"],
+      currentModelKey: "sdxl:newer",
+    });
+    reloadPersistedQueueForTests();
+
+    expect(linePlace("job_ltx_a").place).toBe(1);
+    expect(linePlace("job_sdxl_b").place).toBe(2);
+
+    await flushScheduler();
+    expect(runComfyGeneration.mock.calls.map((call) => call[0].prompt)).toEqual([
+      "job_ltx_a",
+      "job_sdxl_b",
+    ]);
+  });
+
   it("resumePersistedQueue is a no-op when the line is empty", () => {
     resumePersistedQueue();
     expect(runComfyGeneration).not.toHaveBeenCalled();

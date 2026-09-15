@@ -94,21 +94,26 @@ function _jobModelKey(job) {
   return null;
 }
 
-function _selectNextJobId() {
-  if (pendingOrder.length === 0) return null;
-  if (!currentModelKey) {
-    return pendingOrder[0];
-  }
-  // Prefer jobs that match the current model key to minimize reloads.
-  for (const id of pendingOrder) {
+function _resetStaleModelAffinity() {
+  if (!currentModelKey) return;
+  const hasMatchingPending = pendingOrder.some((id) => {
     const job = jobs.get(id);
-    if (!job || job.status !== "pending") continue;
-    if (_jobModelKey(job) === currentModelKey) {
-      return id;
-    }
+    return job && job.status === "pending" && _jobModelKey(job) === currentModelKey;
+  });
+  if (!hasMatchingPending) {
+    currentModelKey = null;
   }
-  // Fallback: oldest pending job.
-  return pendingOrder[0];
+}
+
+function _selectNextJobId() {
+  const eligible = pendingOrder.filter((id) => {
+    const job = jobs.get(id);
+    return job && job.status === "pending";
+  });
+  if (eligible.length === 0) return null;
+
+  _resetStaleModelAffinity();
+  return eligible[0];
 }
 
 function _schedule() {
