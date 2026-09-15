@@ -359,8 +359,18 @@ function _spawnComfy() {
   return child;
 }
 
+const COMFY_STARTUP_TIMEOUT_MS =
+  Number(process.env.COMFY_STARTUP_TIMEOUT_MS) || 180_000;
+
 async function ensureManagedComfyReady() {
-  if (await _healthcheck()) {
+  // A startup already underway must be joined, never killed. Health polls
+  // and job starts land here constantly; treating a booting instance as
+  // "unhealthy, recycle it" creates a kill-loop where Comfy never comes up.
+  if (_startingPromise) return _startingPromise;
+
+  const healthy = await _healthcheck();
+  if (_startingPromise) return _startingPromise; // startup began while probing
+  if (healthy) {
     const managed = !!(_proc && _proc.exitCode === null);
     _notifyComfyReadyOnTransition();
     return {
@@ -369,43 +379,55 @@ async function ensureManagedComfyReady() {
       pid: managed ? (_proc.pid ?? null) : null,
     };
   }
+
   _readyNotified = false;
   if (_proc && _proc.exitCode === null) {
+    // Not booting (no starting promise) and not answering: genuinely wedged.
     console.warn("[comfy] managed instance unhealthy; recycling");
     _stopManagedComfyProcess();
     _killListenersOnComfyPort();
   }
 
-  if (!_startingPromise) {
-    _startingPromise = (async () => {
-      _spawnComfy();
-      const ready = await _waitForHealthy(90_000);
-      _notifyComfyReadyOnTransition();
-      return ready;
-    })().finally(() => {
-      _startingPromise = null;
-    });
-  }
+  _startingPromise = (async () => {
+    _spawnComfy();
+    const ready = await _waitForHealthy(COMFY_STARTUP_TIMEOUT_MS);
+    _notifyComfyReadyOnTransition();
+    return ready;
+  })().finally(() => {
+    _startingPromise = null;
+  });
 
   return _startingPromise;
 }
 
+let _recyclingPromise = null;
+
 async function recycleManagedComfy(reason = "unspecified") {
-  if (_startingPromise) {
-    try {
-      await _startingPromise;
-    } catch {
-      // Ignore in-progress startup failure and force recycle below.
+  // Single-flight: concurrent recycle requests join the one in progress
+  // instead of killing the instance the first recycle just started.
+  if (_recyclingPromise) return _recyclingPromise;
+
+  _recyclingPromise = (async () => {
+    if (_startingPromise) {
+      try {
+        await _startingPromise;
+      } catch {
+        // Ignore in-progress startup failure and force recycle below.
+      }
     }
-  }
-  console.warn(`[comfy] recycling managed instance: ${reason}`);
-  _readyNotified = false;
-  _stopManagedComfyProcess();
-  _killListenersOnComfyPort();
-  _spawnComfy();
-  const ready = await _waitForHealthy(90_000);
-  _notifyComfyReadyOnTransition();
-  return ready;
+    console.warn(`[comfy] recycling managed instance: ${reason}`);
+    _readyNotified = false;
+    _stopManagedComfyProcess();
+    _killListenersOnComfyPort();
+    _spawnComfy();
+    const ready = await _waitForHealthy(COMFY_STARTUP_TIMEOUT_MS);
+    _notifyComfyReadyOnTransition();
+    return ready;
+  })().finally(() => {
+    _recyclingPromise = null;
+  });
+
+  return _recyclingPromise;
 }
 
 async function getManagedComfyStatus() {

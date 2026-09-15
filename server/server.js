@@ -39,6 +39,7 @@ const {
   markDataRemoved,
   removeExpiredJobs,
   rehydratePersistedQueue,
+  ensureQueueDraining,
 } = require("./lib/scheduler.js");
 
 registerComfyReadyListener(() => {
@@ -86,6 +87,12 @@ app.listen(Number(PORT), HOST, () => {
     removeExpiredJobs,
   });
   startCdnSweeper();
+  // Watchdog: a waiting line with an idle scheduler must always get kicked,
+  // even if every event-driven trigger somehow dropped the ball.
+  const queueWatchdog = setInterval(() => {
+    ensureQueueDraining();
+  }, 30_000);
+  if (typeof queueWatchdog.unref === "function") queueWatchdog.unref();
   if (!ctx.outputDir) {
     console.warn("[comfy] warm start skipped: OUTPUT_DIR not configured");
     rehydratePersistedQueue().catch((err) => {

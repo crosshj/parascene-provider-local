@@ -566,6 +566,11 @@ function getSummary() {
   };
 }
 
+/** Watchdog entry: start the line if jobs are waiting and nothing is running. */
+function ensureQueueDraining() {
+  _ensureDraining();
+}
+
 module.exports = {
   enqueueGenerationJob,
   getJob,
@@ -582,4 +587,5 @@ module.exports = {
   isSchedulerHeld,
   writeSchedulerHoldForTests,
   clearSchedulerHoldForTests,
+  ensureQueueDraining,
 };
