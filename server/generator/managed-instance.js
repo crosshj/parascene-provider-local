@@ -307,6 +307,7 @@ function _spawnComfy() {
       "--port",
       String(COMFY_PORT),
       "--windows-standalone-build",
+      "--enable-manager",
       "--disable-auto-launch",
       "--disable-pinned-memory",
       "--fast-disk",
