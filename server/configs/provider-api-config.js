@@ -338,7 +338,7 @@ const BASE_PROVIDER_CAPABILITIES = {
       name: "Text To Video",
       description: "Generate a video from a text prompt.",
       intent: "video_generate",
-      credits: 1,
+      credits: 20,
       fields: {
         model: {
           label: "Model",
@@ -410,7 +410,7 @@ const BASE_PROVIDER_CAPABILITIES = {
       description:
         "Generate a video from a start image and prompt (local Comfy workflows).",
       intent: "video_generate",
-      credits: 1,
+      credits: 20,
       fields: {
         model: {
           label: "Model",
@@ -501,7 +501,7 @@ const BASE_PROVIDER_CAPABILITIES = {
       description:
         "Generate a video from audio and prompt; optional start image.",
       intent: "video_generate",
-      credits: 1,
+      credits: 20,
       fields: {
         model: {
           label: "Model",
@@ -585,7 +585,7 @@ const BASE_PROVIDER_CAPABILITIES = {
       description:
         "Video control / edit / character transfer (LTX IC-LoRA, Wan Animate 2, Bernini-R, SCAIL2). Wan Fun VACE is parked — see video-capability-notes.md.",
       intent: "video_generate",
-      credits: 1,
+      credits: 60,
       fields: {
         model: {
           label: "Model",
@@ -697,7 +697,7 @@ const BASE_PROVIDER_CAPABILITIES = {
       description:
         "Generate video from multimodal references (images, videos, and/or audio).",
       intent: "video_generate",
-      credits: 1,
+      credits: 60,
       fields: {
         model: {
           label: "Model",
@@ -754,8 +754,8 @@ const BASE_PROVIDER_CAPABILITIES = {
           label: "Duration (seconds)",
           type: "number",
           required: false,
-          min: 1,
-          max: 15,
+          min: 4,
+          max: 10,
           step: 0.5,
           description: "Output length in seconds (MiniMax typically 4–15).",
         },
@@ -849,7 +849,8 @@ const BASE_PROVIDER_CAPABILITIES = {
       default: false,
       async: true,
       name: "Audio To Audio",
-      description: "Generate a cover or variation from input audio and a prompt.",
+      description:
+        "Generate a cover or variation from input audio and a prompt.",
       intent: "audio_generate",
       credits: 1,
       fields: {
@@ -883,8 +884,7 @@ const BASE_PROVIDER_CAPABILITIES = {
           min: 1,
           max: 360,
           step: 0.5,
-          description:
-            "Max cover length in seconds (YuE2 cover cap is 360).",
+          description: "Max cover length in seconds (YuE2 cover cap is 360).",
         },
         input_audio_urls: {
           label: "Input Audio",
