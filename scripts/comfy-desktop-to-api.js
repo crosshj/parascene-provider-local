@@ -5,6 +5,9 @@
  * Drops notes, GemmaAPITextEncode, api-key widgets, and HuggingFace download nodes.
  */
 const fs = require("fs");
+const {
+  sanitizePromptForComfyApi,
+} = require("../server/workflows/_api-sanitize.js");
 
 const SKIP_TYPES = new Set([
   "MarkdownNote",
@@ -318,7 +321,7 @@ function flatten(desktop) {
     }
   }
 
-  return out;
+  return sanitizePromptForComfyApi(out);
 }
 
 function main() {
