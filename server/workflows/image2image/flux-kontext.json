@@ -1,4 +1,13 @@
 {
+  "0": {
+    "inputs": {
+      "text": "=========\nparascene managed run\n(no run details provided)\n========="
+    },
+    "class_type": "ConsoleLog",
+    "_meta": {
+      "title": "Console Log"
+    }
+  },
   "2": {
     "inputs": {
       "clip_name1": "clip_l.safetensors",

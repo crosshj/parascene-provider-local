@@ -154,10 +154,10 @@ const IMAGE2IMAGE_MODEL_PRESETS = {
     managedWorkflowId: "image2image-krea2_style_ref",
     family: "krea2-i2i",
     loadKind: "diffusion_model",
-    modelFile: "krea2_turbo_fp8_scaled.safetensors",
+    modelFile: "krea2_turbo_int8_convrot.safetensors",
     modelPath: "",
     comfyCheckpointGroup: null,
-    diffusionModelComfyName: null,
+    diffusionModelComfyName: "krea2\\krea2_turbo_int8_convrot.safetensors",
     capabilities: caps(["i2i"]),
   },
 };

@@ -1,9 +1,52 @@
 {
+  "0": {
+    "inputs": {
+      "text": "=========\nparascene managed run\n(no run details provided)\n========="
+    },
+    "class_type": "ConsoleLog",
+    "_meta": {
+      "title": "Console Log"
+    }
+  },
   "6": {
     "class_type": "CLIPTextEncode",
     "inputs": {
-      "clip": ["47", 0],
+      "clip": [
+        "47",
+        0
+      ],
       "text": ""
+    }
+  },
+  "8": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "31",
+        0
+      ],
+      "vae": [
+        "30",
+        2
+      ]
+    }
+  },
+  "9": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "8",
+        0
+      ]
+    }
+  },
+  "27": {
+    "class_type": "EmptyLatentImage",
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
     }
   },
   "30": {
@@ -21,46 +64,42 @@
       "sampler_name": "euler",
       "scheduler": "simple",
       "denoise": 1,
-      "model": ["30", 0],
-      "positive": ["6", 0],
-      "negative": ["33", 0],
-      "latent_image": ["27", 0]
-    }
-  },
-  "27": {
-    "class_type": "EmptyLatentImage",
-    "inputs": {
-      "width": 1024,
-      "height": 1024,
-      "batch_size": 1
-    }
-  },
-  "8": {
-    "class_type": "VAEDecode",
-    "inputs": {
-      "samples": ["31", 0],
-      "vae": ["30", 2]
-    }
-  },
-  "9": {
-    "class_type": "SaveImage",
-    "inputs": {
-      "filename_prefix": "ComfyUI",
-      "images": ["8", 0]
+      "model": [
+        "30",
+        0
+      ],
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "33",
+        0
+      ],
+      "latent_image": [
+        "27",
+        0
+      ]
     }
   },
   "33": {
     "class_type": "CLIPTextEncode",
     "inputs": {
       "text": "",
-      "clip": ["47", 0]
+      "clip": [
+        "47",
+        0
+      ]
     }
   },
   "47": {
     "class_type": "CLIPSetLastLayer",
     "inputs": {
       "stop_at_clip_layer": -2,
-      "clip": ["30", 1]
+      "clip": [
+        "30",
+        1
+      ]
     }
   }
 }

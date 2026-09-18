@@ -7,13 +7,6 @@ const WORKFLOW_TEMPLATE = JSON.parse(
   fs.readFileSync(path.join(__dirname, "krea2_style_ref.json"), "utf8"),
 );
 
-const RESOLUTION_LABELS = {
-  "1:1": "1:1 (Square)",
-  "16:9": "16:9 (Landscape)",
-  "9:16": "9:16 (Portrait)",
-  "4:5": "4:5 (Portrait)",
-};
-
 function toPositiveInt(value, fallback) {
   const n = Number(value);
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
@@ -23,10 +16,22 @@ function cloneBaseWorkflow() {
   return JSON.parse(JSON.stringify(WORKFLOW_TEMPLATE));
 }
 
+function applySize(workflow, nodeId, width, height) {
+  const node = workflow[nodeId];
+  if (!node?.inputs) return;
+  if (width !== undefined) {
+    node.inputs.width = toPositiveInt(width, node.inputs.width);
+  }
+  if (height !== undefined) {
+    node.inputs.height = toPositiveInt(height, node.inputs.height);
+  }
+}
+
 /**
  * Krea2 turbo style-reference image2image (template krea2_style_ref.json).
  *
- * Overrides: prompt, seed, inputImageFilename, aspectRatio.
+ * Overrides: prompt, seed, inputImageFilename, width, height,
+ * diffusionModelComfyName.
  */
 function Krea2StyleRefWorkflow(overrides = {}) {
   const workflow = cloneBaseWorkflow();
@@ -44,10 +49,14 @@ function Krea2StyleRefWorkflow(overrides = {}) {
     );
   }
 
-  const aspect = overrides.aspectRatio || overrides.aspect_ratio;
-  if (aspect && workflow["71"]?.inputs) {
-    const key = String(aspect).trim();
-    workflow["71"].inputs.aspect_ratio = RESOLUTION_LABELS[key] || key;
+  applySize(workflow, "30:5", overrides.width, overrides.height);
+  applySize(workflow, "30:61", overrides.width, overrides.height);
+  applySize(workflow, "30:64", overrides.width, overrides.height);
+
+  if (overrides.diffusionModelComfyName && workflow["30:10"]?.inputs) {
+    workflow["30:10"].inputs.unet_name = String(
+      overrides.diffusionModelComfyName,
+    );
   }
 
   return workflow;

@@ -1,4 +1,13 @@
 {
+  "0": {
+    "inputs": {
+      "text": "=========\nparascene managed run\n(no run details provided)\n========="
+    },
+    "class_type": "ConsoleLog",
+    "_meta": {
+      "title": "Console Log"
+    }
+  },
   "75": {
     "inputs": {
       "filename_prefix": "video/LTX_2.5_t2v",

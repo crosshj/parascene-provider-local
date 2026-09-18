@@ -1,4 +1,13 @@
 {
+  "0": {
+    "inputs": {
+      "text": "=========\nparascene managed run\n(no run details provided)\n========="
+    },
+    "class_type": "ConsoleLog",
+    "_meta": {
+      "title": "Console Log"
+    }
+  },
   "2004": {
     "inputs": {
       "image": "input_1788390746_09ffcfa9ddf9.png"

@@ -130,12 +130,14 @@ function MinimaxReference2VideoWorkflow(overrides = {}) {
 
   const aspect =
     overrides.aspectRatio || overrides.aspect_ratio || overrides.aspect;
-  if (aspect && node?.inputs) {
+  if (overrides.width !== undefined && overrides.height !== undefined) {
+    node.inputs.width = toPositiveInt(overrides.width, node.inputs.width);
+    node.inputs.height = toPositiveInt(overrides.height, node.inputs.height);
+  } else if (aspect && node?.inputs) {
     const key = String(aspect).trim();
     const dims = resolveAspectRatioDimensions(key, 1024, 1024);
     node.inputs.width = dims.width;
     node.inputs.height = dims.height;
-    delete workflow["115"];
   }
 
   if (overrides.ref_image_size && node.inputs) {

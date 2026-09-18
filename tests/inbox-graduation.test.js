@@ -172,33 +172,45 @@ function assertNoCloudNodes(wf) {
 }
 
 describe("inbox graduation builders", () => {
-  it("krea2 turbo patches prompt, seed, aspect, and unet", () => {
+  it("krea2 turbo patches prompt, seed, size, and unet", () => {
     const wf = Krea2Turbo({
       prompt: "neon alley",
       seed: 11,
-      aspectRatio: "16:9",
+      width: 1344,
+      height: 768,
       diffusionModelComfyName: "krea2\\krea2_turbo_int8_convrot.safetensors",
     });
     expect(wf["30:19"].inputs.value).toBe("neon alley");
     expect(wf["30:3"].inputs.seed).toBe(11);
-    expect(wf["49"].inputs.aspect_ratio).toBe("16:9 (Landscape)");
+    expect(wf["30:5"].inputs.width).toBe(1344);
+    expect(wf["30:5"].inputs.height).toBe(768);
     expect(wf["30:10"].inputs.unet_name).toBe(
       "krea2\\krea2_turbo_int8_convrot.safetensors",
     );
     assertNoCloudNodes(wf);
   });
 
-  it("krea2 style-ref patches image and prompt", () => {
+  it("krea2 style-ref patches image, prompt, size, and unet", () => {
     const wf = Krea2Style({
       prompt: "oil paint",
       inputImageFilename: "ref.png",
       seed: 3,
-      aspectRatio: "4:5",
+      width: 768,
+      height: 1344,
+      diffusionModelComfyName: "krea2\\krea2_turbo_int8_convrot.safetensors",
     });
     expect(wf["30:19"].inputs.value).toBe("oil paint");
     expect(wf["69"].inputs.image).toBe("ref.png");
     expect(wf["30:63"].inputs.noise_seed).toBe(3);
-    expect(wf["71"].inputs.aspect_ratio).toBe("4:5 (Portrait)");
+    expect(wf["30:5"].inputs.width).toBe(768);
+    expect(wf["30:5"].inputs.height).toBe(1344);
+    expect(wf["30:61"].inputs.width).toBe(768);
+    expect(wf["30:61"].inputs.height).toBe(1344);
+    expect(wf["30:64"].inputs.width).toBe(768);
+    expect(wf["30:64"].inputs.height).toBe(1344);
+    expect(wf["30:10"].inputs.unet_name).toBe(
+      "krea2\\krea2_turbo_int8_convrot.safetensors",
+    );
   });
 
   it("FastH3 i2v wires first frame only", () => {
@@ -427,6 +439,7 @@ describe("inbox graduation comfy-args", () => {
         prompt: "portrait",
         model: "diffusion_models/krea2/krea2_turbo_fp8_scaled.safetensors",
         method: "text2image",
+        aspect_ratio: "16:9",
       },
       OUTPUT_DIR,
     );
@@ -434,6 +447,9 @@ describe("inbox graduation comfy-args", () => {
     expect(payload.diffusionModelComfyName).toBe(
       "krea2\\krea2_turbo_fp8_scaled.safetensors",
     );
+    expect(payload.aspectRatio).toBe("16:9");
+    expect(payload.width).toBe(1344);
+    expect(payload.height).toBe(768);
   });
 
   it("image2image krea2_style_ref maps to the style-ref workflow", async () => {
@@ -448,6 +464,9 @@ describe("inbox graduation comfy-args", () => {
     );
     expect(payload.managedWorkflowId).toBe("image2image-krea2_style_ref");
     expect(payload.inputImageFilename).toBe("input_1_abc.png");
+    expect(payload.diffusionModelComfyName).toBe(
+      "krea2\\krea2_turbo_int8_convrot.safetensors",
+    );
     expect(downloadImagesToComfyInput).toHaveBeenCalled();
   });
 

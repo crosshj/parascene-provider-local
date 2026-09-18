@@ -1,4 +1,13 @@
 {
+  "0": {
+    "inputs": {
+      "text": "=========\nparascene managed run\n(no run details provided)\n========="
+    },
+    "class_type": "ConsoleLog",
+    "_meta": {
+      "title": "Console Log"
+    }
+  },
   "29": {
     "inputs": {
       "filename_prefix": "Krea2_turbo_style_reference",
@@ -21,27 +30,10 @@
       "title": "Load Image"
     }
   },
-  "71": {
-    "inputs": {
-      "aspect_ratio": "1:1 (Square)",
-      "megapixels": 1,
-      "multiple": 8
-    },
-    "class_type": "ResolutionSelector",
-    "_meta": {
-      "title": "Resolution Selector"
-    }
-  },
   "30:5": {
     "inputs": {
-      "width": [
-        "71",
-        0
-      ],
-      "height": [
-        "71",
-        1
-      ],
+      "width": 1024,
+      "height": 1024,
       "batch_size": 1
     },
     "class_type": "EmptyLatentImage",
@@ -51,7 +43,7 @@
   },
   "30:10": {
     "inputs": {
-      "unet_name": "krea2_turbo_int8_convrot.safetensors",
+      "unet_name": "krea2\\krea2_turbo_int8_convrot.safetensors",
       "weight_dtype": "default"
     },
     "class_type": "UNETLoader",
@@ -320,14 +312,8 @@
   },
   "30:61": {
     "inputs": {
-      "width": [
-        "71",
-        0
-      ],
-      "height": [
-        "71",
-        1
-      ],
+      "width": 1024,
+      "height": 1024,
       "batch_size": 1
     },
     "class_type": "EmptyLatentImage",
@@ -364,14 +350,8 @@
     "inputs": {
       "max_shift": 1.15,
       "base_shift": 0.5,
-      "width": [
-        "71",
-        0
-      ],
-      "height": [
-        "71",
-        1
-      ],
+      "width": 1024,
+      "height": 1024,
       "model": [
         "30:15",
         0

@@ -1,4 +1,13 @@
 {
+  "0": {
+    "inputs": {
+      "text": "=========\nparascene managed run\n(no run details provided)\n========="
+    },
+    "class_type": "ConsoleLog",
+    "_meta": {
+      "title": "Console Log"
+    }
+  },
   "1": {
     "inputs": {
       "ckpt_name": "WAN\\wan2.2-t2v-rapid-aio-v10.safetensors"

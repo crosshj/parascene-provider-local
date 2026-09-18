@@ -1,0 +1,43 @@
+---
+description: Every managed workflow must start with a ConsoleLog run banner
+globs: server/workflows/**/*.{js,json}
+alwaysApply: false
+---
+
+# ConsoleLog at top of every managed workflow
+
+Every active managed workflow JSON under `server/workflows/` (not `_done/` / `_inbox/`) must begin with a `ConsoleLog` node.
+
+## Template standard
+
+- Node id: `0` (stable integer id so it stays the first key among Comfy’s numeric node ids; do not invent per-file ids)
+- It must be the **first key** in the workflow JSON object
+- `class_type`: `ConsoleLog` (from repo `custom_nodes/console_log`)
+- Default `inputs.text` is the bordered placeholder from `server/workflows/_console-log.js` (`DEFAULT_CONSOLE_LOG_TEXT`)
+
+```json
+{
+  "0": {
+    "inputs": {
+      "text": "=========\nparascene managed run\n(no run details provided)\n========="
+    },
+    "class_type": "ConsoleLog",
+    "_meta": { "title": "Console Log" }
+  },
+  "...": "rest of graph"
+}
+```
+
+Use id `0` (not a string name): JSON object key order puts integer-index keys ahead of other strings, so a named id like `parascene_console_log` would sort after nodes such as `29`.
+
+## Runtime standard
+
+- Builders compose the banner in JS via `composeRunConsoleLog` / `ensureConsoleLog` in `server/workflows/_console-log.js`
+- `buildWorkflowByFamily` always runs `ensureConsoleLog` so the text is filled from the managed-run payload (workflow id, model, size, seed, duration, media, prompt/lyrics snippet)
+- Keep the node first after ensure; do not leave duplicate `ConsoleLog` nodes
+
+## When adding or graduating a workflow
+
+1. Put ConsoleLog as node id `0` at the **top** of the new `.json` template
+2. Do not rely on Comfy’s default logs for run identity — the banner is the intentional console signal
+3. See `_inbox/console_log_example.json` for node shape only; production text comes from JS

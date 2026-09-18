@@ -74,6 +74,20 @@ describe("Bernini + SCAIL builders", () => {
     expect(wf["115"].class_type).toBe("SaveImage");
   });
 
+  it("bernini image converts line-index int to string for StringReplace", () => {
+    const { buildWorkflowByFamily } = require("../server/workflows/_index.js");
+    const wf = buildWorkflowByFamily({
+      managedWorkflowId: "image2image-bernini_r",
+      prompt: "make it night",
+      inputImageFilename: "scene.png",
+      seed: 9,
+    });
+    expect(wf["76:57:1"].class_type).toBe("StringFormat");
+    expect(wf["76:57:8"].inputs.replace).toEqual(["76:57:1", 0]);
+    expect(wf["76:54"].inputs.choice).toBe("Image Editing");
+    expect(wf["76:54"].inputs.index).toBe(3);
+  });
+
   it("bernini video patches file, prompt, and slice duration", () => {
     const wf = BerniniRVideo({
       prompt: "urban street",

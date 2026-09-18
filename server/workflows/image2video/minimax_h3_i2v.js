@@ -22,10 +22,25 @@ function cloneBaseWorkflow() {
   return JSON.parse(JSON.stringify(WORKFLOW_TEMPLATE));
 }
 
+function applyOutputSize(node, overrides) {
+  if (!node?.inputs) return;
+  if (overrides.width !== undefined && overrides.height !== undefined) {
+    node.inputs.width = toPositiveInt(overrides.width, node.inputs.width);
+    node.inputs.height = toPositiveInt(overrides.height, node.inputs.height);
+    return;
+  }
+  const aspect =
+    overrides.aspectRatio || overrides.aspect_ratio || overrides.aspect;
+  if (!aspect) return;
+  const dims = resolveAspectRatioDimensions(String(aspect).trim(), 1024, 1024);
+  node.inputs.width = dims.width;
+  node.inputs.height = dims.height;
+}
+
 /**
  * MiniMax H3 FL2VA image-to-video / flf2va (native AV).
  *
- * Overrides: prompt, seed, durationSeconds, aspectRatio,
+ * Overrides: prompt, seed, durationSeconds, aspectRatio / width / height,
  * inputImageFilename (first_frame), endImageFilename (last_frame),
  * diffusionModelComfyName.
  *
@@ -80,15 +95,8 @@ function MinimaxImage2VideoWorkflow(overrides = {}) {
     workflow["105:111"].inputs.value = Math.min(15, Math.max(4, duration));
   }
 
-  const aspect =
-    overrides.aspectRatio || overrides.aspect_ratio || overrides.aspect;
-  if (aspect && node?.inputs) {
-    const key = String(aspect).trim();
-    const dims = resolveAspectRatioDimensions(key, 1024, 1024);
-    node.inputs.width = dims.width;
-    node.inputs.height = dims.height;
-    delete workflow["115"];
-  }
+  applyOutputSize(node, overrides);
+
   if (overrides.diffusionModelComfyName && workflow["105:6"]?.inputs) {
     workflow["105:6"].inputs.unet_name = String(
       overrides.diffusionModelComfyName,

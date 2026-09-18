@@ -1,4 +1,13 @@
 {
+  "0": {
+    "inputs": {
+      "text": "=========\nparascene managed run\n(no run details provided)\n========="
+    },
+    "class_type": "ConsoleLog",
+    "_meta": {
+      "title": "Console Log"
+    }
+  },
   "30": {
     "inputs": {
       "image": "reference.png"
@@ -609,7 +618,7 @@
     },
     "class_type": "PrimitiveBoolean",
     "_meta": {
-      "title": "Boolean \uff08Replace Mode\uff09"
+      "title": "Boolean （Replace Mode）"
     }
   },
   "213:6": {
@@ -1224,7 +1233,7 @@
     },
     "class_type": "PrimitiveBoolean",
     "_meta": {
-      "title": "Boolean \uff08Replace Mode\uff09"
+      "title": "Boolean （Replace Mode）"
     }
   },
   "262:250": {

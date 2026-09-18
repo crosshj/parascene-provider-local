@@ -36,29 +36,41 @@ describe("managed workflows", () => {
     "text2video-minimax_h3_t2v",
     "image2video-minimax_h3_i2v",
     "reference2video-minimax_h3_r2v",
-  ])("bypasses ResolutionSelector for %s when aspectRatio is 4:5", (id) => {
+    "text2image-krea2_turbo",
+    "image2image-krea2_style_ref",
+  ])("has no ResolutionSelector for %s", (id) => {
     const wf = buildWorkflowByFamily({
       managedWorkflowId: id,
       aspectRatio: "4:5",
+      width: 896,
+      height: 1120,
     });
     const selectorNodes = Object.values(wf).filter(
       (node) => node?.class_type === "ResolutionSelector",
     );
-    const targetNode = id.startsWith("text2video")
-      ? wf["105:104"]
-      : id.startsWith("image2video")
-        ? wf["105:104"]
-        : wf["136"];
-
     expect(selectorNodes).toHaveLength(0);
-    expect(targetNode.inputs.width).toBe(896);
-    expect(targetNode.inputs.height).toBe(1120);
+
+    if (id === "text2image-krea2_turbo") {
+      expect(wf["30:5"].inputs.width).toBe(896);
+      expect(wf["30:5"].inputs.height).toBe(1120);
+    } else if (id === "image2image-krea2_style_ref") {
+      expect(wf["30:5"].inputs.width).toBe(896);
+      expect(wf["30:61"].inputs.height).toBe(1120);
+    } else if (id.startsWith("text2video") || id.startsWith("image2video")) {
+      expect(wf["105:104"].inputs.width).toBe(896);
+      expect(wf["105:104"].inputs.height).toBe(1120);
+    } else {
+      expect(wf["136"].inputs.width).toBe(896);
+      expect(wf["136"].inputs.height).toBe(1120);
+    }
   });
 
   it.each(ids)("can build workflow for %s", (id) => {
     const wf = buildWorkflowByFamily({ managedWorkflowId: id });
     expect(typeof wf).toBe("object");
     expect(Object.keys(wf).length).toBeGreaterThan(0);
+    expect(Object.keys(wf)[0]).toBe("0");
+    expect(wf["0"].class_type).toBe("ConsoleLog");
 
     // Template defaults are extracted only for classic text2image layouts
     // (KSampler "31" + latent "27"/"39"). Other families may return null.

@@ -1,4 +1,13 @@
 {
+  "0": {
+    "inputs": {
+      "text": "=========\nparascene managed run\n(no run details provided)\n========="
+    },
+    "class_type": "ConsoleLog",
+    "_meta": {
+      "title": "Console Log"
+    }
+  },
   "29": {
     "inputs": {
       "filename_prefix": "Krea2_turbo",
@@ -10,17 +19,6 @@
     "class_type": "SaveImage",
     "_meta": {
       "title": "Save Image"
-    }
-  },
-  "49": {
-    "inputs": {
-      "aspect_ratio": "1:1 (Square)",
-      "megapixels": 1,
-      "multiple": 8
-    },
-    "class_type": "ResolutionSelector",
-    "_meta": {
-      "title": "Resolution Selector"
     }
   },
   "30:6": {
@@ -41,14 +39,8 @@
   },
   "30:5": {
     "inputs": {
-      "width": [
-        "49",
-        0
-      ],
-      "height": [
-        "49",
-        1
-      ],
+      "width": 1024,
+      "height": 1024,
       "batch_size": 1
     },
     "class_type": "EmptyLatentImage",
@@ -104,7 +96,7 @@
   },
   "30:10": {
     "inputs": {
-      "unet_name": "krea2_turbo_fp8_scaled.safetensors",
+      "unet_name": "krea2\\krea2_turbo_fp8_scaled.safetensors",
       "weight_dtype": "default"
     },
     "class_type": "UNETLoader",

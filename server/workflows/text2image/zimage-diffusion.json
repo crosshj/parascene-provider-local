@@ -1,16 +1,44 @@
 {
+  "0": {
+    "inputs": {
+      "text": "=========\nparascene managed run\n(no run details provided)\n========="
+    },
+    "class_type": "ConsoleLog",
+    "_meta": {
+      "title": "Console Log"
+    }
+  },
   "6": {
     "class_type": "CLIPTextEncode",
     "inputs": {
-      "clip": ["36", 0],
+      "clip": [
+        "36",
+        0
+      ],
       "text": ""
     }
   },
-  "38": {
-    "class_type": "UNETLoader",
+  "8": {
+    "class_type": "VAEDecode",
     "inputs": {
-      "unet_name": "z-image\\z_image_turbo_bf16.safetensors",
-      "weight_dtype": "default"
+      "samples": [
+        "31",
+        0
+      ],
+      "vae": [
+        "37",
+        0
+      ]
+    }
+  },
+  "9": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "8",
+        0
+      ]
     }
   },
   "31": {
@@ -22,18 +50,22 @@
       "sampler_name": "euler",
       "scheduler": "simple",
       "denoise": 1,
-      "model": ["41", 0],
-      "positive": ["6", 0],
-      "negative": ["40", 0],
-      "latent_image": ["39", 0]
-    }
-  },
-  "39": {
-    "class_type": "EmptySD3LatentImage",
-    "inputs": {
-      "width": 1024,
-      "height": 1024,
-      "batch_size": 1
+      "model": [
+        "41",
+        0
+      ],
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "40",
+        0
+      ],
+      "latent_image": [
+        "39",
+        0
+      ]
     }
   },
   "36": {
@@ -50,31 +82,38 @@
       "vae_name": "ae.safetensors"
     }
   },
-  "8": {
-    "class_type": "VAEDecode",
+  "38": {
+    "class_type": "UNETLoader",
     "inputs": {
-      "samples": ["31", 0],
-      "vae": ["37", 0]
+      "unet_name": "z-image\\z_image_turbo_bf16.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "39": {
+    "class_type": "EmptySD3LatentImage",
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
     }
   },
   "40": {
     "class_type": "ConditioningZeroOut",
     "inputs": {
-      "conditioning": ["6", 0]
+      "conditioning": [
+        "6",
+        0
+      ]
     }
   },
   "41": {
     "class_type": "ModelSamplingAuraFlow",
     "inputs": {
       "shift": 3,
-      "model": ["38", 0]
-    }
-  },
-  "9": {
-    "class_type": "SaveImage",
-    "inputs": {
-      "filename_prefix": "ComfyUI",
-      "images": ["8", 0]
+      "model": [
+        "38",
+        0
+      ]
     }
   }
 }

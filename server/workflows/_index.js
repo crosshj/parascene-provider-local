@@ -1,6 +1,7 @@
 "use strict";
 
 const { sanitizePromptForComfyApi } = require("./_api-sanitize.js");
+const { ensureConsoleLog } = require("./_console-log.js");
 
 const WORKFLOWS = {
   // Text-to-image workflows
@@ -80,7 +81,7 @@ function buildWorkflowByFamily(input) {
       `Unknown managed workflow "${id}". Register it in workflows/_index.js.`,
     );
   }
-  return sanitizePromptForComfyApi(workflow(input));
+  return ensureConsoleLog(sanitizePromptForComfyApi(workflow(input)), input);
 }
 
 function hasWorkflow(entry) {

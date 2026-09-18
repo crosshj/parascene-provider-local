@@ -7,13 +7,6 @@ const WORKFLOW_TEMPLATE = JSON.parse(
   fs.readFileSync(path.join(__dirname, "krea2_turbo.json"), "utf8"),
 );
 
-const RESOLUTION_LABELS = {
-  "1:1": "1:1 (Square)",
-  "16:9": "16:9 (Landscape)",
-  "9:16": "9:16 (Portrait)",
-  "4:5": "4:5 (Portrait)",
-};
-
 function toPositiveInt(value, fallback) {
   const n = Number(value);
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
@@ -26,7 +19,7 @@ function cloneBaseWorkflow() {
 /**
  * Krea2 turbo text-to-image (template krea2_turbo.json).
  *
- * Overrides: prompt, seed, aspectRatio, diffusionModelComfyName.
+ * Overrides: prompt, seed, width, height, diffusionModelComfyName.
  */
 function Krea2TurboWorkflow(overrides = {}) {
   const workflow = cloneBaseWorkflow();
@@ -42,10 +35,17 @@ function Krea2TurboWorkflow(overrides = {}) {
     );
   }
 
-  const aspect = overrides.aspectRatio || overrides.aspect_ratio;
-  if (aspect && workflow["49"]?.inputs) {
-    const key = String(aspect).trim();
-    workflow["49"].inputs.aspect_ratio = RESOLUTION_LABELS[key] || key;
+  if (overrides.width !== undefined && workflow["30:5"]?.inputs) {
+    workflow["30:5"].inputs.width = toPositiveInt(
+      overrides.width,
+      workflow["30:5"].inputs.width,
+    );
+  }
+  if (overrides.height !== undefined && workflow["30:5"]?.inputs) {
+    workflow["30:5"].inputs.height = toPositiveInt(
+      overrides.height,
+      workflow["30:5"].inputs.height,
+    );
   }
 
   if (overrides.diffusionModelComfyName && workflow["30:10"]?.inputs) {
