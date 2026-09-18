@@ -276,6 +276,25 @@ describe("generation uniqueness fingerprint", () => {
     expect(off).not.toBe(omitted);
   });
 
+  it("applies text2audio prompt_magic default so omitted matches false", () => {
+    const omitted = fingerprintOf("text2audio", {
+      prompt: "wind",
+      model: "ltx25_t2a",
+    });
+    const explicit = fingerprintOf("text2audio", {
+      prompt: "wind",
+      model: "ltx25_t2a",
+      prompt_magic: false,
+    });
+    const on = fingerprintOf("text2audio", {
+      prompt: "wind",
+      model: "ltx25_t2a",
+      prompt_magic: true,
+    });
+    expect(omitted).toBe(explicit);
+    expect(on).not.toBe(omitted);
+  });
+
   it("exposes a short prefix for responses", () => {
     const built = buildFingerprint("text2video", {
       prompt: "prefix",

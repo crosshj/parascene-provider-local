@@ -23,6 +23,13 @@ const MODEL_DIRS = [
     comfyCheckpointGroup: null,
   },
   {
+    rel: "diffusion_models\\krea2",
+    family: "krea2",
+    loadKind: "diffusion_model",
+    managedWorkflowId: "text2image-krea2_turbo",
+    comfyCheckpointGroup: null,
+  },
+  {
     rel: "diffusion_models\\flux",
     family: "flux",
     loadKind: "diffusion_model",
@@ -70,6 +77,7 @@ const MODEL_DIRS = [
 const FILENAME_OVERRIDES = [
   { test: /flux/i, family: "flux" },
   { test: /z-image/i, family: "z-image" },
+  { test: /krea2/i, family: "krea2" },
   { test: /pony/i, family: "sdxl" },
   { test: /xl/i, family: "sdxl" },
   { test: /sdxl/i, family: "sdxl" },

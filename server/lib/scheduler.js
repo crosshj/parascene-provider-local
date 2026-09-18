@@ -507,15 +507,18 @@ const VIDEO_METHODS = new Set([
   "video2video",
   "reference2video",
 ]);
+const AUDIO_METHODS = new Set(["text2audio", "audio2audio"]);
 const TYPICAL_STILL_S = 45;
 const TYPICAL_VIDEO_S = 480;
 
 function methodKind(method) {
-  return VIDEO_METHODS.has(String(method || "")) ? "video" : "still";
+  const id = String(method || "");
+  if (AUDIO_METHODS.has(id)) return "audio";
+  return VIDEO_METHODS.has(id) ? "video" : "still";
 }
 
 function typicalSeconds(method) {
-  return methodKind(method) === "video" ? TYPICAL_VIDEO_S : TYPICAL_STILL_S;
+  return methodKind(method) === "still" ? TYPICAL_STILL_S : TYPICAL_VIDEO_S;
 }
 
 function remainingSeconds(job) {

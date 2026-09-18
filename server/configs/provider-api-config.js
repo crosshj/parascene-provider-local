@@ -169,6 +169,16 @@ const BASE_PROVIDER_CAPABILITIES = {
               label: "z-image: z_image_turbo_bf16",
               value: "diffusion_models/z-image/z_image_turbo_bf16.safetensors",
             },
+            {
+              label: "krea2: krea2_turbo_fp8_scaled",
+              value:
+                "diffusion_models/krea2/krea2_turbo_fp8_scaled.safetensors",
+            },
+            {
+              label: "krea2: krea2_turbo_int8_convrot",
+              value:
+                "diffusion_models/krea2/krea2_turbo_int8_convrot.safetensors",
+            },
           ],
         },
         prompt: {
@@ -227,6 +237,11 @@ const BASE_PROVIDER_CAPABILITIES = {
               label: "Wan — Bernini-R image edit",
               value: "bernini_r_i2i",
               hint: "Bernini-R image editing (high/low noise fp8 pair).",
+            },
+            {
+              label: "Krea2 — style reference",
+              value: "krea2_style_ref",
+              hint: "Krea2 turbo style-reference image-to-image.",
             },
             {
               label: "sdxl: dreamshaperXL_turboDpmppSDE",
@@ -336,14 +351,24 @@ const BASE_PROVIDER_CAPABILITIES = {
               hint: "Wan 2.2 t2v rapid-AIO checkpoint (WAN\\wan2.2-t2v-rapid-aio-v10.safetensors).",
             },
             {
-              label: "LTX — text-to-video",
+              label: "LTX 2.3 — text-to-video",
               value: "ltx_t2v",
               hint: "LTX 2.3 t2v checkpoint (ltx-2.3-22b-dev-fp8.safetensors).",
+            },
+            {
+              label: "LTX 2.5 — text-to-video",
+              value: "ltx25_t2v",
+              hint: "LTX 2.5 t2v (local distilled int8 transformer).",
             },
             {
               label: "MiniMax H3 — text-to-video (FL2VA)",
               value: "minimax_t2v",
               hint: "MiniMax H3 FL2VA with native stereo audio.",
+            },
+            {
+              label: "FastH3 — text-to-video",
+              value: "fasth3_t2v",
+              hint: "FastH3 8-step distill, same graph as i2v with no start frame. Experimental.",
             },
           ],
         },
@@ -406,6 +431,16 @@ const BASE_PROVIDER_CAPABILITIES = {
               label: "MiniMax H3 — image-to-video (FL2VA)",
               value: "minimax_i2v",
               hint: "MiniMax H3 FL2VA; second image enables flf2va with native audio.",
+            },
+            {
+              label: "FastH3 — image-to-video",
+              value: "fasth3_i2v",
+              hint: "FastH3 i2v (first frame only, native audio).",
+            },
+            {
+              label: "LTX 2.5 — image-to-video",
+              value: "ltx25_i2v",
+              hint: "LTX 2.5 i2v; second image enables first/last-frame.",
             },
             {
               label: "LTX — style transition (flf + LoRA)",
@@ -474,14 +509,19 @@ const BASE_PROVIDER_CAPABILITIES = {
           required: true,
           options: [
             {
-              label: "LTX — audio-to-video (ia2v)",
+              label: "LTX 2.3 — audio-to-video (ia2v)",
               value: "ltx_a2v",
               hint: "LTX 2.3 ia2v checkpoint with user-supplied audio (ltx-2.3-22b-dev-fp8.safetensors).",
             },
             {
-              label: "LTX — ID-LoRA talkvid",
+              label: "LTX 2.3 — ID-LoRA talkvid",
               value: "ltx_id_lora",
               hint: "Identity lock + user audio (requires start image).",
+            },
+            {
+              label: "LTX 2.5 — audio-to-video (ia2v)",
+              value: "ltx25_a2v",
+              hint: "LTX 2.5 LOCAL_ONLY ia2v with user-supplied audio.",
             },
           ],
         },
@@ -567,6 +607,11 @@ const BASE_PROVIDER_CAPABILITIES = {
               label: "LTX — IC-LoRA video control",
               value: "ltx_ic_lora",
               hint: "Structure/control from video + start image (IC-LoRA).",
+            },
+            {
+              label: "LTX 2.5 — IC-LoRA video control",
+              value: "ltx25_ic_lora",
+              hint: "LTX 2.5 IC-LoRA structure/control from video + start image.",
             },
             {
               label: "Wan — Animate 2",
@@ -665,9 +710,14 @@ const BASE_PROVIDER_CAPABILITIES = {
               hint: "Omni-ref: ≤9 images, ≤3 videos, ≤3 audios; native stereo AV out.",
             },
             {
-              label: "LTX — IC-LoRA ingredients",
+              label: "LTX 2.3 — IC-LoRA ingredients",
               value: "ltx_ingredients",
               hint: "Character/prop sheet image → video (IC-LoRA ingredients).",
+            },
+            {
+              label: "LTX 2.5 — IC-LoRA ingredients",
+              value: "ltx25_ingredients",
+              hint: "LTX 2.5 character/prop sheet image → video.",
             },
           ],
         },
@@ -708,6 +758,140 @@ const BASE_PROVIDER_CAPABILITIES = {
           max: 15,
           step: 0.5,
           description: "Output length in seconds (MiniMax typically 4–15).",
+        },
+        seed: {
+          label: "Seed",
+          type: "number",
+          required: false,
+          hidden: true,
+          min: 0,
+          step: 1,
+          description:
+            "Optional deterministic seed. If not provided, a random seed is used.",
+        },
+      },
+    },
+    text2audio: {
+      id: "text2audio",
+      default: false,
+      async: true,
+      name: "Text To Audio",
+      description: "Generate audio from a text prompt.",
+      intent: "audio_generate",
+      credits: 1,
+      fields: {
+        model: {
+          label: "Model",
+          type: "select",
+          required: true,
+          options: [
+            {
+              label: "YuE2 — text-to-music",
+              value: "yue2",
+              hint: "YuE2 style prompt; optional lyrics. Duration is a cap (max 120s).",
+            },
+            {
+              label: "MiniMax Music 3",
+              value: "minimax_music3",
+              hint: "MiniMax Music 3 caption + optional lyrics. Duration is a cap (max 60s).",
+            },
+            {
+              label: "LTX 2.5 — text-to-audio",
+              value: "ltx25_t2a",
+              hint: "LTX 2.5 soundscape / SFX (no lyrics). Optional duration and prompt magic.",
+            },
+          ],
+        },
+        prompt: {
+          label: "Prompt",
+          type: "text",
+          required: true,
+        },
+        lyrics: {
+          label: "Lyrics",
+          type: "text",
+          required: false,
+          description:
+            "Optional lyrics for YuE2 / MiniMax Music 3. Ignored by LTX T2A.",
+        },
+        prompt_magic: {
+          label: "Prompt Magic",
+          type: "boolean",
+          required: false,
+          default: false,
+          description:
+            "LTX T2A only: expand the prompt with on-box Gemma. Ignored by YuE2 / MiniMax. Default off (matches the graph).",
+        },
+        duration_seconds: {
+          label: "Duration (seconds)",
+          type: "number",
+          required: false,
+          min: 1,
+          max: 120,
+          step: 0.5,
+          description:
+            "YuE2 / MiniMax: max length cap (YuE2 120s, MiniMax 60s). LTX T2A: output length (max 15s).",
+        },
+        seed: {
+          label: "Seed",
+          type: "number",
+          required: false,
+          hidden: true,
+          min: 0,
+          step: 1,
+          description:
+            "Optional deterministic seed. If not provided, a random seed is used.",
+        },
+      },
+    },
+    audio2audio: {
+      id: "audio2audio",
+      default: false,
+      async: true,
+      name: "Audio To Audio",
+      description: "Generate a cover or variation from input audio and a prompt.",
+      intent: "audio_generate",
+      credits: 1,
+      fields: {
+        model: {
+          label: "Model",
+          type: "select",
+          required: true,
+          options: [
+            {
+              label: "YuE2 — music cover",
+              value: "yue2_cover",
+              hint: "YuE2 cover from input audio + style prompt; optional lyrics and duration cap (max 360s).",
+            },
+          ],
+        },
+        prompt: {
+          label: "Prompt",
+          type: "text",
+          required: true,
+        },
+        lyrics: {
+          label: "Lyrics",
+          type: "text",
+          required: false,
+          description: "Optional lyrics for the cover.",
+        },
+        duration_seconds: {
+          label: "Duration (seconds)",
+          type: "number",
+          required: false,
+          min: 1,
+          max: 360,
+          step: 0.5,
+          description:
+            "Max cover length in seconds (YuE2 cover cap is 360).",
+        },
+        input_audio_urls: {
+          label: "Input Audio",
+          type: "audio_url_array",
+          required: true,
+          description:
+            "https URL, small data URI (≤256KB), or /api/files/… upload ref.",
         },
         seed: {
           label: "Seed",

@@ -12,6 +12,8 @@ const {
   getAudio2videoPreset,
   getVideo2videoPreset,
   getReference2videoPreset,
+  getText2audioPreset,
+  getAudio2audioPreset,
 } = require("../configs/api-model-aliases.js");
 
 const VIDEO_METHODS = new Set([
@@ -20,6 +22,8 @@ const VIDEO_METHODS = new Set([
   "audio2video",
   "video2video",
   "reference2video",
+  "text2audio",
+  "audio2audio",
 ]);
 
 const NOISE_KEYS = new Set([
@@ -57,6 +61,8 @@ const PRESET_GETTERS = {
   audio2video: getAudio2videoPreset,
   video2video: getVideo2videoPreset,
   reference2video: getReference2videoPreset,
+  text2audio: getText2audioPreset,
+  audio2audio: getAudio2audioPreset,
 };
 
 /** fingerprint -> job_id */

@@ -204,7 +204,14 @@ function modelSupportsMethod(entry, method) {
 }
 
 function getAllMethodsFromModels(models) {
-  const order = ["text2image", "image2image", "text2video", "image2video"];
+  const order = [
+    "text2image",
+    "image2image",
+    "text2video",
+    "image2video",
+    "text2audio",
+    "audio2audio",
+  ];
   const seen = new Set();
   const out = [];
   for (const m of models) {

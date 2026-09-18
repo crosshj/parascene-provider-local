@@ -21,18 +21,24 @@ const {
   getAudio2videoPreset,
   getVideo2videoPreset,
   getReference2videoPreset,
+  getText2audioPreset,
+  getAudio2audioPreset,
   buildSyntheticImage2videoRegistryEntry,
   buildSyntheticImage2imageRegistryEntry,
   buildSyntheticText2videoRegistryEntry,
   buildSyntheticAudio2videoRegistryEntry,
   buildSyntheticVideo2videoRegistryEntry,
   buildSyntheticReference2videoRegistryEntry,
+  buildSyntheticText2audioRegistryEntry,
+  buildSyntheticAudio2audioRegistryEntry,
   IMAGE2VIDEO_MODEL_PRESETS,
   IMAGE2IMAGE_MODEL_PRESETS,
   TEXT2VIDEO_MODEL_PRESETS,
   AUDIO2VIDEO_MODEL_PRESETS,
   VIDEO2VIDEO_MODEL_PRESETS,
   REFERENCE2VIDEO_MODEL_PRESETS,
+  TEXT2AUDIO_MODEL_PRESETS,
+  AUDIO2AUDIO_MODEL_PRESETS,
 } = require("../configs/api-model-aliases.js");
 const { _loadTemplateDefaults } = require("../workflows/_defaults.js");
 const {
@@ -63,15 +69,20 @@ function normalizeInputVideoUrls(body) {
   return normalizeUrlArray(body.input_video_urls);
 }
 
-/** Optional clip length for audio2video (seconds). */
-function resolveDurationSeconds(body) {
+/**
+ * Optional clip length in seconds.
+ * Video methods default to the 1–15 window the desktop editor uses for A2V.
+ * Audio presets pass a higher `max` to match YuE2 / MiniMax graph caps.
+ */
+function resolveDurationSeconds(body, opts = {}) {
   const raw =
     body.duration_seconds ?? body.durationSeconds ?? body.duration ?? null;
   if (raw === undefined || raw === null || raw === "") return undefined;
   const n = Number(raw);
   if (!Number.isFinite(n) || n <= 0) return undefined;
-  // Keep within the same window the desktop editor enforces for add-asset A2V.
-  return Math.min(15, Math.max(1, Math.round(n * 10) / 10));
+  const max = Number.isFinite(opts.max) && opts.max > 0 ? opts.max : 15;
+  const min = Number.isFinite(opts.min) && opts.min > 0 ? opts.min : 1;
+  return Math.min(max, Math.max(min, Math.round(n * 10) / 10));
 }
 
 function getEntryDefaults(entry) {
@@ -151,6 +162,87 @@ async function buildComfyArgs(body, outputDir) {
       payload.durationSeconds = durationSeconds;
     }
 
+    return { payload, entry, method };
+  }
+
+  if (method === "text2audio") {
+    const presetKey = String(body.model || "").trim();
+    if (!presetKey) throw new Error("Missing required field: model");
+    const preset = getText2audioPreset(presetKey);
+    if (!preset) {
+      const keys = Object.keys(TEXT2AUDIO_MODEL_PRESETS).join(", ");
+      throw new Error(
+        `Unknown text2audio model "${presetKey}". Use one of: ${keys}.`,
+      );
+    }
+    const entry = buildSyntheticText2audioRegistryEntry(presetKey, preset);
+    const payload = {
+      family: preset.family,
+      managedWorkflowId: preset.managedWorkflowId,
+      modelFile: preset.modelFile,
+      modelPath: preset.modelPath,
+      comfyCheckpointGroup: preset.comfyCheckpointGroup,
+      diffusionModelComfyName: preset.diffusionModelComfyName,
+      loadKind: preset.loadKind,
+      checkpointBasename: preset.checkpointBasename,
+      prompt,
+      negativePrompt,
+      seed,
+      lyrics: body.lyrics != null ? String(body.lyrics) : "",
+      promptMagic: body.prompt_magic ?? body.promptMagic,
+      expectAudio: true,
+    };
+    const durationSeconds = resolveDurationSeconds(body, {
+      max: preset.maxDurationSeconds || 15,
+    });
+    if (durationSeconds !== undefined) {
+      payload.durationSeconds = durationSeconds;
+    }
+    return { payload, entry, method };
+  }
+
+  if (method === "audio2audio") {
+    const presetKey = String(body.model || "").trim();
+    if (!presetKey) throw new Error("Missing required field: model");
+    const preset = getAudio2audioPreset(presetKey);
+    if (!preset) {
+      const keys = Object.keys(AUDIO2AUDIO_MODEL_PRESETS).join(", ");
+      throw new Error(
+        `Unknown audio2audio model "${presetKey}". Use one of: ${keys}.`,
+      );
+    }
+    const entry = buildSyntheticAudio2audioRegistryEntry(presetKey, preset);
+    const inputAudioUrls = normalizeInputAudioUrls(body);
+    if (!inputAudioUrls.length) {
+      throw new Error("audio2audio requires input_audio_urls to be provided.");
+    }
+    const audioFiles = await downloadAudioToComfyInput(inputAudioUrls);
+    const [audioFilename] = audioFiles;
+    if (!audioFilename) {
+      throw new Error("Failed to prepare input audio for audio2audio.");
+    }
+    const payload = {
+      family: preset.family,
+      managedWorkflowId: preset.managedWorkflowId,
+      modelFile: preset.modelFile,
+      modelPath: preset.modelPath,
+      comfyCheckpointGroup: preset.comfyCheckpointGroup,
+      diffusionModelComfyName: preset.diffusionModelComfyName,
+      loadKind: preset.loadKind,
+      checkpointBasename: preset.checkpointBasename,
+      prompt,
+      negativePrompt,
+      seed,
+      lyrics: body.lyrics != null ? String(body.lyrics) : "",
+      inputAudioFilename: audioFilename,
+      expectAudio: true,
+    };
+    const durationSeconds = resolveDurationSeconds(body, {
+      max: preset.maxDurationSeconds || 360,
+    });
+    if (durationSeconds !== undefined) {
+      payload.durationSeconds = durationSeconds;
+    }
     return { payload, entry, method };
   }
 

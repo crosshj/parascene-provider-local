@@ -13,6 +13,18 @@ describe("audio2video duration → Comfy workflow", () => {
     expect(resolveDurationSeconds({})).toBeUndefined();
   });
 
+  it("resolveDurationSeconds accepts a higher audio max", () => {
+    expect(
+      resolveDurationSeconds({ duration_seconds: 90 }, { max: 120 }),
+    ).toBe(90);
+    expect(
+      resolveDurationSeconds({ duration_seconds: 400 }, { max: 120 }),
+    ).toBe(120);
+    expect(
+      resolveDurationSeconds({ duration_seconds: 400 }, { max: 360 }),
+    ).toBe(360);
+  });
+
   it("bakes Duration node and EmptyLTXVLatentVideo length from durationSeconds", () => {
     const workflow = LtxAudio2VideoWorkflow({
       prompt: "lip sync",

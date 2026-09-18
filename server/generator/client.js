@@ -134,6 +134,20 @@ function filenameLooksLikeVideo(name) {
   return VIDEO_FILE_EXTENSIONS.has(ext);
 }
 
+const AUDIO_FILE_EXTENSIONS = new Set([
+  ".mp3",
+  ".wav",
+  ".flac",
+  ".m4a",
+  ".ogg",
+  ".aac",
+]);
+
+function filenameLooksLikeAudio(name) {
+  const ext = path.extname(String(name || "")).toLowerCase();
+  return AUDIO_FILE_EXTENSIONS.has(ext);
+}
+
 function parseOutputImage(historyData, promptId) {
   const root = historyData && historyData[promptId];
   if (!root || !root.outputs || typeof root.outputs !== "object") {
@@ -209,6 +223,52 @@ function parseOutputVideo(historyData, promptId) {
   throw new Error("Comfy history does not contain generated videos.");
 }
 
+function tryParseAudioRef(outSlot) {
+  if (!outSlot || typeof outSlot !== "object") return null;
+  const lists = ["audio", "audios"];
+  for (const key of lists) {
+    const arr = outSlot[key];
+    if (!Array.isArray(arr) || arr.length === 0) continue;
+    const first = arr[0];
+    if (first && first.filename) {
+      return {
+        kind: "audio",
+        filename: String(first.filename),
+        subfolder: String(first.subfolder || ""),
+        type: String(first.type || "output"),
+      };
+    }
+  }
+  const imgs = outSlot.images;
+  if (Array.isArray(imgs)) {
+    for (const item of imgs) {
+      if (item && item.filename && filenameLooksLikeAudio(item.filename)) {
+        return {
+          kind: "audio",
+          filename: String(item.filename),
+          subfolder: String(item.subfolder || ""),
+          type: String(item.type || "output"),
+        };
+      }
+    }
+  }
+  return null;
+}
+
+function parseOutputAudio(historyData, promptId) {
+  const root = historyData && historyData[promptId];
+  if (!root || !root.outputs || typeof root.outputs !== "object") {
+    throw new Error("Comfy history response missing outputs.");
+  }
+
+  for (const value of Object.values(root.outputs)) {
+    const ref = tryParseAudioRef(value);
+    if (ref) return ref;
+  }
+
+  throw new Error("Comfy history does not contain generated audio.");
+}
+
 const IMAGE_HISTORY_TIMEOUT_MS =
   Number(process.env.COMFY_HISTORY_TIMEOUT_MS) || 600_000; // 10m
 const VIDEO_HISTORY_TIMEOUT_MS =
@@ -259,11 +319,17 @@ function _missingOutputFromPoll(message, extra, logCheckpoint) {
   return missingOutputError(message, evidence, extra || {});
 }
 
-async function pollHistoryForOutput(promptId, wantsVideo, timeoutMs, logCheckpoint) {
+async function pollHistoryForOutput(
+  promptId,
+  wantsVideo,
+  timeoutMs,
+  logCheckpoint,
+  wantsAudio,
+) {
   const softTimeout =
     timeoutMs != null
       ? Number(timeoutMs)
-      : wantsVideo
+      : wantsVideo || wantsAudio
         ? VIDEO_HISTORY_TIMEOUT_MS
         : IMAGE_HISTORY_TIMEOUT_MS;
   const softDeadline = Date.now() + softTimeout;
@@ -292,6 +358,9 @@ async function pollHistoryForOutput(promptId, wantsVideo, timeoutMs, logCheckpoi
       continue;
     }
     try {
+      if (wantsAudio) {
+        return parseOutputAudio(data, promptId);
+      }
       if (wantsVideo) {
         return parseOutputVideo(data, promptId);
       }
@@ -299,7 +368,7 @@ async function pollHistoryForOutput(promptId, wantsVideo, timeoutMs, logCheckpoi
     } catch {
       // Still running or wrong parser pass.
     }
-    if (!wantsVideo) {
+    if (!wantsVideo && !wantsAudio) {
       try {
         return parseOutputVideo(data, promptId);
       } catch {
@@ -352,7 +421,9 @@ async function pollHistoryForOutput(promptId, wantsVideo, timeoutMs, logCheckpoi
 }
 
 function defaultExtensionForKind(kind) {
-  return kind === "video" ? ".mp4" : ".png";
+  if (kind === "video") return ".mp4";
+  if (kind === "audio") return ".mp3";
+  return ".png";
 }
 
 function extensionFromComfyFilename(filename) {
@@ -367,7 +438,7 @@ function makeOutputFilename(seed, kind, sourceFilename) {
   const ext =
     extensionFromComfyFilename(sourceFilename) ||
     defaultExtensionForKind(kind);
-  const prefix = kind === "video" ? "vid" : "img";
+  const prefix = kind === "video" ? "vid" : kind === "audio" ? "aud" : "img";
   return `${prefix}-${stamp}-${seed}-${rand}${ext}`;
 }
 
@@ -396,19 +467,25 @@ async function _runComfyGenerationOnce(input, outDir, started, opts = {}) {
 
   const workflowId =
     typeof input.managedWorkflowId === "string" ? input.managedWorkflowId : "";
+  const wantsAudio =
+    input.expectAudio === true ||
+    workflowId.startsWith("text2audio") ||
+    workflowId.startsWith("audio2audio");
   const wantsVideo =
-    input.expectVideo === true ||
-    workflowId.startsWith("image2video") ||
-    workflowId.startsWith("text2video") ||
-    workflowId.startsWith("audio2video") ||
-    workflowId.startsWith("video2video") ||
-    workflowId.startsWith("reference2video");
+    !wantsAudio &&
+    (input.expectVideo === true ||
+      workflowId.startsWith("image2video") ||
+      workflowId.startsWith("text2video") ||
+      workflowId.startsWith("audio2video") ||
+      workflowId.startsWith("video2video") ||
+      workflowId.startsWith("reference2video"));
 
   const mediaRef = await pollHistoryForOutput(
     String(promptId),
     wantsVideo,
     undefined,
     logCheckpoint,
+    wantsAudio,
   );
   const query = new URLSearchParams({
     filename: mediaRef.filename,
@@ -418,7 +495,8 @@ async function _runComfyGenerationOnce(input, outDir, started, opts = {}) {
   const fileBuffer = await requestBuffer(`/view?${query.toString()}`);
 
   fs.mkdirSync(outDir, { recursive: true });
-  const kind = mediaRef.kind || (wantsVideo ? "video" : "image");
+  const kind =
+    mediaRef.kind || (wantsAudio ? "audio" : wantsVideo ? "video" : "image");
   const fileName = makeOutputFilename(input.seed, kind, mediaRef.filename);
   const outPath = path.join(outDir, fileName);
 

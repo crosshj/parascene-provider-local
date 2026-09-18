@@ -67,6 +67,34 @@ const IMAGE2VIDEO_MODEL_PRESETS = {
     // Same FL2VA graph handles flf via last_frame.
     flfWorkflowId: "image2video-minimax_h3_i2v",
   },
+  fasth3_i2v: {
+    managedWorkflowId: "image2video-fastvideo_fasth3_i2v",
+    family: "fasth3-i2v",
+    loadKind: "diffusion_model",
+    modelFile: "fastvideo_fasth3_8step_v2_pruned_int8_convrot.safetensors",
+    modelPath: "",
+    comfyCheckpointGroup: null,
+    diffusionModelComfyName:
+      "fastvideo_fasth3_8step_v2_pruned_int8_convrot.safetensors",
+    checkpointBasename: undefined,
+    capabilities: caps(["i2v"]),
+    nativeAudio: true,
+  },
+  ltx25_i2v: {
+    managedWorkflowId: "image2video-ltx2_5",
+    family: "ltx25-i2v",
+    loadKind: "diffusion_model",
+    modelFile:
+      "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
+    modelPath: "",
+    comfyCheckpointGroup: null,
+    diffusionModelComfyName:
+      "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
+    checkpointBasename: undefined,
+    capabilities: caps(["i2v", "flf"]),
+    nativeAudio: true,
+    flfWorkflowId: "image2video-ltx2_5_flf2v",
+  },
 };
 
 /** Fixed-model image2image presets (no registry scan). SDXL uses checkpoint paths below. */
@@ -120,6 +148,16 @@ const IMAGE2IMAGE_MODEL_PRESETS = {
     comfyCheckpointGroup: null,
     diffusionModelComfyName:
       "wan2.2_bernini_r_high_noise_fp8_scaled.safetensors",
+    capabilities: caps(["i2i"]),
+  },
+  krea2_style_ref: {
+    managedWorkflowId: "image2image-krea2_style_ref",
+    family: "krea2-i2i",
+    loadKind: "diffusion_model",
+    modelFile: "krea2_turbo_fp8_scaled.safetensors",
+    modelPath: "",
+    comfyCheckpointGroup: null,
+    diffusionModelComfyName: null,
     capabilities: caps(["i2i"]),
   },
 };
@@ -186,6 +224,20 @@ const TEXT2VIDEO_MODEL_PRESETS = {
     capabilities: caps(["t2v"]),
     nativeAudio: true,
   },
+  ltx25_t2v: {
+    managedWorkflowId: "text2video-ltx2_5_t2v",
+    family: "ltx25-t2v",
+    loadKind: "diffusion_model",
+    modelFile:
+      "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
+    modelPath: "",
+    comfyCheckpointGroup: null,
+    diffusionModelComfyName:
+      "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
+    checkpointBasename: undefined,
+    capabilities: caps(["t2v"]),
+    nativeAudio: true,
+  },
   minimax_t2v: {
     managedWorkflowId: "text2video-minimax_h3_t2v",
     family: "minimax-t2v",
@@ -195,6 +247,19 @@ const TEXT2VIDEO_MODEL_PRESETS = {
     comfyCheckpointGroup: null,
     diffusionModelComfyName:
       "minimax\\minimax_h3_fl2va_pruned_int8_convrot.safetensors",
+    checkpointBasename: undefined,
+    capabilities: caps(["t2v"]),
+    nativeAudio: true,
+  },
+  fasth3_t2v: {
+    managedWorkflowId: "text2video-fastvideo_fasth3_t2v",
+    family: "fasth3-t2v",
+    loadKind: "diffusion_model",
+    modelFile: "fastvideo_fasth3_8step_v2_pruned_int8_convrot.safetensors",
+    modelPath: "",
+    comfyCheckpointGroup: null,
+    diffusionModelComfyName:
+      "fastvideo_fasth3_8step_v2_pruned_int8_convrot.safetensors",
     checkpointBasename: undefined,
     capabilities: caps(["t2v"]),
     nativeAudio: true,
@@ -236,6 +301,20 @@ const AUDIO2VIDEO_MODEL_PRESETS = {
     capabilities: caps(["a2v", "userAudio", "identity"]),
     nativeAudio: true,
     requiresReferenceImage: true,
+  },
+  ltx25_a2v: {
+    managedWorkflowId: "audio2video-ltx2_5_ia2v",
+    family: "ltx25-a2v",
+    loadKind: "diffusion_model",
+    modelFile:
+      "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
+    modelPath: "",
+    comfyCheckpointGroup: null,
+    diffusionModelComfyName:
+      "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
+    checkpointBasename: undefined,
+    capabilities: caps(["a2v", "userAudio"]),
+    nativeAudio: true,
   },
 };
 
@@ -293,6 +372,26 @@ const VIDEO2VIDEO_MODEL_PRESETS = {
     comfyCheckpointGroup: "ltx",
     diffusionModelComfyName: null,
     checkpointBasename: "ltx-2.3-22b-distilled-fp8.safetensors",
+    requiresReferenceImage: true,
+    capabilities: caps(["v2v", "control", "refVideo"]),
+    nativeAudio: true,
+    videoInputProfile: {
+      targetFps: 25,
+      defaultDurationSeconds: 5,
+      maxLongerEdge: 1344,
+    },
+  },
+  ltx25_ic_lora: {
+    managedWorkflowId: "video2video-ltx2_5_ic_lora",
+    family: "ltx25-ic",
+    loadKind: "diffusion_model",
+    modelFile:
+      "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
+    modelPath: "",
+    comfyCheckpointGroup: null,
+    diffusionModelComfyName:
+      "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
+    checkpointBasename: undefined,
     requiresReferenceImage: true,
     capabilities: caps(["v2v", "control", "refVideo"]),
     nativeAudio: true,
@@ -419,7 +518,100 @@ const REFERENCE2VIDEO_MODEL_PRESETS = {
     maxRefVideos: 0,
     maxRefAudios: 0,
   },
+  ltx25_ingredients: {
+    managedWorkflowId: "reference2video-ltx2_5_ic_lora_ingredients",
+    family: "ltx25-ingredients",
+    loadKind: "diffusion_model",
+    modelFile:
+      "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
+    modelPath: "",
+    comfyCheckpointGroup: null,
+    diffusionModelComfyName:
+      "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
+    checkpointBasename: undefined,
+    capabilities: caps(["r2v", "multiRefImages"]),
+    nativeAudio: true,
+    maxRefImages: 1,
+    maxRefVideos: 0,
+    maxRefAudios: 0,
+  },
 };
+
+/** Fixed-model text2audio presets. */
+const TEXT2AUDIO_MODEL_PRESETS = {
+  yue2: {
+    managedWorkflowId: "text2audio-yue2",
+    family: "yue2",
+    loadKind: "diffusion_model",
+    modelFile: "yue2.safetensors",
+    modelPath: "",
+    comfyCheckpointGroup: null,
+    diffusionModelComfyName: null,
+    capabilities: caps(["t2a"]),
+    nativeAudio: true,
+    maxDurationSeconds: 120,
+  },
+  minimax_music3: {
+    managedWorkflowId: "text2audio-minimax_music3",
+    family: "minimax-music3",
+    loadKind: "diffusion_model",
+    modelFile: "minimax_music_3.safetensors",
+    modelPath: "",
+    comfyCheckpointGroup: null,
+    diffusionModelComfyName: null,
+    capabilities: caps(["t2a"]),
+    nativeAudio: true,
+    maxDurationSeconds: 60,
+  },
+  ltx25_t2a: {
+    managedWorkflowId: "text2audio-ltx2_5_t2a",
+    family: "ltx25-t2a",
+    loadKind: "diffusion_model",
+    modelFile:
+      "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
+    modelPath: "",
+    comfyCheckpointGroup: null,
+    diffusionModelComfyName:
+      "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
+    capabilities: caps(["t2a"]),
+    nativeAudio: true,
+    maxDurationSeconds: 15,
+  },
+};
+
+function getText2audioPreset(clientModelField) {
+  const q = String(clientModelField || "").trim();
+  return TEXT2AUDIO_MODEL_PRESETS[q] ?? null;
+}
+
+function buildSyntheticText2audioRegistryEntry(presetKey, preset) {
+  return buildSyntheticPresetRegistryEntry("text2audio", presetKey, preset);
+}
+
+/** Fixed-model audio2audio presets. */
+const AUDIO2AUDIO_MODEL_PRESETS = {
+  yue2_cover: {
+    managedWorkflowId: "audio2audio-yue2_cover",
+    family: "yue2-cover",
+    loadKind: "diffusion_model",
+    modelFile: "yue2.safetensors",
+    modelPath: "",
+    comfyCheckpointGroup: null,
+    diffusionModelComfyName: null,
+    capabilities: caps(["a2a", "userAudio"]),
+    nativeAudio: true,
+    maxDurationSeconds: 360,
+  },
+};
+
+function getAudio2audioPreset(clientModelField) {
+  const q = String(clientModelField || "").trim();
+  return AUDIO2AUDIO_MODEL_PRESETS[q] ?? null;
+}
+
+function buildSyntheticAudio2audioRegistryEntry(presetKey, preset) {
+  return buildSyntheticPresetRegistryEntry("audio2audio", presetKey, preset);
+}
 
 function getReference2videoPreset(clientModelField) {
   const q = String(clientModelField || "").trim();
@@ -439,6 +631,8 @@ function buildCapabilityMatrix() {
     ["audio2video", AUDIO2VIDEO_MODEL_PRESETS],
     ["video2video", VIDEO2VIDEO_MODEL_PRESETS],
     ["reference2video", REFERENCE2VIDEO_MODEL_PRESETS],
+    ["text2audio", TEXT2AUDIO_MODEL_PRESETS],
+    ["audio2audio", AUDIO2AUDIO_MODEL_PRESETS],
   ];
   for (const [method, presets] of groups) {
     for (const [key, preset] of Object.entries(presets)) {
@@ -465,17 +659,23 @@ module.exports = {
   AUDIO2VIDEO_MODEL_PRESETS,
   VIDEO2VIDEO_MODEL_PRESETS,
   REFERENCE2VIDEO_MODEL_PRESETS,
+  TEXT2AUDIO_MODEL_PRESETS,
+  AUDIO2AUDIO_MODEL_PRESETS,
   getImage2videoPreset,
   getImage2imagePreset,
   getText2videoPreset,
   getAudio2videoPreset,
   getVideo2videoPreset,
   getReference2videoPreset,
+  getText2audioPreset,
+  getAudio2audioPreset,
   buildSyntheticImage2videoRegistryEntry,
   buildSyntheticImage2imageRegistryEntry,
   buildSyntheticText2videoRegistryEntry,
   buildSyntheticAudio2videoRegistryEntry,
   buildSyntheticVideo2videoRegistryEntry,
   buildSyntheticReference2videoRegistryEntry,
+  buildSyntheticText2audioRegistryEntry,
+  buildSyntheticAudio2audioRegistryEntry,
   buildCapabilityMatrix,
 };

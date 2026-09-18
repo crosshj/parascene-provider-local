@@ -42,6 +42,10 @@ function contentTypeForArtifactFilename(fileName) {
   if (ext === ".webm") return "video/webm";
   if (ext === ".mov") return "video/quicktime";
   if (ext === ".gif") return "image/gif";
+  if (ext === ".mp3") return "audio/mpeg";
+  if (ext === ".wav") return "audio/wav";
+  if (ext === ".flac") return "audio/flac";
+  if (ext === ".m4a") return "audio/mp4";
   return "application/octet-stream";
 }
 
@@ -49,6 +53,12 @@ function isVideoArtifactJob(job) {
   if (job.result?.media_kind === "video") return true;
   const ct = contentTypeForArtifactFilename(job.result?.file_name || "");
   return ct.startsWith("video/");
+}
+
+function isAudioArtifactJob(job) {
+  if (job.result?.media_kind === "audio") return true;
+  const ct = contentTypeForArtifactFilename(job.result?.file_name || "");
+  return ct.startsWith("audio/");
 }
 
 // Shared API key for simple bearer auth.
@@ -266,12 +276,14 @@ async function handleApiPost(req, res, ctx = {}) {
     // Succeeded: stream artifact (infer video vs image so method/registry stays consistent).
     if (job.result?.file_name && ctx.outputDir) {
       const filePath = path.join(ctx.outputDir, job.result.file_name);
-      if (isVideoArtifactJob(job)) {
+      if (isVideoArtifactJob(job) || isAudioArtifactJob(job)) {
         return fs.readFile(filePath, (err, data) => {
           if (err) {
             return sendJson(res, 500, {
               async: true,
-              error: "Video file missing",
+              error: isAudioArtifactJob(job)
+                ? "Audio file missing"
+                : "Video file missing",
               job_id: job.id,
             });
           }
@@ -329,7 +341,9 @@ async function handleApiPost(req, res, ctx = {}) {
         const ct = contentTypeForArtifactFilename(job.result.file_name);
         const headers = {
           "Content-Type":
-            ct.startsWith("video/") || ct.startsWith("image/")
+            ct.startsWith("video/") ||
+            ct.startsWith("image/") ||
+            ct.startsWith("audio/")
               ? ct
               : "application/octet-stream",
           "Content-Length": String(data.length),
@@ -357,7 +371,9 @@ async function handleApiPost(req, res, ctx = {}) {
     method === "image2video" ||
     method === "audio2video" ||
     method === "video2video" ||
-    method === "reference2video"
+    method === "reference2video" ||
+    method === "text2audio" ||
+    method === "audio2audio"
   ) {
     if (!ctx.outputDir) {
       return sendJson(res, 503, { error: "OUTPUT_DIR not configured" });
@@ -415,4 +431,5 @@ module.exports = {
   handleApiPost,
   applyMethodFieldDefaults,
   ensureAuthorized,
+  contentTypeForArtifactFilename,
 };

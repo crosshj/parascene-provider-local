@@ -158,6 +158,8 @@ function initApp() {
   const aspectRatioSel = document.getElementById("aspect_ratio");
   const durationField = document.getElementById("duration-field");
   const durationInput = document.getElementById("duration_seconds");
+  const lyricsField = document.getElementById("lyrics-field");
+  const lyricsInput = document.getElementById("lyrics");
   const startOffsetField = document.getElementById("start-offset-field");
   const startOffsetInput = document.getElementById("start_offset_seconds");
   const seedField = document.getElementById("seed-field");
@@ -830,6 +832,16 @@ function initApp() {
         hintAudios: "",
       };
     }
+    if (method === "audio2audio") {
+      return {
+        maxImages: 0,
+        maxVideos: 0,
+        maxAudios: 1,
+        audiosRequired: true,
+        labelAudios: "Audio",
+        hintAudios: "",
+      };
+    }
     if (method === "video2video") {
       return {
         maxImages: 1,
@@ -1277,6 +1289,8 @@ function initApp() {
 
   /** @type {HTMLVideoElement | null} */
   let previewVideoEl = null;
+  /** @type {HTMLAudioElement | null} */
+  let previewAudioEl = null;
 
   function getPreviewVideoEl() {
     if (!previewVideoEl) {
@@ -1288,6 +1302,16 @@ function initApp() {
       previewWrap.appendChild(previewVideoEl);
     }
     return previewVideoEl;
+  }
+
+  function getPreviewAudioEl() {
+    if (!previewAudioEl) {
+      previewAudioEl = document.createElement("audio");
+      previewAudioEl.setAttribute("controls", "");
+      previewAudioEl.style.display = "none";
+      previewWrap.appendChild(previewAudioEl);
+    }
+    return previewAudioEl;
   }
 
   function revokePreviewObjectUrls() {
@@ -1305,6 +1329,17 @@ function initApp() {
         previewVideoEl.src.startsWith("blob:")
       ) {
         URL.revokeObjectURL(previewVideoEl.src);
+      }
+    } catch {
+      /* ignore */
+    }
+    try {
+      if (
+        previewAudioEl &&
+        previewAudioEl.src &&
+        previewAudioEl.src.startsWith("blob:")
+      ) {
+        URL.revokeObjectURL(previewAudioEl.src);
       }
     } catch {
       /* ignore */
@@ -1358,6 +1393,7 @@ function initApp() {
       },
       aspect_ratio: aspectRatioSel ? aspectRatioSel.value : undefined,
       duration_seconds: durationInput ? durationInput.value : undefined,
+      lyrics: lyricsInput ? lyricsInput.value : undefined,
       start_offset_seconds: startOffsetInput
         ? startOffsetInput.value
         : undefined,
@@ -1394,6 +1430,11 @@ function initApp() {
       previewVideoEl.style.display = "none";
       previewVideoEl.removeAttribute("src");
     }
+    if (previewAudioEl) {
+      previewAudioEl.pause?.();
+      previewAudioEl.style.display = "none";
+      previewAudioEl.removeAttribute("src");
+    }
     idleEl.classList.remove("hidden");
   }
 
@@ -1403,6 +1444,10 @@ function initApp() {
     if (previewVideoEl) {
       previewVideoEl.style.display = "none";
       previewVideoEl.removeAttribute("src");
+    }
+    if (previewAudioEl) {
+      previewAudioEl.style.display = "none";
+      previewAudioEl.removeAttribute("src");
     }
     idleEl.classList.add("hidden");
   }
@@ -1415,6 +1460,10 @@ function initApp() {
       previewVideoEl.style.display = "none";
       previewVideoEl.removeAttribute("src");
     }
+    if (previewAudioEl) {
+      previewAudioEl.style.display = "none";
+      previewAudioEl.removeAttribute("src");
+    }
     imageEl.src = src;
     imageEl.style.display = "block";
   }
@@ -1424,11 +1473,35 @@ function initApp() {
     previewWrap.classList.remove("is-loading");
     idleEl.classList.add("hidden");
     imageEl.style.display = "none";
+    if (previewAudioEl) {
+      previewAudioEl.style.display = "none";
+      previewAudioEl.removeAttribute("src");
+    }
     const v = getPreviewVideoEl();
     v.src = src;
     v.style.display = "block";
     try {
       v.play?.();
+    } catch {
+      /* autoplay may be blocked */
+    }
+  }
+
+  function setPreviewAudio(src) {
+    revokePreviewObjectUrls();
+    previewWrap.classList.remove("is-loading");
+    idleEl.classList.add("hidden");
+    imageEl.style.display = "none";
+    if (previewVideoEl) {
+      previewVideoEl.pause?.();
+      previewVideoEl.style.display = "none";
+      previewVideoEl.removeAttribute("src");
+    }
+    const a = getPreviewAudioEl();
+    a.src = src;
+    a.style.display = "block";
+    try {
+      a.play?.();
     } catch {
       /* autoplay may be blocked */
     }
@@ -1570,6 +1643,25 @@ function initApp() {
         }
       }
 
+      function rebuildLyricsForMethod(methodId, preferredLyrics) {
+        if (!lyricsInput || !lyricsField) return;
+        const field = methods[methodId]?.fields?.lyrics;
+        if (!isApiFieldShown(field)) {
+          lyricsField.style.display = "none";
+          if (!field) lyricsInput.value = "";
+          return;
+        }
+        lyricsField.style.display = "";
+        if (field.hidden) {
+          lyricsField.dataset.apiHidden = "1";
+        } else {
+          delete lyricsField.dataset.apiHidden;
+        }
+        if (preferredLyrics != null) {
+          lyricsInput.value = String(preferredLyrics);
+        }
+      }
+
       function rebuildStartOffsetForMethod(methodId, preferredOffset) {
         if (!startOffsetInput || !startOffsetField) return;
         const field = methods[methodId]?.fields?.start_offset_seconds;
@@ -1669,6 +1761,10 @@ function initApp() {
           ? savedValues.duration_seconds
           : null,
       );
+      rebuildLyricsForMethod(
+        initialMethod,
+        savedValues && savedValues.lyrics != null ? savedValues.lyrics : null,
+      );
       rebuildStartOffsetForMethod(
         initialMethod,
         savedValues && savedValues.start_offset_seconds != null
@@ -1686,6 +1782,10 @@ function initApp() {
         rebuildStartOffsetForMethod(
           methodId,
           startOffsetInput?.value !== "" ? startOffsetInput.value : null,
+        );
+        rebuildLyricsForMethod(
+          methodId,
+          lyricsInput?.value !== "" ? lyricsInput.value : null,
         );
         rebuildSeedForMethod(methodId);
       }
@@ -1750,6 +1850,7 @@ function initApp() {
         if (pick) perMethodModel[methodId] = pick;
         rebuildAspectRatioForMethod(methodId, null);
         rebuildDurationForMethod(methodId, null);
+        rebuildLyricsForMethod(methodId, null);
         rebuildStartOffsetForMethod(methodId, null);
         rebuildSeedForMethod(methodId);
         saveFormValues();
@@ -1841,6 +1942,16 @@ function initApp() {
       }
       body.input_audio_urls = audios;
       if (images.length) body.input_images = images;
+    } else if (method === "audio2audio") {
+      if (!audios.length) {
+        setPreviewIdle();
+        setStatusMessage(
+          "Error: Input audio is required (URL, data URI, or upload)",
+          true,
+        );
+        return;
+      }
+      body.input_audio_urls = audios;
     } else if (method === "video2video") {
       if (!videos.length) {
         setPreviewIdle();
@@ -1876,6 +1987,11 @@ function initApp() {
     }
     if (aspectRatioSel && aspectRatioSel.value) {
       body.aspect_ratio = aspectRatioSel.value;
+    }
+
+    if (lyricsInput && lyricsField && lyricsField.style.display !== "none") {
+      const lyricsVal = lyricsInput.value.trim();
+      if (lyricsVal) body.lyrics = lyricsVal;
     }
 
     if (durationInput && durationField && durationField.style.display !== "none") {
@@ -1995,6 +2111,24 @@ function initApp() {
                 : new Blob([await blob.arrayBuffer()], { type: contentType });
             const url = URL.createObjectURL(typedBlob);
             setPreviewVideo(url);
+            const meta = {
+              family: badge.textContent ?? "—",
+              model:
+                modelSel.selectedOptions[0]?.textContent?.split(":")[1]?.trim() ??
+                "—",
+              seed: body.seed != null ? String(body.seed) : "—",
+              elapsed_ms: pollRes.headers.get("X-Elapsed-Ms") ?? "—",
+            };
+            renderMeta(meta);
+            setStatusMessage("Done.");
+          } else if (contentType.toLowerCase().startsWith("audio/")) {
+            const blob = await pollRes.blob();
+            const typedBlob =
+              blob.type && blob.type.startsWith("audio/")
+                ? blob
+                : new Blob([await blob.arrayBuffer()], { type: contentType });
+            const url = URL.createObjectURL(typedBlob);
+            setPreviewAudio(url);
             const meta = {
               family: badge.textContent ?? "—",
               model:
