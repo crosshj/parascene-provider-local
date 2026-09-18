@@ -225,33 +225,73 @@ function parseOutputVideo(historyData, promptId) {
 
 function tryParseAudioRef(outSlot) {
   if (!outSlot || typeof outSlot !== "object") return null;
+
+  const fromCandidate = (candidate, fallback = {}) => {
+    if (!candidate) return null;
+    if (typeof candidate === "string") {
+      if (!filenameLooksLikeAudio(candidate)) return null;
+      const normalized = String(candidate).replace(/\\/g, "/");
+      const slash = normalized.lastIndexOf("/");
+      const filename = slash >= 0 ? normalized.slice(slash + 1) : normalized;
+      const subfolder = slash >= 0 ? normalized.slice(0, slash) : "";
+      return {
+        kind: "audio",
+        filename,
+        subfolder,
+        type: String(fallback.type || "output"),
+      };
+    }
+    if (typeof candidate !== "object" || !candidate.filename) return null;
+    return {
+      kind: "audio",
+      filename: String(candidate.filename),
+      subfolder: String(
+        candidate.subfolder !== undefined
+          ? candidate.subfolder
+          : fallback.subfolder || "",
+      ),
+      type: String(candidate.type || fallback.type || "output"),
+    };
+  };
+
   const lists = ["audio", "audios"];
   for (const key of lists) {
     const arr = outSlot[key];
     if (!Array.isArray(arr) || arr.length === 0) continue;
-    const first = arr[0];
-    if (first && first.filename) {
-      return {
-        kind: "audio",
-        filename: String(first.filename),
-        subfolder: String(first.subfolder || ""),
-        type: String(first.type || "output"),
-      };
+    for (const item of arr) {
+      const ref = fromCandidate(item, outSlot);
+      if (ref) return ref;
     }
   }
+
+  // Some custom saver nodes expose a direct output-like object.
+  const direct = fromCandidate(outSlot, outSlot);
+  if (direct) return direct;
+
   const imgs = outSlot.images;
   if (Array.isArray(imgs)) {
     for (const item of imgs) {
-      if (item && item.filename && filenameLooksLikeAudio(item.filename)) {
-        return {
-          kind: "audio",
-          filename: String(item.filename),
-          subfolder: String(item.subfolder || ""),
-          type: String(item.type || "output"),
-        };
-      }
+      const ref = fromCandidate(item, outSlot);
+      if (ref) return ref;
     }
   }
+
+  // Some custom nodes return media references under generic list fields.
+  const genericLists = ["files", "result", "results", "outputs"];
+  for (const key of genericLists) {
+    const arr = outSlot[key];
+    if (!Array.isArray(arr) || arr.length === 0) continue;
+    for (const item of arr) {
+      const ref = fromCandidate(item, outSlot);
+      if (ref) return ref;
+    }
+  }
+
+  // Defensive fallback for nested UI payload shapes.
+  if (outSlot.ui && typeof outSlot.ui === "object") {
+    return tryParseAudioRef(outSlot.ui);
+  }
+
   return null;
 }
 
@@ -611,4 +651,10 @@ async function interruptComfy({ clearQueue = true } = {}) {
   };
 }
 
-module.exports = { runComfyGeneration, interruptComfy, isComfyGoneError };
+module.exports = {
+  runComfyGeneration,
+  interruptComfy,
+  isComfyGoneError,
+  parseOutputAudio,
+  tryParseAudioRef,
+};

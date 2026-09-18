@@ -795,11 +795,12 @@ const BASE_PROVIDER_CAPABILITIES = {
               value: "minimax_music3",
               hint: "MiniMax Music 3 caption + optional lyrics. Duration is a cap (max 60s).",
             },
-            {
-              label: "LTX 2.5 — text-to-audio",
-              value: "ltx25_t2a",
-              hint: "LTX 2.5 soundscape / SFX (no lyrics). Optional duration and prompt magic.",
-            },
+            // Missing LTXVAudioOnlyEmptyVideoLatent (and more)
+            // {
+            //   label: "LTX 2.5 — text-to-audio",
+            //   value: "ltx25_t2a",
+            //   hint: "LTX 2.5 soundscape / SFX (no lyrics). Optional duration and prompt magic.",
+            // },
           ],
         },
         prompt: {
