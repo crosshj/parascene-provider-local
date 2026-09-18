@@ -3,6 +3,7 @@
     "inputs": {
       "filename_prefix": "audio/YuE2",
       "format": "mp3",
+      "format.quality": "V0",
       "audio": [
         "33:9",
         0
@@ -105,7 +106,7 @@
         0
       ],
       "abc": [
-        "33:14",
+        "33:30",
         0
       ],
       "seed": [

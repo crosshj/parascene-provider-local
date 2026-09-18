@@ -245,6 +245,8 @@ describe("inbox graduation builders", () => {
     expect(yue["33:34"].inputs.seed).toBe(2);
     expect(yue["33:25"].inputs.max_duration).toBe(45);
     expect(yue["10"].inputs.format).toBe("mp3");
+    expect(yue["10"].inputs["format.quality"]).toBe("V0");
+    expect(yue["33:25"].inputs.abc).toEqual(["33:30", 0]);
 
     const yueCapped = Yue2({ prompt: "long", durationSeconds: 999 });
     expect(yueCapped["33:25"].inputs.max_duration).toBe(120);
@@ -297,6 +299,8 @@ describe("inbox graduation builders", () => {
     expect(wf["33:25"].inputs.lyrics).toBe("verse");
     expect(wf["33:25"].inputs.max_duration).toBe(180);
     expect(wf["10"].inputs.format).toBe("mp3");
+    expect(wf["10"].inputs["format.quality"]).toBe("V0");
+    expect(wf["33:25"].inputs.abc).toEqual(["33:41", 0]);
 
     const capped = Yue2Cover({
       prompt: "long",
