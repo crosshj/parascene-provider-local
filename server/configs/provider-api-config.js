@@ -171,11 +171,13 @@ const BASE_PROVIDER_CAPABILITIES = {
             },
             {
               label: "krea2: krea2_turbo_fp8_scaled",
-              value: "diffusion_models/krea2_turbo_fp8_scaled.safetensors",
+              value:
+                "diffusion_models/krea2/krea2_turbo_fp8_scaled.safetensors",
             },
             {
               label: "krea2: krea2_turbo_int8_convrot",
-              value: "diffusion_models/krea2_turbo_int8_convrot.safetensors",
+              value:
+                "diffusion_models/krea2/krea2_turbo_int8_convrot.safetensors",
             },
           ],
         },

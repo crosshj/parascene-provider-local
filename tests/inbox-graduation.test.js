@@ -61,7 +61,7 @@ jest.mock("../server/lib/video-prepare.js", () => {
 
 jest.mock("../server/lib/model-registry.js", () => ({
   resolveModel: jest.fn(() => ({
-    modelId: "diffusion_models/krea2_turbo_fp8_scaled.safetensors",
+    modelId: "diffusion_models/krea2/krea2_turbo_fp8_scaled.safetensors",
     name: "krea2_turbo_fp8_scaled",
     file: "krea2_turbo_fp8_scaled.safetensors",
     family: "krea2",
@@ -69,7 +69,7 @@ jest.mock("../server/lib/model-registry.js", () => ({
     loadKind: "diffusion_model",
     managedWorkflowId: "text2image-krea2_turbo",
     comfyCheckpointGroup: null,
-    diffusionModelComfyName: "krea2_turbo_fp8_scaled.safetensors",
+    diffusionModelComfyName: "krea2\\krea2_turbo_fp8_scaled.safetensors",
     defaults: { width: 1024, height: 1024, steps: 20, cfg: 7 },
   })),
   getModels: jest.fn(() => []),
@@ -82,21 +82,14 @@ jest.mock("../server/generator/index.js", () => ({
   getManagedComfyStatus: jest.fn(),
 }));
 
-const {
-  downloadImagesToComfyInput,
-} = require("../server/generator/image-input.js");
-const {
-  downloadAudioToComfyInput,
-} = require("../server/generator/audio-input.js");
+const { downloadImagesToComfyInput } = require("../server/generator/image-input.js");
+const { downloadAudioToComfyInput } = require("../server/generator/audio-input.js");
 const { buildComfyArgs } = require("../server/lib/comfy-args.js");
 const {
   contentTypeForArtifactFilename,
   handleApiPost,
 } = require("../server/handlers/api.js");
-const {
-  occupancyPeek,
-  reloadPersistedQueueForTests,
-} = require("../server/lib/scheduler.js");
+const { occupancyPeek, reloadPersistedQueueForTests } = require("../server/lib/scheduler.js");
 const { WORKFLOWS } = require("../server/workflows/_index.js");
 
 const Krea2Turbo = require("../server/workflows/text2image/krea2_turbo.js");
@@ -417,9 +410,7 @@ describe("inbox graduation builders", () => {
   });
 
   it("advertises duration and LTX prompt magic on audio methods", () => {
-    const {
-      BASE_PROVIDER_CAPABILITIES,
-    } = require("../server/configs/provider-api-config.js");
+    const { BASE_PROVIDER_CAPABILITIES } = require("../server/configs/provider-api-config.js");
     const t2a = BASE_PROVIDER_CAPABILITIES.methods.text2audio.fields;
     expect(t2a.duration_seconds.hidden).toBeUndefined();
     expect(t2a.duration_seconds.max).toBe(120);
@@ -434,14 +425,14 @@ describe("inbox graduation comfy-args", () => {
     const { payload } = await buildComfyArgs(
       {
         prompt: "portrait",
-        model: "diffusion_models/krea2_turbo_fp8_scaled.safetensors",
+        model: "diffusion_models/krea2/krea2_turbo_fp8_scaled.safetensors",
         method: "text2image",
       },
       OUTPUT_DIR,
     );
     expect(payload.managedWorkflowId).toBe("text2image-krea2_turbo");
     expect(payload.diffusionModelComfyName).toBe(
-      "krea2_turbo_fp8_scaled.safetensors",
+      "krea2\\krea2_turbo_fp8_scaled.safetensors",
     );
   });
 
