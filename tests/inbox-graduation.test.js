@@ -255,13 +255,10 @@ describe("inbox graduation builders", () => {
     expect(yue["33:36"].inputs.value).toBe("lofi rain");
     expect(yue["33:37"].inputs.value).toBe("soft words");
     expect(yue["33:34"].inputs.seed).toBe(2);
-    expect(yue["33:25"].inputs.max_duration).toBe(45);
+    expect(yue["33:25"].inputs.max_duration).toBe(300);
     expect(yue["10"].inputs.format).toBe("mp3");
     expect(yue["10"].inputs["format.quality"]).toBe("V0");
     expect(yue["33:25"].inputs.abc).toEqual(["33:30", 0]);
-
-    const yueCapped = Yue2({ prompt: "long", durationSeconds: 999 });
-    expect(yueCapped["33:25"].inputs.max_duration).toBe(120);
 
     const music = Music3({
       prompt: "city pop",
@@ -272,10 +269,7 @@ describe("inbox graduation builders", () => {
     expect(music["37:13"].inputs.caption).toBe("city pop");
     expect(music["37:13"].inputs.lyrics).toBe("chorus");
     expect(music["37:38"].inputs.seed).toBe(4);
-    expect(music["37:13"].inputs.max_duration).toBe(40);
-
-    const musicCapped = Music3({ prompt: "long", durationSeconds: 90 });
-    expect(musicCapped["37:13"].inputs.max_duration).toBe(60);
+    expect(music["37:13"].inputs.max_duration).toBe(300);
 
     const t2a = Ltx25T2a({
       prompt: "distant thunder",
@@ -309,17 +303,10 @@ describe("inbox graduation builders", () => {
     expect(wf["45"].inputs.audio).toBe("src.mp3");
     expect(wf["33:25"].inputs.style).toBe("jazz cover");
     expect(wf["33:25"].inputs.lyrics).toBe("verse");
-    expect(wf["33:25"].inputs.max_duration).toBe(180);
+    expect(wf["33:25"].inputs.max_duration).toBe(300);
     expect(wf["10"].inputs.format).toBe("mp3");
     expect(wf["10"].inputs["format.quality"]).toBe("V0");
     expect(wf["33:25"].inputs.abc).toEqual(["33:41", 0]);
-
-    const capped = Yue2Cover({
-      prompt: "long",
-      inputAudioFilename: "src.mp3",
-      durationSeconds: 999,
-    });
-    expect(capped["33:25"].inputs.max_duration).toBe(360);
   });
 
   it("LTX 2.5 twins match the 2.3 field contract", () => {
@@ -421,14 +408,13 @@ describe("inbox graduation builders", () => {
     }
   });
 
-  it("advertises duration and LTX prompt magic on audio methods", () => {
+  it("does not advertise duration on music audio methods", () => {
     const { BASE_PROVIDER_CAPABILITIES } = require("../server/configs/provider-api-config.js");
     const t2a = BASE_PROVIDER_CAPABILITIES.methods.text2audio.fields;
-    expect(t2a.duration_seconds.hidden).toBeUndefined();
-    expect(t2a.duration_seconds.max).toBe(120);
+    expect(t2a.duration_seconds).toBeUndefined();
     expect(t2a.prompt_magic.default).toBe(false);
     const a2a = BASE_PROVIDER_CAPABILITIES.methods.audio2audio.fields;
-    expect(a2a.duration_seconds.max).toBe(360);
+    expect(a2a.duration_seconds).toBeUndefined();
   });
 });
 
@@ -506,7 +492,7 @@ describe("inbox graduation comfy-args", () => {
     expect(wf["136"]).toBeUndefined();
   });
 
-  it("text2audio presets forward lyrics, duration, and LTX prompt magic", async () => {
+  it("text2audio music presets ignore duration; LTX T2A is parked", async () => {
     const yue = await buildComfyArgs(
       {
         prompt: "dream pop",
@@ -519,19 +505,8 @@ describe("inbox graduation comfy-args", () => {
     );
     expect(yue.payload.managedWorkflowId).toBe("text2audio-yue2");
     expect(yue.payload.lyrics).toBe("la la");
-    expect(yue.payload.durationSeconds).toBe(90);
+    expect(yue.payload.durationSeconds).toBeUndefined();
     expect(yue.payload.expectAudio).toBe(true);
-
-    const yueCapped = await buildComfyArgs(
-      {
-        prompt: "long",
-        model: "yue2",
-        method: "text2audio",
-        duration_seconds: 400,
-      },
-      OUTPUT_DIR,
-    );
-    expect(yueCapped.payload.durationSeconds).toBe(120);
 
     const music = await buildComfyArgs(
       {
@@ -542,32 +517,18 @@ describe("inbox graduation comfy-args", () => {
       },
       OUTPUT_DIR,
     );
-    expect(music.payload.durationSeconds).toBe(60);
+    expect(music.payload.durationSeconds).toBeUndefined();
 
-    const ltx = await buildComfyArgs(
-      {
-        prompt: "wind in pines",
-        model: "ltx25_t2a",
-        method: "text2audio",
-        duration_seconds: 7,
-        prompt_magic: true,
-      },
-      OUTPUT_DIR,
-    );
-    expect(ltx.payload.managedWorkflowId).toBe("text2audio-ltx2_5_t2a");
-    expect(ltx.payload.durationSeconds).toBe(7);
-    expect(ltx.payload.promptMagic).toBe(true);
-
-    const ltxLong = await buildComfyArgs(
-      {
-        prompt: "long sfx",
-        model: "ltx25_t2a",
-        method: "text2audio",
-        duration_seconds: 40,
-      },
-      OUTPUT_DIR,
-    );
-    expect(ltxLong.payload.durationSeconds).toBe(15);
+    await expect(
+      buildComfyArgs(
+        {
+          prompt: "wind in pines",
+          model: "ltx25_t2a",
+          method: "text2audio",
+        },
+        OUTPUT_DIR,
+      ),
+    ).rejects.toThrow(/Unknown text2audio model "ltx25_t2a"/);
   });
 
   it("audio2audio yue2_cover requires input audio", async () => {
@@ -592,7 +553,7 @@ describe("inbox graduation comfy-args", () => {
     expect(payload.managedWorkflowId).toBe("audio2audio-yue2_cover");
     expect(payload.inputAudioFilename).toBe("audio_1_abc.mp3");
     expect(payload.lyrics).toBe("bridge");
-    expect(payload.durationSeconds).toBe(180);
+    expect(payload.durationSeconds).toBeUndefined();
     expect(downloadAudioToComfyInput).toHaveBeenCalledWith([AUDIO_URL]);
   });
 

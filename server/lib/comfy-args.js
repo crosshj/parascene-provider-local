@@ -41,6 +41,7 @@ const {
   AUDIO2AUDIO_MODEL_PRESETS,
 } = require("../configs/api-model-aliases.js");
 const { _loadTemplateDefaults } = require("../workflows/_defaults.js");
+const { DEFAULT_V2V_MAX_DURATION_SECONDS } = require("../workflows/_duration.js");
 const {
   resolveGenerationDimensions,
   resolveAspectRatioFromInputImage,
@@ -71,7 +72,7 @@ function normalizeInputVideoUrls(body) {
 
 /**
  * Optional clip length in seconds.
- * Video methods default to the 1–15 window the desktop editor uses for A2V.
+ * Video methods default to 1–15; video2video passes max 30.
  * Audio presets pass a higher `max` to match YuE2 / MiniMax graph caps.
  */
 function resolveDurationSeconds(body, opts = {}) {
@@ -192,12 +193,6 @@ async function buildComfyArgs(body, outputDir) {
       promptMagic: body.prompt_magic ?? body.promptMagic,
       expectAudio: true,
     };
-    const durationSeconds = resolveDurationSeconds(body, {
-      max: preset.maxDurationSeconds || 15,
-    });
-    if (durationSeconds !== undefined) {
-      payload.durationSeconds = durationSeconds;
-    }
     return { payload, entry, method };
   }
 
@@ -237,12 +232,6 @@ async function buildComfyArgs(body, outputDir) {
       inputAudioFilename: audioFilename,
       expectAudio: true,
     };
-    const durationSeconds = resolveDurationSeconds(body, {
-      max: preset.maxDurationSeconds || 360,
-    });
-    if (durationSeconds !== undefined) {
-      payload.durationSeconds = durationSeconds;
-    }
     return { payload, entry, method };
   }
 
@@ -538,12 +527,18 @@ async function buildComfyArgs(body, outputDir) {
       throw new Error("Failed to prepare input video for video2video.");
     }
 
-    const durationSeconds = resolveDurationSeconds(body);
     const startOffsetSeconds = resolveStartOffsetSeconds(body);
     const profile = preset.videoInputProfile || {
       targetFps: 16,
       defaultDurationSeconds: 5,
+      maxDurationSeconds: DEFAULT_V2V_MAX_DURATION_SECONDS,
     };
+    const durationSeconds = resolveDurationSeconds(body, {
+      max:
+        preset.maxDurationSeconds ||
+        profile.maxDurationSeconds ||
+        DEFAULT_V2V_MAX_DURATION_SECONDS,
+    });
     const prepared = await prepareControlVideo({
       filename: stagedVideoFilename,
       profile,

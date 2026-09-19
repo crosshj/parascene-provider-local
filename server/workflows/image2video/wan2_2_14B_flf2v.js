@@ -2,6 +2,7 @@
 
 const path = require("path");
 const fs = require("fs");
+const { applyWanDuration } = require("../_wan-duration.js");
 
 const WORKFLOW_TEMPLATE = JSON.parse(
   fs.readFileSync(path.join(__dirname, "wan2_2_14B_flf2v.json"), "utf8"),
@@ -85,34 +86,10 @@ function WanFlf2vWorkflow(overrides = {}) {
     );
   }
 
-  const defaultFps = workflow["129:94"]?.inputs?.fps ?? 16;
-  const fps =
-    overrides.fps !== undefined
-      ? toNumber(overrides.fps, defaultFps)
-      : defaultFps;
-  if (workflow["129:94"]?.inputs && fps !== undefined) {
-    workflow["129:94"].inputs.fps = fps;
-  }
-
-  const explicitLength =
-    overrides.length ?? overrides.framesNumber ?? overrides.frames;
-  if (explicitLength !== undefined && workflow["129:98"]?.inputs) {
-    workflow["129:98"].inputs.length = toPositiveInt(
-      explicitLength,
-      workflow["129:98"].inputs.length,
-    );
-  } else if (
-    overrides.durationSeconds !== undefined &&
-    workflow["129:98"]?.inputs
-  ) {
-    const frames = Math.max(
-      1,
-      Math.round(
-        toNumber(overrides.durationSeconds, 0) * (Number(fps) > 0 ? fps : 16),
-      ),
-    );
-    if (frames > 0) workflow["129:98"].inputs.length = frames;
-  }
+  applyWanDuration(workflow, overrides, {
+    lengthNodeId: "129:98",
+    fpsNodeId: "129:94",
+  });
 
   if (overrides.steps !== undefined && workflow["129:128"]?.inputs) {
     workflow["129:128"].inputs.value = toPositiveInt(

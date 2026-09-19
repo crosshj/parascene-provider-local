@@ -279,16 +279,16 @@ describe("generation uniqueness fingerprint", () => {
   it("applies text2audio prompt_magic default so omitted matches false", () => {
     const omitted = fingerprintOf("text2audio", {
       prompt: "wind",
-      model: "ltx25_t2a",
+      model: "yue2",
     });
     const explicit = fingerprintOf("text2audio", {
       prompt: "wind",
-      model: "ltx25_t2a",
+      model: "yue2",
       prompt_magic: false,
     });
     const on = fingerprintOf("text2audio", {
       prompt: "wind",
-      model: "ltx25_t2a",
+      model: "yue2",
       prompt_magic: true,
     });
     expect(omitted).toBe(explicit);

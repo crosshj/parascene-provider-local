@@ -2,7 +2,7 @@
 
 const path = require("path");
 const fs = require("fs");
-const { durationSecondsToLtxFrames } = require("../_ltx-duration.js");
+const { applyLtxDuration } = require("../_ltx-duration.js");
 
 const WORKFLOW_TEMPLATE = JSON.parse(
   fs.readFileSync(path.join(__dirname, "ltx2_5_ic_lora.json"), "utf8"),
@@ -11,11 +11,6 @@ const WORKFLOW_TEMPLATE = JSON.parse(
 function toPositiveInt(value, fallback) {
   const n = Number(value);
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
-}
-
-function toNumber(value, fallback) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
 }
 
 function cloneBaseWorkflow() {
@@ -66,17 +61,10 @@ function Ltx25IcLoraWorkflow(overrides = {}) {
     );
   }
 
-  const durationSeconds = toNumber(
-    overrides.durationSeconds ?? overrides.duration_seconds,
-    null,
-  );
-  if (durationSeconds != null && workflow["9002:3059"]?.inputs) {
-    const fps = toNumber(overrides.fps, 24);
-    workflow["9002:3059"].inputs.length = durationSecondsToLtxFrames(
-      durationSeconds,
-      fps,
-    );
-  }
+  applyLtxDuration(workflow, overrides, {
+    lengthTargets: [{ id: "9002:3059", field: "length" }],
+    fallbackFps: 24,
+  });
 
   if (overrides.diffusionModelComfyName && workflow["5004:5602"]?.inputs) {
     workflow["5004:5602"].inputs.unet_name = String(

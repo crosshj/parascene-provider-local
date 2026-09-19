@@ -2,6 +2,7 @@
 
 const path = require("path");
 const fs = require("fs");
+const { applyLtxDuration } = require("../_ltx-duration.js");
 
 const WORKFLOW_TEMPLATE = JSON.parse(
   fs.readFileSync(path.join(__dirname, "video_ltx2_3_id_lora.json"), "utf8"),
@@ -57,6 +58,12 @@ function LtxIdLoraWorkflow(overrides = {}) {
       workflow["340:324"].inputs.value,
     );
   }
+
+  applyLtxDuration(workflow, overrides, {
+    durationNodeId: "340:331",
+    fpsNodeId: "340:323",
+    lengthTargets: [{ id: "340:302", field: "length" }],
+  });
 
   const ckpt =
     overrides.checkpointBasename &&

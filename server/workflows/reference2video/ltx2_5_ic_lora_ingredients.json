@@ -60,7 +60,7 @@
   },
   "9008": {
     "inputs": {
-      "value": 10
+      "value": 5
     },
     "class_type": "PrimitiveFloat",
     "_meta": {

@@ -378,6 +378,7 @@ const VIDEO2VIDEO_MODEL_PRESETS = {
     videoInputProfile: {
       targetFps: 25,
       defaultDurationSeconds: 5,
+      maxDurationSeconds: 30,
       maxLongerEdge: 1344,
     },
   },
@@ -398,6 +399,7 @@ const VIDEO2VIDEO_MODEL_PRESETS = {
     videoInputProfile: {
       targetFps: 25,
       defaultDurationSeconds: 5,
+      maxDurationSeconds: 30,
       maxLongerEdge: 1344,
     },
   },
@@ -416,6 +418,7 @@ const VIDEO2VIDEO_MODEL_PRESETS = {
     videoInputProfile: {
       targetFps: 16,
       defaultDurationSeconds: 5,
+      maxDurationSeconds: 30,
       maxLongerEdge: 960,
     },
   },
@@ -435,6 +438,7 @@ const VIDEO2VIDEO_MODEL_PRESETS = {
     videoInputProfile: {
       targetFps: 16,
       defaultDurationSeconds: 5,
+      maxDurationSeconds: 30,
       maxLongerEdge: 960,
     },
   },
@@ -453,6 +457,7 @@ const VIDEO2VIDEO_MODEL_PRESETS = {
     videoInputProfile: {
       targetFps: 16,
       defaultDurationSeconds: 5,
+      maxDurationSeconds: 30,
       maxLongerEdge: 960,
     },
   },
@@ -471,6 +476,7 @@ const VIDEO2VIDEO_MODEL_PRESETS = {
     videoInputProfile: {
       targetFps: 16,
       defaultDurationSeconds: 5,
+      maxDurationSeconds: 30,
       maxLongerEdge: 960,
     },
   },
@@ -549,7 +555,6 @@ const TEXT2AUDIO_MODEL_PRESETS = {
     diffusionModelComfyName: null,
     capabilities: caps(["t2a"]),
     nativeAudio: true,
-    maxDurationSeconds: 120,
   },
   minimax_music3: {
     managedWorkflowId: "text2audio-minimax_music3",
@@ -561,22 +566,23 @@ const TEXT2AUDIO_MODEL_PRESETS = {
     diffusionModelComfyName: null,
     capabilities: caps(["t2a"]),
     nativeAudio: true,
-    maxDurationSeconds: 60,
   },
-  ltx25_t2a: {
-    managedWorkflowId: "text2audio-ltx2_5_t2a",
-    family: "ltx25-t2a",
-    loadKind: "diffusion_model",
-    modelFile:
-      "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
-    modelPath: "",
-    comfyCheckpointGroup: null,
-    diffusionModelComfyName:
-      "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
-    capabilities: caps(["t2a"]),
-    nativeAudio: true,
-    maxDurationSeconds: 15,
-  },
+  // Parked — LTX 2.5 T2A has not produced correct output. Graph + builder stay
+  // under server/workflows/text2audio/ and _index.js, but are not API-exposed.
+  // ltx25_t2a: {
+  //   managedWorkflowId: "text2audio-ltx2_5_t2a",
+  //   family: "ltx25-t2a",
+  //   loadKind: "diffusion_model",
+  //   modelFile:
+  //     "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
+  //   modelPath: "",
+  //   comfyCheckpointGroup: null,
+  //   diffusionModelComfyName:
+  //     "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
+  //   capabilities: caps(["t2a"]),
+  //   nativeAudio: true,
+  //   maxDurationSeconds: 15,
+  // },
 };
 
 function getText2audioPreset(clientModelField) {
@@ -600,7 +606,6 @@ const AUDIO2AUDIO_MODEL_PRESETS = {
     diffusionModelComfyName: null,
     capabilities: caps(["a2a", "userAudio"]),
     nativeAudio: true,
-    maxDurationSeconds: 360,
   },
 };
 

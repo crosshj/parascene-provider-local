@@ -2,6 +2,8 @@
 
 const path = require("path");
 const fs = require("fs");
+const { applyLtxDuration } = require("../_ltx-duration.js");
+const { resolveWorkflowDurationSeconds } = require("../_duration.js");
 
 const WORKFLOW_TEMPLATE = JSON.parse(
   fs.readFileSync(path.join(__dirname, "ltx2_3_ic_lora.json"), "utf8"),
@@ -82,16 +84,20 @@ function LtxIcLoraWorkflow(overrides = {}) {
     );
   }
 
-  const explicitLength =
-    overrides.length ?? overrides.framesNumber ?? overrides.frames;
-  const defaultFps = toNumber(workflow["129:114"]?.inputs?.value, 25);
+  const { durationSeconds, fps } = applyLtxDuration(workflow, overrides, {
+    fpsNodeId: "129:114",
+    lengthTargets: [{ id: "129:108", field: "length" }],
+    fallbackFps: 25,
+  });
   if (workflow["692"]?.inputs) {
-    const fallbackSliceDuration = toNumber(workflow["692"].inputs.duration, 5);
     workflow["692"].inputs.duration = resolveSliceDurationSeconds(
       overrides,
-      defaultFps,
-      explicitLength,
-      fallbackSliceDuration,
+      fps,
+      overrides.length ?? overrides.framesNumber ?? overrides.frames,
+      resolveWorkflowDurationSeconds(
+        overrides,
+        workflow["692"].inputs.duration ?? durationSeconds,
+      ),
     );
   }
 

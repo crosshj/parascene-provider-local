@@ -2,7 +2,7 @@
 
 const path = require("path");
 const fs = require("fs");
-const { durationSecondsToLtxFrames } = require("../_ltx-duration.js");
+const { applyLtxDuration } = require("../_ltx-duration.js");
 
 const WORKFLOW_TEMPLATE = JSON.parse(
   fs.readFileSync(path.join(__dirname, "ltx2_5_t2v.json"), "utf8"),
@@ -12,13 +12,6 @@ function toPositiveInt(value, fallback) {
   const n = Number(value);
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
 }
-
-function toNumber(value, fallback) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
-}
-
-const DEFAULT_DURATION_SECONDS = 9;
 
 function cloneBaseWorkflow() {
   return JSON.parse(JSON.stringify(WORKFLOW_TEMPLATE));
@@ -66,33 +59,20 @@ function Ltx25Text2VideoWorkflow(overrides = {}) {
     );
   }
 
-  const defaultFps = workflow["405:361"]?.inputs?.value;
-  const fps =
-    overrides.fps !== undefined
-      ? toPositiveInt(overrides.fps, defaultFps)
-      : defaultFps;
-  if (fps !== undefined && workflow["405:361"]?.inputs) {
-    workflow["405:361"].inputs.value = fps;
-  }
-
-  const durationSeconds = toNumber(
-    overrides.durationSeconds ?? overrides.duration_seconds,
-    workflow["405:362"]?.inputs?.value ?? DEFAULT_DURATION_SECONDS,
-  );
-  if (workflow["405:362"]?.inputs) {
-    workflow["405:362"].inputs.value = Math.max(1, Math.round(durationSeconds));
-  }
+  applyLtxDuration(workflow, overrides, {
+    durationNodeId: "405:362",
+    fpsNodeId: "405:361",
+    lengthTargets: [
+      { id: "405:356", field: "length" },
+      { id: "405:366", field: "frames_number" },
+    ],
+  });
 
   if (overrides.diffusionModelComfyName && workflow["405:384"]?.inputs) {
     workflow["405:384"].inputs.unet_name = String(
       overrides.diffusionModelComfyName,
     );
   }
-
-  durationSecondsToLtxFrames(
-    durationSeconds,
-    Number(fps) > 0 ? Number(fps) : 24,
-  );
 
   return workflow;
 }

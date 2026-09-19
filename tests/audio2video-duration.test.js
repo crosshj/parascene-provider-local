@@ -13,16 +13,13 @@ describe("audio2video duration → Comfy workflow", () => {
     expect(resolveDurationSeconds({})).toBeUndefined();
   });
 
-  it("resolveDurationSeconds accepts a higher audio max", () => {
+  it("resolveDurationSeconds accepts a 30s video2video max", () => {
     expect(
-      resolveDurationSeconds({ duration_seconds: 90 }, { max: 120 }),
-    ).toBe(90);
+      resolveDurationSeconds({ duration_seconds: 20 }, { max: 30 }),
+    ).toBe(20);
     expect(
-      resolveDurationSeconds({ duration_seconds: 400 }, { max: 120 }),
-    ).toBe(120);
-    expect(
-      resolveDurationSeconds({ duration_seconds: 400 }, { max: 360 }),
-    ).toBe(360);
+      resolveDurationSeconds({ duration_seconds: 40 }, { max: 30 }),
+    ).toBe(30);
   });
 
   it("bakes Duration node and EmptyLTXVLatentVideo length from durationSeconds", () => {
@@ -43,12 +40,12 @@ describe("audio2video duration → Comfy workflow", () => {
     expect(workflow["340:332"].inputs.duration).toEqual(["340:331", 0]);
   });
 
-  it("defaults to template 9s / 217 frames when duration omitted", () => {
+  it("defaults to 5s / 121 frames when duration omitted", () => {
     const workflow = LtxAudio2VideoWorkflow({
       prompt: "lip sync",
       inputAudioFilename: "clip.wav",
     });
-    expect(workflow["340:331"].inputs.value).toBe(9);
-    expect(workflow["340:302"].inputs.length).toBe(217);
+    expect(workflow["340:331"].inputs.value).toBe(5);
+    expect(workflow["340:302"].inputs.length).toBe(121);
   });
 });

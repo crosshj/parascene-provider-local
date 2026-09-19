@@ -2,7 +2,7 @@
 
 const path = require("path");
 const fs = require("fs");
-const { durationSecondsToLtxFrames } = require("../_ltx-duration.js");
+const { applyLtxDuration } = require("../_ltx-duration.js");
 
 const WORKFLOW_TEMPLATE = JSON.parse(
   fs.readFileSync(path.join(__dirname, "ltx2_3_t2v.json"), "utf8"),
@@ -12,13 +12,6 @@ function toPositiveInt(value, fallback) {
   const n = Number(value);
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
 }
-
-function toNumber(value, fallback) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
-}
-
-const DEFAULT_DURATION_SECONDS = 9;
 
 function cloneBaseWorkflow() {
   return JSON.parse(JSON.stringify(WORKFLOW_TEMPLATE));
@@ -86,27 +79,10 @@ function LtxText2VideoWorkflow(overrides = {}) {
     );
   }
 
-  const defaultFps = workflow["304"]?.inputs?.value;
-  const fps =
-    overrides.fps !== undefined
-      ? toPositiveInt(overrides.fps, defaultFps)
-      : defaultFps;
-  if (fps !== undefined && workflow["304"]?.inputs) {
-    workflow["304"].inputs.value = fps;
-  }
-
-  const explicitLength =
-    overrides.length ?? overrides.framesNumber ?? overrides.frames;
-  const lengthFrames =
-    explicitLength !== undefined
-      ? toPositiveInt(explicitLength, workflow["305"]?.inputs?.value)
-      : durationSecondsToLtxFrames(
-          toNumber(overrides.durationSeconds, DEFAULT_DURATION_SECONDS),
-          fps,
-        );
-  if (lengthFrames !== undefined && workflow["305"]?.inputs) {
-    workflow["305"].inputs.value = lengthFrames;
-  }
+  applyLtxDuration(workflow, overrides, {
+    fpsNodeId: "304",
+    lengthTargets: [{ id: "305", field: "value" }],
+  });
 
   return workflow;
 }

@@ -24,6 +24,15 @@ describe("video-prepare", () => {
     expect(w.effectiveDuration).toBe(2);
   });
 
+  it("computeWindow allows clips up to 30s", () => {
+    const w = computeWindow({
+      sourceDuration: 40,
+      startOffsetSeconds: 0,
+      durationSeconds: 20,
+    });
+    expect(w.effectiveDuration).toBe(20);
+  });
+
   it("computeWindow rejects offset past end", () => {
     expect(() =>
       computeWindow({

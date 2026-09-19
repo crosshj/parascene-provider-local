@@ -1,0 +1,33 @@
+---
+description: Standard duration wiring for managed video and audio workflows
+globs: server/workflows/**/*.{js,json},server/lib/{comfy-args,video-prepare}.js
+alwaysApply: false
+---
+
+# Duration is resolved in JS, then baked onto the graph
+
+Do **not** rely on Comfy `Duration → MathExpression → length` links alone. Blue has produced template-length video (e.g. ~9s or ~15s) while the Duration primitive was already the requested clip. Same class of bug as leaving `ResolutionSelector` in the graph.
+
+API field is `duration_seconds` (aliases `durationSeconds`, `duration`). `buildComfyArgs` normalizes it to `payload.durationSeconds`. Hidden UI fields are often omitted, so builders must apply the default themselves.
+
+## Standard
+
+- Default video length is **5 seconds** (`DEFAULT_VIDEO_DURATION_SECONDS` in `server/workflows/_duration.js`)
+- Video methods clamp 1–15s except `video2video` (1–30s, applied in FFmpeg prep + the graph)
+- Use `resolveWorkflowDurationSeconds(overrides, templateOrDefault)` — never a per-file `DEFAULT_DURATION_SECONDS = 9`
+- Convert seconds with the family helper, then **write the number onto the latent / length node**
+  - LTX: `applyLtxDuration` / `durationSecondsToLtxFrames` → `duration × fps + 1`
+  - Wan VACE / Animate / i2v / t2v: `durationSecondsToWanFrames` (4n+1) or Animate staging
+  - MiniMax / FastH3: duration primitive in seconds (graph owns frames); clamp 4–15
+- Music audio (YuE2 / MiniMax Music / YuE2 cover) does **not** expose `duration_seconds`. Pin `max_duration` to `DEFAULT_MUSIC_MAX_DURATION_SECONDS` (300). Do not add an API field for it.
+- LTX T2A (when enabled) is exact length like video — use `applyLtxDuration`
+- `video2video` windows the source in `prepareControlVideo` first; still patch slice/length from `effectiveDurationSeconds`
+- Template Duration primitives should also be **5** so a raw graph run matches the API default
+
+## When graduating or editing a workflow
+
+1. Import `_duration.js` plus the family frame helper.
+2. Patch fps + Duration primitives from overrides.
+3. Bake `EmptyLTXVLatentVideo.length` / Wan `length` / audio `frames_number`. Do not wire music `max_duration` from the API.
+4. Do not leave length wired only to `ComfyMathExpression`.
+5. Do not invent a 6s / 9s / 10s / 15s default unless the model hard-requires it (document that clamp in the builder).

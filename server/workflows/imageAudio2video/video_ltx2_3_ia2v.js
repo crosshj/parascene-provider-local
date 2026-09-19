@@ -6,7 +6,7 @@ const {
   formatLtx2TextGeneratePrompt,
   resolvePromptMagic,
 } = require("../_ltx-prompt-magic.js");
-const { durationSecondsToLtxFrames } = require("../_ltx-duration.js");
+const { applyLtxDuration } = require("../_ltx-duration.js");
 
 /** Match TextGenerateLTX2Prompt template budget; keep image-conditioned TextGenerate. */
 const TEXT_GENERATE_MAX_LENGTH = 2048;
@@ -19,13 +19,6 @@ function toPositiveInt(value, fallback) {
   const n = Number(value);
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
 }
-
-function toNumber(value, fallback) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
-}
-
-const DEFAULT_DURATION_SECONDS = 9;
 
 function cloneBaseWorkflow() {
   return JSON.parse(JSON.stringify(WORKFLOW_TEMPLATE));
@@ -161,34 +154,13 @@ function LtxAudio2VideoWorkflow(overrides = {}) {
     );
   }
 
-  const defaultFps = workflow["340:323"]?.inputs?.value;
-  const fps =
-    overrides.fps !== undefined
-      ? toPositiveInt(overrides.fps, defaultFps)
-      : defaultFps;
-  if (fps !== undefined && workflow["340:323"]?.inputs) {
-    workflow["340:323"].inputs.value = fps;
-  }
-
-  // Prefer camelCase (comfy payload) but accept snake_case if a caller bypasses buildComfyArgs.
-  const durationSeconds = toNumber(
-    overrides.durationSeconds ?? overrides.duration_seconds,
-    workflow["340:331"]?.inputs?.value ?? DEFAULT_DURATION_SECONDS,
-  );
-  if (workflow["340:331"]?.inputs) {
-    workflow["340:331"].inputs.value = durationSeconds;
-  }
-
-  // Bake latent frame count directly (duration × fps + 1). Relying only on the
-  // Duration→MathExpression link left Blue producing ~9s video while audio was
-  // already a 3s clip — set length explicitly like the i2v LTX builder.
-  const lengthFrames = durationSecondsToLtxFrames(
-    durationSeconds,
-    Number(fps) > 0 ? Number(fps) : 24,
-  );
-  if (workflow["340:302"]?.inputs) {
-    workflow["340:302"].inputs.length = lengthFrames;
-  }
+  // Bake latent frame count (duration × fps + 1). Duration→MathExpression
+  // links have been ignored on Blue; see workflows-duration.mdc.
+  applyLtxDuration(workflow, overrides, {
+    durationNodeId: "340:331",
+    fpsNodeId: "340:323",
+    lengthTargets: [{ id: "340:302", field: "length" }],
+  });
 
   const ckpt =
     overrides.checkpointBasename &&

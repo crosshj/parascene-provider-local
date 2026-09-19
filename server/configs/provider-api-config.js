@@ -386,8 +386,8 @@ const BASE_PROVIDER_CAPABILITIES = {
           min: 1,
           max: 15,
           step: 0.5,
-          description:
-            "Output video length in seconds (default ~5–9 depending on model).",
+          default: 5,
+          description: "Output video length in seconds (default 5).",
         },
         seed: {
           label: "Seed",
@@ -478,8 +478,8 @@ const BASE_PROVIDER_CAPABILITIES = {
           min: 1,
           max: 15,
           step: 0.5,
-          description:
-            "Output video length in seconds (default ~5–9 depending on model).",
+          default: 5,
+          description: "Output video length in seconds (default 5).",
         },
         seed: {
           label: "Seed",
@@ -561,8 +561,9 @@ const BASE_PROVIDER_CAPABILITIES = {
           min: 1,
           max: 15,
           step: 0.5,
+          default: 5,
           description:
-            "Output video length in seconds (default 9). Audio is trimmed to match.",
+            "Output video length in seconds (default 5). Audio is trimmed to match.",
         },
         seed: {
           label: "Seed",
@@ -663,8 +664,9 @@ const BASE_PROVIDER_CAPABILITIES = {
           min: 1,
           max: 30,
           step: 0.5,
+          default: 5,
           description:
-            "Clip length in seconds from the source window (default ~5). Clamped to 1–30.",
+            "Clip length in seconds from the source window (default 5). Clamped to 1–30.",
         },
         start_offset_seconds: {
           label: "Start offset (seconds)",
@@ -754,10 +756,12 @@ const BASE_PROVIDER_CAPABILITIES = {
           label: "Duration (seconds)",
           type: "number",
           required: false,
-          min: 4,
-          max: 10,
+          min: 1,
+          max: 15,
           step: 0.5,
-          description: "Output length in seconds (MiniMax typically 4–15).",
+          default: 5,
+          description:
+            "Output video length in seconds (default 5). MiniMax clamps to 4–15.",
         },
         seed: {
           label: "Seed",
@@ -788,12 +792,12 @@ const BASE_PROVIDER_CAPABILITIES = {
             {
               label: "YuE2 — text-to-music",
               value: "yue2",
-              hint: "YuE2 style prompt; optional lyrics. Duration is a cap (max 120s).",
+              hint: "YuE2 style prompt; optional lyrics. Length is model-capped (300s).",
             },
             {
               label: "MiniMax Music 3",
               value: "minimax_music3",
-              hint: "MiniMax Music 3 caption + optional lyrics. Duration is a cap (max 60s).",
+              hint: "MiniMax Music 3 caption + optional lyrics. Length is model-capped (300s).",
             },
             // Missing LTXVAudioOnlyEmptyVideoLatent (and more)
             // {
@@ -822,16 +826,6 @@ const BASE_PROVIDER_CAPABILITIES = {
           default: false,
           description:
             "LTX T2A only: expand the prompt with on-box Gemma. Ignored by YuE2 / MiniMax. Default off (matches the graph).",
-        },
-        duration_seconds: {
-          label: "Duration (seconds)",
-          type: "number",
-          required: false,
-          min: 1,
-          max: 120,
-          step: 0.5,
-          description:
-            "YuE2 / MiniMax: max length cap (YuE2 120s, MiniMax 60s). LTX T2A: output length (max 15s).",
         },
         seed: {
           label: "Seed",
@@ -863,7 +857,7 @@ const BASE_PROVIDER_CAPABILITIES = {
             {
               label: "YuE2 — music cover",
               value: "yue2_cover",
-              hint: "YuE2 cover from input audio + style prompt; optional lyrics and duration cap (max 360s).",
+              hint: "YuE2 cover from input audio + style prompt; optional lyrics. Length is model-capped (300s).",
             },
           ],
         },
@@ -877,15 +871,6 @@ const BASE_PROVIDER_CAPABILITIES = {
           type: "text",
           required: false,
           description: "Optional lyrics for the cover.",
-        },
-        duration_seconds: {
-          label: "Duration (seconds)",
-          type: "number",
-          required: false,
-          min: 1,
-          max: 360,
-          step: 0.5,
-          description: "Max cover length in seconds (YuE2 cover cap is 360).",
         },
         input_audio_urls: {
           label: "Input Audio",

@@ -41,7 +41,7 @@
         "37:38",
         0
       ],
-      "max_duration": 60,
+      "max_duration": 300,
       "cfg_scale": 1.7,
       "top_k": 50,
       "clip": [

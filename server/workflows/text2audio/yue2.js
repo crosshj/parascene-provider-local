@@ -2,6 +2,7 @@
 
 const path = require("path");
 const fs = require("fs");
+const { DEFAULT_MUSIC_MAX_DURATION_SECONDS } = require("../_duration.js");
 
 const WORKFLOW_TEMPLATE = JSON.parse(
   fs.readFileSync(path.join(__dirname, "yue2.json"), "utf8"),
@@ -16,18 +17,14 @@ function cloneBaseWorkflow() {
   return JSON.parse(JSON.stringify(WORKFLOW_TEMPLATE));
 }
 
-const MAX_DURATION_SECONDS = 120;
-
-function clampMaxDuration(value, fallback) {
-  const n = Number(value);
-  if (!Number.isFinite(n) || n <= 0) return fallback;
-  return Math.min(MAX_DURATION_SECONDS, Math.max(1, Math.round(n)));
-}
+/** Graph cap — not an API field. YuE2 picks length up to this. */
+const MAX_DURATION_SECONDS = DEFAULT_MUSIC_MAX_DURATION_SECONDS;
 
 /**
  * YuE2 text-to-music.
  *
- * Overrides: prompt (style), lyrics, seed, durationSeconds (max_duration cap).
+ * Overrides: prompt (style), lyrics, seed.
+ * Duration is not user-settable; max_duration stays at the graph cap.
  */
 function Yue2Text2AudioWorkflow(overrides = {}) {
   const workflow = cloneBaseWorkflow();
@@ -45,15 +42,8 @@ function Yue2Text2AudioWorkflow(overrides = {}) {
       workflow["33:34"].inputs.seed,
     );
   }
-  const durationRaw = overrides.durationSeconds ?? overrides.duration_seconds;
-  if (durationRaw !== undefined && durationRaw !== null && durationRaw !== "") {
-    const maxDuration = clampMaxDuration(
-      durationRaw,
-      workflow["33:25"]?.inputs?.max_duration,
-    );
-    if (maxDuration !== undefined && workflow["33:25"]?.inputs) {
-      workflow["33:25"].inputs.max_duration = maxDuration;
-    }
+  if (workflow["33:25"]?.inputs) {
+    workflow["33:25"].inputs.max_duration = MAX_DURATION_SECONDS;
   }
 
   return workflow;

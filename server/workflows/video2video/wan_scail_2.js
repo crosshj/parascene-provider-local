@@ -24,6 +24,8 @@ function cloneBaseWorkflow() {
  * Wan SCAIL2 character replacement (reference image + driving video).
  * Overrides: prompt, negativePrompt, seed, inputVideoFilename,
  * inputImageFilename, diffusionModelComfyName, width, height.
+ * Duration is applied in prepareControlVideo (FFmpeg window); this graph
+ * follows the trimmed driving clip rather than a latent length primitive.
  */
 function WanScail2Workflow(overrides = {}) {
   const workflow = cloneBaseWorkflow();

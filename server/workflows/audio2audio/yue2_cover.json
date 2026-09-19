@@ -54,7 +54,7 @@
         0
       ],
       "mode": "melody",
-      "max_duration": 360,
+      "max_duration": 300,
       "temperature": 1,
       "top_p": 0.95,
       "top_k": 100,

@@ -6,7 +6,7 @@ const {
   formatLtx2TextGeneratePrompt,
   resolvePromptMagic,
 } = require("../_ltx-prompt-magic.js");
-const { durationSecondsToLtxFrames } = require("../_ltx-duration.js");
+const { applyLtxDuration } = require("../_ltx-duration.js");
 
 const TEXT_GENERATE_MAX_LENGTH = 2048;
 
@@ -18,13 +18,6 @@ function toPositiveInt(value, fallback) {
   const n = Number(value);
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
 }
-
-function toNumber(value, fallback) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
-}
-
-const DEFAULT_DURATION_SECONDS = 9;
 
 function cloneBaseWorkflow() {
   return JSON.parse(JSON.stringify(WORKFLOW_TEMPLATE));
@@ -89,27 +82,14 @@ function Ltx25Image2VideoWorkflow(overrides = {}) {
     );
   }
 
-  const defaultFps = workflow["398:361"]?.inputs?.value;
-  const fps =
-    overrides.fps !== undefined
-      ? toPositiveInt(overrides.fps, defaultFps)
-      : defaultFps;
-  if (fps !== undefined && workflow["398:361"]?.inputs) {
-    workflow["398:361"].inputs.value = fps;
-  }
-
-  const durationSeconds = toNumber(
-    overrides.durationSeconds ?? overrides.duration_seconds,
-    workflow["398:362"]?.inputs?.value ?? DEFAULT_DURATION_SECONDS,
-  );
-  if (workflow["398:362"]?.inputs) {
-    workflow["398:362"].inputs.value = Math.max(1, Math.round(durationSeconds));
-  }
-
-  durationSecondsToLtxFrames(
-    durationSeconds,
-    Number(fps) > 0 ? Number(fps) : 24,
-  );
+  applyLtxDuration(workflow, overrides, {
+    durationNodeId: "398:362",
+    fpsNodeId: "398:361",
+    lengthTargets: [
+      { id: "398:356", field: "length" },
+      { id: "398:366", field: "frames_number" },
+    ],
+  });
 
   if (overrides.diffusionModelComfyName && workflow["398:384"]?.inputs) {
     workflow["398:384"].inputs.unet_name = String(

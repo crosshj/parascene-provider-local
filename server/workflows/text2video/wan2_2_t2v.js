@@ -2,6 +2,7 @@
 
 const path = require("path");
 const fs = require("fs");
+const { applyWanDuration } = require("../_wan-duration.js");
 
 const WORKFLOW_TEMPLATE = JSON.parse(
   fs.readFileSync(
@@ -13,11 +14,6 @@ const WORKFLOW_TEMPLATE = JSON.parse(
 function toPositiveInt(value, fallback) {
   const n = Number(value);
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
-}
-
-function toNumber(value, fallback) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
 }
 
 function cloneBaseWorkflow() {
@@ -70,34 +66,10 @@ function WanText2VideoWorkflow(overrides = {}) {
     );
   }
 
-  const defaultFps = workflow["11"]?.inputs?.fps ?? 16;
-  const fps =
-    overrides.fps !== undefined
-      ? toNumber(overrides.fps, defaultFps)
-      : defaultFps;
-  if (workflow["11"]?.inputs && fps !== undefined) {
-    workflow["11"].inputs.fps = fps;
-  }
-
-  const explicitLength =
-    overrides.length ?? overrides.framesNumber ?? overrides.frames;
-  if (explicitLength !== undefined && workflow["6"]?.inputs) {
-    workflow["6"].inputs.length = toPositiveInt(
-      explicitLength,
-      workflow["6"].inputs.length,
-    );
-  } else if (
-    overrides.durationSeconds !== undefined &&
-    workflow["6"]?.inputs
-  ) {
-    const frames = Math.max(
-      1,
-      Math.round(
-        toNumber(overrides.durationSeconds, 0) * (Number(fps) > 0 ? fps : 16),
-      ),
-    );
-    if (frames > 0) workflow["6"].inputs.length = frames;
-  }
+  applyWanDuration(workflow, overrides, {
+    lengthNodeId: "6",
+    fpsNodeId: "11",
+  });
 
   if (overrides.steps !== undefined && workflow["3"]?.inputs) {
     workflow["3"].inputs.steps = toPositiveInt(

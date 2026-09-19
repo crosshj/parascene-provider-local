@@ -38,7 +38,7 @@ describe("first/last-frame workflows", () => {
     expect(workflow["99"].inputs.image).toBe("end.png");
     expect(workflow["129:98"].class_type).toBe("WanFirstLastFrameToVideo");
     expect(workflow["129:98"].inputs.end_image).toEqual(["99", 0]);
-    expect(workflow["129:98"].inputs.length).toBe(64);
+    expect(workflow["129:98"].inputs.length).toBe(65);
     expect(workflow["129:93"].inputs.text).toBe("walk across");
   });
 });

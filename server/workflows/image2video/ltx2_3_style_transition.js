@@ -2,6 +2,7 @@
 
 const path = require("path");
 const fs = require("fs");
+const { applyLtxDuration } = require("../_ltx-duration.js");
 
 const WORKFLOW_TEMPLATE = JSON.parse(
   fs.readFileSync(path.join(__dirname, "ltx2_3_style_transition.json"), "utf8"),
@@ -11,13 +12,6 @@ function toPositiveInt(value, fallback) {
   const n = Number(value);
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
 }
-
-function toNumber(value, fallback) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
-}
-
-const DEFAULT_DURATION_SECONDS = 6;
 
 function cloneBaseWorkflow() {
   return JSON.parse(JSON.stringify(WORKFLOW_TEMPLATE));
@@ -63,19 +57,12 @@ function LtxStyleTransitionWorkflow(overrides = {}) {
     );
   }
 
-  const fps =
-    overrides.fps !== undefined
-      ? toPositiveInt(overrides.fps, workflow["139:114"]?.inputs?.value)
-      : workflow["139:114"]?.inputs?.value ?? 25;
-  if (workflow["139:114"]?.inputs) workflow["139:114"].inputs.value = fps;
-
-  const duration = toNumber(
-    overrides.durationSeconds,
-    DEFAULT_DURATION_SECONDS,
-  );
-  if (workflow["139:143"]?.inputs) {
-    workflow["139:143"].inputs.value = Math.max(1, Math.round(duration));
-  }
+  applyLtxDuration(workflow, overrides, {
+    durationNodeId: "139:143",
+    fpsNodeId: "139:114",
+    lengthTargets: [{ id: "139:108", field: "length" }],
+    fallbackFps: 25,
+  });
 
   const ckpt =
     overrides.checkpointBasename &&

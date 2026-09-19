@@ -2,6 +2,7 @@
 
 const path = require("path");
 const fs = require("fs");
+const { applyLtxDuration } = require("../_ltx-duration.js");
 
 const WORKFLOW_TEMPLATE = JSON.parse(
   fs.readFileSync(
@@ -13,11 +14,6 @@ const WORKFLOW_TEMPLATE = JSON.parse(
 function toPositiveInt(value, fallback) {
   const n = Number(value);
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
-}
-
-function toNumber(value, fallback) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
 }
 
 function cloneBaseWorkflow() {
@@ -59,10 +55,12 @@ function LtxIcLoraIngredientsWorkflow(overrides = {}) {
     );
   }
 
-  const duration = toNumber(overrides.durationSeconds, null);
-  if (duration != null && workflow["715"]?.inputs) {
-    workflow["715"].inputs.value = Math.max(1, Math.round(duration));
-  }
+  applyLtxDuration(workflow, overrides, {
+    durationNodeId: "715",
+    fpsNodeId: "716",
+    lengthTargets: [{ id: "129:108", field: "length" }],
+    fallbackFps: 25,
+  });
 
   const ckpt =
     overrides.checkpointBasename &&

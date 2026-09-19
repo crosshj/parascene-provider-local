@@ -132,6 +132,30 @@ describe("video2video", () => {
     expect(payload.inputImageFilename).toBe(FAKE_IMAGE);
   });
 
+  it("passes duration_seconds above 15 through to prepareControlVideo", async () => {
+    prepareControlVideo.mockResolvedValueOnce({
+      filename: FAKE_PREP,
+      effectiveDurationSeconds: 20,
+      targetFps: 16,
+      startOffsetSeconds: 0,
+    });
+    const { payload } = await buildComfyArgs(
+      {
+        prompt: "long clip",
+        model: "wan_animate",
+        method: "video2video",
+        input_video_urls: [VIDEO_URL],
+        input_images: [IMAGE_URL],
+        duration_seconds: 20,
+      },
+      OUTPUT_DIR,
+    );
+    expect(prepareControlVideo).toHaveBeenCalledWith(
+      expect.objectContaining({ durationSeconds: 20 }),
+    );
+    expect(payload.durationSeconds).toBe(20);
+  });
+
   it("wan_animate requires reference image and uses 16fps prepare profile", async () => {
     await expect(
       buildComfyArgs(

@@ -17,6 +17,7 @@ const FFMPEG = process.env.FFMPEG_PATH || "ffmpeg";
  * @property {number} [targetFps]
  * @property {number} [maxLongerEdge]
  * @property {number} [defaultDurationSeconds]
+ * @property {number} [maxDurationSeconds]
  */
 
 /**
@@ -82,6 +83,7 @@ function computeWindow({
   startOffsetSeconds,
   durationSeconds,
   defaultDurationSeconds = 5,
+  maxDurationSeconds = 30,
 }) {
   const offset = Math.max(0, Number(startOffsetSeconds) || 0);
   if (!(sourceDuration > 0)) {
@@ -98,7 +100,8 @@ function computeWindow({
       ? Number(durationSeconds)
       : defaultDurationSeconds;
   if (!(want > 0)) want = defaultDurationSeconds;
-  want = Math.min(15, Math.max(0.1, want));
+  const cap = Number(maxDurationSeconds) > 0 ? Number(maxDurationSeconds) : 30;
+  want = Math.min(cap, Math.max(0.1, want));
   const effectiveDuration = Math.min(want, available);
   if (!(effectiveDuration > 0)) {
     throw new Error("No video remains after applying start_offset_seconds.");
@@ -147,12 +150,17 @@ async function prepareControlVideo({
     Number(profile.defaultDurationSeconds) > 0
       ? Number(profile.defaultDurationSeconds)
       : 5;
+  const maxDurationSeconds =
+    Number(profile.maxDurationSeconds) > 0
+      ? Number(profile.maxDurationSeconds)
+      : 30;
 
   const { offset, effectiveDuration } = computeWindow({
     sourceDuration: probe.durationSeconds,
     startOffsetSeconds,
     durationSeconds,
     defaultDurationSeconds,
+    maxDurationSeconds,
   });
 
   const filters = [];

@@ -3,6 +3,10 @@
 const path = require("path");
 const fs = require("fs");
 const { resolveAspectRatioDimensions } = require("../../lib/aspect-ratio.js");
+const {
+  resolveWorkflowDurationSeconds,
+  clampDurationSeconds,
+} = require("../_duration.js");
 
 const WORKFLOW_TEMPLATE = JSON.parse(
   fs.readFileSync(path.join(__dirname, "minimax_h3_i2v.json"), "utf8"),
@@ -11,11 +15,6 @@ const WORKFLOW_TEMPLATE = JSON.parse(
 function toPositiveInt(value, fallback) {
   const n = Number(value);
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
-}
-
-function toNumber(value, fallback) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
 }
 
 function cloneBaseWorkflow() {
@@ -87,12 +86,15 @@ function MinimaxImage2VideoWorkflow(overrides = {}) {
     workflow["105:15"].inputs.noise_seed = seed;
   }
 
-  const duration = toNumber(
-    overrides.durationSeconds ?? overrides.duration_seconds,
-    workflow["105:111"]?.inputs?.value ?? 5,
+  const duration = clampDurationSeconds(
+    resolveWorkflowDurationSeconds(
+      overrides,
+      workflow["105:111"]?.inputs?.value,
+    ),
+    { min: 4, max: 15 },
   );
-  if (workflow["105:111"]?.inputs) {
-    workflow["105:111"].inputs.value = Math.min(15, Math.max(4, duration));
+  if (duration !== undefined && workflow["105:111"]?.inputs) {
+    workflow["105:111"].inputs.value = duration;
   }
 
   applyOutputSize(node, overrides);
