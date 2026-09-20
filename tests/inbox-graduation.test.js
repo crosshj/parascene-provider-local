@@ -278,6 +278,10 @@ describe("inbox graduation builders", () => {
     });
     expect(t2a["6"].inputs.value).toBe("distant thunder");
     expect(t2a["11"].inputs.value).toBe(6);
+    expect(t2a["2:5561"].inputs.expression).toBe("1 + floor(a*b/8)*8");
+    expect(t2a["2:4988"].inputs.value).toBe(145);
+    expect(t2a["3:5563"].inputs.frames_number).toBe(145);
+    expect(t2a["3:5563"].inputs.frame_rate).toBe(24);
     expect(t2a["4:5566"].inputs.noise_seed).toBe(7);
     expect(t2a["2:5556"].inputs.switch).toBe(false);
     expect(t2a["5574"].inputs.format).toBe("mp3");
@@ -512,6 +516,10 @@ describe("inbox graduation builders", () => {
     const t2a = BASE_PROVIDER_CAPABILITIES.methods.text2audio.fields;
     expect(t2a.duration_seconds).toBeUndefined();
     expect(t2a.prompt_magic.default).toBe(false);
+    const t2aModels = t2a.model.options.map((o) => o.value);
+    expect(t2aModels).toContain("yue2");
+    expect(t2aModels).toContain("minimax_music3");
+    expect(t2aModels).toContain("ltx25_t2a");
     const a2a = BASE_PROVIDER_CAPABILITIES.methods.audio2audio.fields;
     expect(a2a.duration_seconds).toBeUndefined();
   });

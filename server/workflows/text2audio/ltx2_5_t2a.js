@@ -53,11 +53,19 @@ function Ltx25Text2AudioWorkflow(overrides = {}) {
     workflow["2:5549"].inputs["sampling_mode.seed"] = seed;
   }
 
-  applyLtxDuration(workflow, overrides, {
+  // Bake frame count onto PrimitiveInt and Empty Audio Latent. MathExpression
+  // links have dropped duration before (T2A always came out ~1s).
+  const { fps } = applyLtxDuration(workflow, overrides, {
     durationNodeId: "11",
     fpsNodeId: "10",
-    lengthTargets: [{ id: "2:4988", field: "value" }],
+    lengthTargets: [
+      { id: "2:4988", field: "value" },
+      { id: "3:5563", field: "frames_number" },
+    ],
   });
+  if (workflow["3:5563"]?.inputs) {
+    workflow["3:5563"].inputs.frame_rate = fps;
+  }
 
   if (overrides.diffusionModelComfyName && workflow["1:28"]?.inputs) {
     workflow["1:28"].inputs.unet_name = String(

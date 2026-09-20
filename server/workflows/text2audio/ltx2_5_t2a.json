@@ -288,6 +288,7 @@
   },
   "2:5561": {
     "inputs": {
+      "expression": "1 + floor(a*b/8)*8",
       "values.a": [
         "2:5017",
         0
