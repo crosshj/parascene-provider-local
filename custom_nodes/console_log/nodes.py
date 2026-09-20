@@ -1,6 +1,4 @@
-import logging
-
-logger = logging.getLogger("console_log")
+import sys
 
 
 class ConsoleLog:
@@ -13,7 +11,7 @@ class ConsoleLog:
                     {
                         "default": "",
                         "multiline": True,
-                        "tooltip": "Printed to the Comfy server log when this node runs.",
+                        "tooltip": "Shown on the node. Also written to stdout as complete lines.",
                     },
                 ),
             }
@@ -25,8 +23,9 @@ class ConsoleLog:
     CATEGORY = "debug"
     OUTPUT_NODE = True
     DESCRIPTION = (
-        "Write text to the Comfy server log. Always executes (not cached). "
-        "Also returns the same string so it can sit in a data path."
+        "Preview text on the node (same pattern as PreviewAny). "
+        "Also writes newline-terminated stdout for the server log; "
+        "a failed write is ignored so sampling progress bars can still run."
     )
 
     @classmethod
@@ -34,8 +33,17 @@ class ConsoleLog:
         return float("nan")
 
     def log(self, text):
-        logger.info("%s", text)
-        return (text,)
+        value = str(text or "")
+        try:
+            msg = value.replace("\r", "")
+            if msg and not msg.endswith("\n"):
+                msg += "\n"
+            if msg:
+                sys.stdout.write(msg)
+                sys.stdout.flush()
+        except OSError:
+            pass
+        return {"ui": {"text": (value,)}, "result": (value,)}
 
 
 NODE_CLASS_MAPPINGS = {

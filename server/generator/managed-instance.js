@@ -314,12 +314,7 @@ function _spawnComfy() {
     ],
     {
       cwd: COMFY_ROOT,
-      env: {
-        ...process.env,
-        // Windows pipes + ComfyUI-Manager tqdm `\r` bars raise OSError 22
-        // (Invalid argument) and abort sampling. Progress still goes over WS.
-        TQDM_DISABLE: "1",
-      },
+      env: process.env,
       stdio: ["ignore", "pipe", "pipe"],
     },
   );
