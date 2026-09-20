@@ -36,6 +36,8 @@ describe("managed workflows", () => {
     "text2video-minimax_h3_t2v",
     "image2video-minimax_h3_i2v",
     "reference2video-minimax_h3_r2v",
+    "reference2video-minimax_h3_r2v_turbo",
+    "reference2video-minimax_h3_r2v_pdd",
     "text2image-krea2_turbo",
     "image2image-krea2_style_ref",
   ])("has no ResolutionSelector for %s", (id) => {

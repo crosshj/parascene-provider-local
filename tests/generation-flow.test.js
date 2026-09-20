@@ -415,6 +415,23 @@ describe("generation flow — correct args reach runComfyGeneration", () => {
       expect(downloadVideoToComfyInput).toHaveBeenCalledWith([VIDEO_URL]);
     });
 
+    it.each([
+      ["minimax_r2v", "reference2video-minimax_h3_r2v"],
+      ["minimax_r2v_turbo", "reference2video-minimax_h3_r2v_turbo"],
+      ["minimax_r2v_pdd", "reference2video-minimax_h3_r2v_pdd"],
+    ])("reference2video: %s maps to %s", async (model, workflowId) => {
+      const { payload } = await buildComfyArgs(
+        {
+          prompt: "Use <Picture 1>",
+          model,
+          method: "reference2video",
+          input_images: [IMAGE_URL],
+        },
+        OUTPUT_DIR,
+      );
+      expect(payload.managedWorkflowId).toBe(workflowId);
+    });
+
     it("reference2video: rejects audio-only", async () => {
       await expect(
         buildComfyArgs(

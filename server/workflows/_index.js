@@ -2,6 +2,7 @@
 
 const { sanitizePromptForComfyApi } = require("./_api-sanitize.js");
 const { ensureConsoleLog } = require("./_console-log.js");
+const minimaxH3R2v = require("./reference2video/minimax_h3_r2v");
 
 const WORKFLOWS = {
   // Text-to-image workflows
@@ -65,7 +66,9 @@ const WORKFLOWS = {
   "video2video-ltx2_5_ic_lora": require("./video2video/ltx2_5_ic_lora.js"),
 
   // Reference / omni-ref workflows
-  "reference2video-minimax_h3_r2v": require("./reference2video/minimax_h3_r2v.js"),
+  "reference2video-minimax_h3_r2v": minimaxH3R2v,
+  "reference2video-minimax_h3_r2v_turbo": minimaxH3R2v.turbo,
+  "reference2video-minimax_h3_r2v_pdd": minimaxH3R2v.pdd,
   "reference2video-ltx2_3_ic_lora_ingredients": require("./reference2video/ltx2_3_ic_lora_ingredients.js"),
   "reference2video-ltx2_5_ic_lora_ingredients": require("./reference2video/ltx2_5_ic_lora_ingredients.js"),
 };

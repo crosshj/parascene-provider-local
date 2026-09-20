@@ -709,7 +709,17 @@ const BASE_PROVIDER_CAPABILITIES = {
             {
               label: "MiniMax H3 — reference-to-video (Ref2VA)",
               value: "minimax_r2v",
-              hint: "Omni-ref: ≤9 images, ≤3 videos, ≤3 audios; native stereo AV out.",
+              hint: "Omni-ref: ≤9 images, ≤3 videos, ≤3 audios; native stereo AV out. 20-step quality.",
+            },
+            {
+              label: "MiniMax H3 — r2v turbo 4-step",
+              value: "minimax_r2v_turbo",
+              hint: "LightX2V turbo LoRA. Same refs as Ref2VA. Do not stack with PDD Acc.",
+            },
+            {
+              label: "MiniMax H3 — r2v PDD Acc 8-step",
+              value: "minimax_r2v_pdd",
+              hint: "Alibaba PDD Acc distill. Same refs as Ref2VA. Do not stack with turbo LoRA.",
             },
             {
               label: "LTX 2.3 — IC-LoRA ingredients",
