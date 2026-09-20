@@ -63,7 +63,12 @@ function Ltx25IcLoraIngredientsWorkflow(overrides = {}) {
   applyLtxDuration(workflow, overrides, {
     durationNodeId: "9008",
     fpsNodeId: "9007",
-    lengthTargets: [{ id: "9002:3059", field: "length" }],
+    lengthTargets: [
+      { id: "9002:3059", field: "length" },
+      { id: "9002:9012", field: "amount" },
+      { id: "9002:9009", field: "frames_number" },
+      { id: "5014:4988", field: "value" },
+    ],
   });
 
   const seed =

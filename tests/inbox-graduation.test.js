@@ -384,6 +384,10 @@ describe("inbox graduation builders", () => {
     expect(ing["5508"].inputs.value).toBe("the knight walks");
     expect(ing["2004"].inputs.image).toBe("sheet.png");
     expect(ing["9008"].inputs.value).toBe(8);
+    expect(ing["5516:4984"].inputs.sigmas).toMatch(/0\.0/);
+    expect(ing["5004:5605"].inputs.type).toBe("ltxv");
+    expect(ing["5518:4849"].inputs.fps).toEqual(["9007", 0]);
+    expect(ing["9002:9012"].inputs.amount).toBe(193);
     expect(ing["9002:5012"].class_type).toBe("LTXVAddGuide");
     expect(ing["9002:5012"].inputs.iclora_parameters).toEqual(["5004:5607", 0]);
     expect(ing["5004:5606"].class_type).toBe("LoraLoaderModelOnly");
