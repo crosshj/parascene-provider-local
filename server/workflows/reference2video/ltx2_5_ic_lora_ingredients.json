@@ -211,10 +211,8 @@
   },
   "9002:5012": {
     "inputs": {
-      "latent_downscale_factor": [
-        "5004:5606",
-        1
-      ],
+      "frame_idx": 0,
+      "strength": 1,
       "positive": [
         "9002:9005",
         0
@@ -234,15 +232,23 @@
       "vae": [
         "5004:5601",
         0
+      ],
+      "iclora_parameters": [
+        "5004:5607",
+        0
       ]
     },
-    "class_type": "LTXAddVideoICLoRAGuide",
+    "class_type": "LTXVAddGuide",
     "_meta": {
-      "title": "LTXAddVideoICLoRAGuide"
+      "title": "LTXVAddGuide"
     }
   },
   "9002:9005": {
     "inputs": {
+      "frame_rate": [
+        "9007",
+        0
+      ],
       "positive": [
         "5014:5558",
         0
@@ -541,9 +547,21 @@
         0
       ]
     },
-    "class_type": "LTXICLoRALoaderModelOnly",
+    "class_type": "LoraLoaderModelOnly",
     "_meta": {
-      "title": "LTXICLoRALoaderModelOnly"
+      "title": "Load LoRA"
+    }
+  },
+  "5004:5607": {
+    "inputs": {
+      "iclora_model": [
+        "5004:5606",
+        0
+      ]
+    },
+    "class_type": "GetICLoRAParameters",
+    "_meta": {
+      "title": "Get IC-LoRA Parameters"
     }
   }
 }

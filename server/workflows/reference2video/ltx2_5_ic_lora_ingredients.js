@@ -22,6 +22,11 @@ function cloneBaseWorkflow() {
 
 /**
  * LTX 2.5 IC-LoRA ingredients (character/prop sheet → video). Local-only.
+ *
+ * Uses core `LoraLoaderModelOnly` + `GetICLoRAParameters` + `LTXVAddGuide`
+ * (same path as the 2.3 ingredients graph) instead of ComfyUI-LTXVideo's
+ * `LTXICLoRALoaderModelOnly` / `LTXAddVideoICLoRAGuide`, which many workers
+ * do not have installed.
  */
 function Ltx25IcLoraIngredientsWorkflow(overrides = {}) {
   const workflow = cloneBaseWorkflow();

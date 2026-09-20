@@ -384,6 +384,13 @@ describe("inbox graduation builders", () => {
     expect(ing["5508"].inputs.value).toBe("the knight walks");
     expect(ing["2004"].inputs.image).toBe("sheet.png");
     expect(ing["9008"].inputs.value).toBe(8);
+    expect(ing["9002:5012"].class_type).toBe("LTXVAddGuide");
+    expect(ing["9002:5012"].inputs.iclora_parameters).toEqual(["5004:5607", 0]);
+    expect(ing["5004:5606"].class_type).toBe("LoraLoaderModelOnly");
+    expect(ing["5004:5607"].class_type).toBe("GetICLoRAParameters");
+    const ingBlob = JSON.stringify(ing);
+    expect(ingBlob).not.toMatch(/LTXAddVideoICLoRAGuide/);
+    expect(ingBlob).not.toMatch(/LTXICLoRALoaderModelOnly/);
     assertNoCloudNodes(ing);
   });
 
