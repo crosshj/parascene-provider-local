@@ -90,7 +90,29 @@ function extractHistoryExecutionError(historyData, promptId) {
     });
   }
 
+  if (root.error) {
+    const parsed = _errorFromExecutionPayload(root.error);
+    if (parsed) return parsed;
+  }
+
   return null;
+}
+
+function summarizeHistoryOutputs(historyData, promptId) {
+  const root =
+    historyData && promptId != null ? historyData[promptId] : null;
+  if (!root || typeof root !== "object") return "";
+  const status = root.status && (root.status.status_str || root.status.completed);
+  const outputs = root.outputs && typeof root.outputs === "object" ? root.outputs : {};
+  const keys = Object.keys(outputs);
+  const parts = keys.slice(0, 12).map((id) => {
+    const slot = outputs[id];
+    const fields =
+      slot && typeof slot === "object" ? Object.keys(slot).join(",") : typeof slot;
+    return `${id}:{${fields}}`;
+  });
+  const extra = keys.length > 12 ? ` +${keys.length - 12}` : "";
+  return `history status=${status ?? "?"} output_nodes=${parts.join(";") || "none"}${extra}`;
 }
 
 function historyHasPromptEntry(historyData, promptId) {
@@ -138,4 +160,5 @@ module.exports = {
   missingOutputError,
   retryAfterComfyRecycle,
   shouldRestartAfterMissingOutput,
+  summarizeHistoryOutputs,
 };

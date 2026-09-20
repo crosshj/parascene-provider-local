@@ -380,21 +380,24 @@ describe("inbox graduation builders", () => {
       prompt: "the knight walks",
       inputImageFilename: "sheet.png",
       durationSeconds: 8,
+      width: 1024,
+      height: 1024,
     });
-    expect(ing["5508"].inputs.value).toBe("the knight walks");
-    expect(ing["2004"].inputs.image).toBe("sheet.png");
-    expect(ing["9008"].inputs.value).toBe(8);
-    expect(ing["5516:4984"].inputs.sigmas).toMatch(/0\.0/);
-    expect(ing["5004:5605"].inputs.type).toBe("ltxv");
-    expect(ing["5518:4849"].inputs.fps).toEqual(["9007", 0]);
-    expect(ing["9002:9012"].inputs.amount).toBe(193);
-    expect(ing["9002:5012"].class_type).toBe("LTXVAddGuide");
-    expect(ing["9002:5012"].inputs.iclora_parameters).toEqual(["5004:5607", 0]);
-    expect(ing["5004:5606"].class_type).toBe("LoraLoaderModelOnly");
-    expect(ing["5004:5607"].class_type).toBe("GetICLoRAParameters");
+    expect(ing["8"].inputs.value).toBe("the knight walks");
+    expect(ing["1"].inputs.image).toBe("sheet.png");
+    expect(ing["14"].inputs.value).toBe(8);
+    expect(ing["16"].inputs.amount).toBe(193);
+    expect(ing["17"].inputs.length).toBe(193);
+    expect(ing["2"].inputs.type).toBe("ltxv");
+    expect(ing["2"].inputs.clip_name).toMatch(/int8-convrot/);
+    expect(ing["19"].class_type).toBe("LTXVAddGuide");
+    expect(ing["24"].class_type).toBe("LTXVDualCFGGuider");
+    expect(ing["31"].class_type).toBe("SaveVideo");
     const ingBlob = JSON.stringify(ing);
     expect(ingBlob).not.toMatch(/LTXAddVideoICLoRAGuide/);
     expect(ingBlob).not.toMatch(/LTXICLoRALoaderModelOnly/);
+    expect(ingBlob).not.toMatch(/ComfySwitchNode/);
+    expect(ingBlob).not.toMatch(/ResizeImageMaskNode/);
     assertNoCloudNodes(ing);
   });
 

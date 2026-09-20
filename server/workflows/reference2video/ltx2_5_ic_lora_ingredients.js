@@ -21,12 +21,12 @@ function cloneBaseWorkflow() {
 }
 
 /**
- * LTX 2.5 IC-LoRA ingredients (character/prop sheet → video). Local-only.
+ * LTX 2.5 IC-LoRA ingredients (character/prop sheet → video).
  *
- * Uses core `LoraLoaderModelOnly` + `GetICLoRAParameters` + `LTXVAddGuide`
- * (same path as the 2.3 ingredients graph) instead of ComfyUI-LTXVideo's
- * `LTXICLoRALoaderModelOnly` / `LTXAddVideoICLoRAGuide`, which many workers
- * do not have installed.
+ * Topology matches the working 2.3 ingredients graph (resize → repeat sheet →
+ * LTXVAddGuide + GetICLoRAParameters) and the working 2.5 t2v loaders/sampler
+ * (int8 convrot UNET/CLIP, DualCFG, ManualSigmas). Avoids ComfyUI-LTXVideo
+ * custom nodes that this worker does not have.
  */
 function Ltx25IcLoraIngredientsWorkflow(overrides = {}) {
   const workflow = cloneBaseWorkflow();
@@ -36,53 +36,50 @@ function Ltx25IcLoraIngredientsWorkflow(overrides = {}) {
     (Array.isArray(overrides.inputImageFilenames)
       ? overrides.inputImageFilenames[0]
       : null);
-  if (imageName && workflow["2004"]?.inputs) {
-    workflow["2004"].inputs.image = String(imageName);
+  if (imageName && workflow["1"]?.inputs) {
+    workflow["1"].inputs.image = String(imageName);
   }
 
-  if (workflow["5508"]?.inputs && overrides.prompt !== undefined) {
-    workflow["5508"].inputs.value = String(overrides.prompt ?? "");
+  if (workflow["8"]?.inputs && overrides.prompt !== undefined) {
+    workflow["8"].inputs.value = String(overrides.prompt ?? "");
   }
-  if (workflow["5509"]?.inputs && overrides.negativePrompt !== undefined) {
-    workflow["5509"].inputs.value = String(overrides.negativePrompt ?? "");
+  if (workflow["9"]?.inputs && overrides.negativePrompt !== undefined) {
+    workflow["9"].inputs.value = String(overrides.negativePrompt ?? "");
   }
 
-  if (overrides.width !== undefined && workflow["9002:3059"]?.inputs) {
-    workflow["9002:3059"].inputs.width = toPositiveInt(
-      overrides.width,
-      workflow["9002:3059"].inputs.width,
-    );
-  }
-  if (overrides.height !== undefined && workflow["9002:3059"]?.inputs) {
-    workflow["9002:3059"].inputs.height = toPositiveInt(
-      overrides.height,
-      workflow["9002:3059"].inputs.height,
-    );
+  const width = toPositiveInt(overrides.width, workflow["17"]?.inputs?.width);
+  const height = toPositiveInt(overrides.height, workflow["17"]?.inputs?.height);
+  if (overrides.width !== undefined || overrides.height !== undefined) {
+    if (workflow["17"]?.inputs) {
+      workflow["17"].inputs.width = width;
+      workflow["17"].inputs.height = height;
+    }
+    if (workflow["15"]?.inputs) {
+      workflow["15"].inputs.target_width = width;
+      workflow["15"].inputs.target_height = height;
+    }
   }
 
   applyLtxDuration(workflow, overrides, {
-    durationNodeId: "9008",
-    fpsNodeId: "9007",
+    durationNodeId: "14",
+    fpsNodeId: "13",
     lengthTargets: [
-      { id: "9002:3059", field: "length" },
-      { id: "9002:9012", field: "amount" },
-      { id: "9002:9009", field: "frames_number" },
-      { id: "5014:4988", field: "value" },
+      { id: "17", field: "length" },
+      { id: "16", field: "amount" },
+      { id: "18", field: "frames_number" },
     ],
   });
 
   const seed =
     overrides.seed !== undefined
-      ? toPositiveInt(overrides.seed, workflow["5516:9017"]?.inputs?.noise_seed)
+      ? toPositiveInt(overrides.seed, workflow["21"]?.inputs?.noise_seed)
       : undefined;
-  if (seed !== undefined && workflow["5516:9017"]?.inputs) {
-    workflow["5516:9017"].inputs.noise_seed = seed;
+  if (seed !== undefined && workflow["21"]?.inputs) {
+    workflow["21"].inputs.noise_seed = seed;
   }
 
-  if (overrides.diffusionModelComfyName && workflow["5004:5602"]?.inputs) {
-    workflow["5004:5602"].inputs.unet_name = String(
-      overrides.diffusionModelComfyName,
-    );
+  if (overrides.diffusionModelComfyName && workflow["3"]?.inputs) {
+    workflow["3"].inputs.unet_name = String(overrides.diffusionModelComfyName);
   }
 
   return workflow;

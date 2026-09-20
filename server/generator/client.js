@@ -16,6 +16,7 @@ const { buildWorkflowByFamily } = require("../workflows/_index.js");
 const {
   extractHistoryExecutionError,
   historyHasPromptEntry,
+  summarizeHistoryOutputs,
   missingOutputError,
   retryAfterComfyRecycle,
 } = require("./comfy-errors.js");
@@ -420,10 +421,13 @@ async function pollHistoryForOutput(
     // there means the expected artifact was not created.
     if (historyHasPromptEntry(data, promptId)) {
       const execErr = extractHistoryExecutionError(data, promptId);
-      throw _missingOutputFromPoll(
+      const historyHint = summarizeHistoryOutputs(data, promptId);
+      const base =
         execErr && execErr.message
           ? execErr.message
-          : "Comfy finished without an output file.",
+          : "Comfy finished without an output file.";
+      throw _missingOutputFromPoll(
+        historyHint ? `${base} (${historyHint})` : base,
         {
           exceptionType: execErr && execErr.exceptionType,
           traceback: execErr && execErr.traceback,
