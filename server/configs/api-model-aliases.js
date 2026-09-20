@@ -567,8 +567,9 @@ const TEXT2AUDIO_MODEL_PRESETS = {
     capabilities: caps(["t2a"]),
     nativeAudio: true,
   },
-  // Parked — LTX 2.5 T2A has not produced correct output. Graph + builder stay
-  // under server/workflows/text2audio/ and _index.js, but are not API-exposed.
+  // Parked — LTX 2.5 T2A needs ComfyUI-LTXVideo audio-only nodes with no
+  // Comfy-core stand-in. Graph + builder stay under text2audio/; not in
+  // _index.js and not API-exposed.
   // ltx25_t2a: {
   //   managedWorkflowId: "text2audio-ltx2_5_t2a",
   //   family: "ltx25-t2a",

@@ -25,7 +25,9 @@ const WORKFLOWS = {
   // Text-to-audio / audio-to-audio
   "text2audio-yue2": require("./text2audio/yue2.js"),
   "text2audio-minimax_music3": require("./text2audio/minimax_music3.js"),
-  "text2audio-ltx2_5_t2a": require("./text2audio/ltx2_5_t2a.js"),
+  // Parked: LTX 2.5 T2A needs ComfyUI-LTXVideo audio-only nodes
+  // (LTXVAudioOnlyModel, LTXVAudioOnlyEmptyVideoLatent) with no core stand-in.
+  // "text2audio-ltx2_5_t2a": require("./text2audio/ltx2_5_t2a.js"),
   "audio2audio-yue2_cover": require("./audio2audio/yue2_cover.js"),
 
   // Image-to-image workflows (fixed-model presets; weights baked into JSON)

@@ -374,6 +374,15 @@ describe("inbox graduation builders", () => {
     expect(ic["5508"].inputs.value).toBe("follow the path");
     expect(ic["5001"].inputs.file).toBe("drive.mp4");
     expect(ic["2004"].inputs.image).toBe("hero.png");
+    expect(ic["9002:3059"].inputs.length).toBe(121);
+    expect(ic["9002:5012"].class_type).toBe("LTXVAddGuide");
+    expect(ic["5004:5606"].class_type).toBe("LoraLoaderModelOnly");
+    expect(ic["5004:5607"].class_type).toBe("GetICLoRAParameters");
+    expect(ic["9002:4528"].inputs.audio_latent).toEqual(["9002:9007", 0]);
+    const icBlob = JSON.stringify(ic);
+    expect(icBlob).not.toMatch(/LTXAddVideoICLoRAGuide/);
+    expect(icBlob).not.toMatch(/LTXICLoRALoaderModelOnly/);
+    expect(icBlob).not.toMatch(/LTXVSetAudioRefTokens/);
     assertNoCloudNodes(ic);
 
     const ing = Ltx25Ing({
@@ -409,7 +418,6 @@ describe("inbox graduation builders", () => {
       "text2video-fastvideo_fasth3_t2v",
       "text2audio-yue2",
       "text2audio-minimax_music3",
-      "text2audio-ltx2_5_t2a",
       "audio2audio-yue2_cover",
       "text2video-ltx2_5_t2v",
       "image2video-ltx2_5",
@@ -420,6 +428,83 @@ describe("inbox graduation builders", () => {
     ]) {
       expect(typeof WORKFLOWS[id]).toBe("function");
     }
+    expect(WORKFLOWS["text2audio-ltx2_5_t2a"]).toBeUndefined();
+  });
+
+  // Official ComfyUI-LTXVideo pack class names from Lightricks __init__.py.
+  // Active graphs must stay on Comfy-core LTXV* nodes this worker already has.
+  const LTXVIDEO_CUSTOM_CLASSES = new Set([
+    "Set VAE Decoder Noise",
+    "LTXVLinearOverlapLatentTransition",
+    "LTXVAddGuideAdvanced",
+    "LTXVAddGuideAdvancedAttention",
+    "LTXVAdainLatent",
+    "LTXVImgToVideoConditionOnly",
+    "LTXVPerStepAdainPatcher",
+    "LTXVApplySTG",
+    "LTXVBaseSampler",
+    "LTXVInContextSampler",
+    "LTXVExtendSampler",
+    "LTXVNormalizingSampler",
+    "LTXVPreprocessMasks",
+    "LTXVPatcherVAE",
+    "LTXVPromptEnhancer",
+    "LTXVPromptEnhancerLoader",
+    "LTXQ8Patch",
+    "LTXVQ8LoraModelLoader",
+    "LTXVSelectLatents",
+    "LTXVSetVideoLatentNoiseMasks",
+    "LTXVTiledSampler",
+    "LTXVLoopingSampler",
+    "LTXVTiledVAEDecode",
+    "MultimodalGuider",
+    "GuiderParameters",
+    "STGAdvancedPresets",
+    "STGGuiderAdvanced",
+    "STGGuiderNode",
+    "LTXVMultiPromptProvider",
+    "ImageToCPU",
+    "LTXFloatToInt",
+    "LTXVStatNormLatent",
+    "LTXVPerStepStatNormPatcher",
+    "LTXVGemmaCLIPModelLoader",
+    "LTXVGemmaEnhancePrompt",
+    "GemmaAPITextEncode",
+    "DynamicConditioning",
+    "LowVRAMCheckpointLoader",
+    "LowVRAMAudioVAELoader",
+    "LowVRAMLatentUpscaleModelLoader",
+    "LTXAddVideoICLoRAGuide",
+    "LTXAddVideoICLoRAGuideAdvanced",
+    "LTXICLoRALoaderModelOnly",
+    "LTXVSetAudioRefTokens",
+    "LTXVLoadConditioning",
+    "LTXVSaveConditioning",
+    "LTXVDrawTracks",
+    "LTXVSparseTrackEditor",
+    "LTXVDilateVideoMask",
+    "LTXVInpaintPreprocess",
+    "LTXVLaplacianPyramidBlend",
+    "LTXVHDRDecodePostprocess",
+    "LTXVSDRToHDRWorkingSpace",
+    "LTXVLoadEXRSequence",
+    "LTXVVAEForceFloat32",
+    "LTXVSaveHLG",
+    "LTXVAudioOnlyModel",
+    "LTXVAudioOnlyEmptyVideoLatent",
+  ]);
+
+  it("active workflows do not use ComfyUI-LTXVideo custom nodes", () => {
+    const hits = [];
+    for (const [id, build] of Object.entries(WORKFLOWS)) {
+      const wf = build({});
+      for (const node of Object.values(wf)) {
+        if (node && LTXVIDEO_CUSTOM_CLASSES.has(node.class_type)) {
+          hits.push(`${id}:${node.class_type}`);
+        }
+      }
+    }
+    expect(hits).toEqual([]);
   });
 
   it("does not advertise duration on music audio methods", () => {

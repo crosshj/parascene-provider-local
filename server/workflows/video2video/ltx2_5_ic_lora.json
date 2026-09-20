@@ -369,8 +369,8 @@
         2
       ],
       "audio_latent": [
-        "9002:9008",
-        2
+        "9002:9007",
+        0
       ]
     },
     "class_type": "LTXVConcatAVLatent",
@@ -400,14 +400,8 @@
   },
   "9002:5012": {
     "inputs": {
-      "latent_downscale_factor": [
-        "5004:5606",
-        1
-      ],
-      "latent": [
-        "9002:3159",
-        0
-      ],
+      "frame_idx": 0,
+      "strength": 1,
       "positive": [
         "9002:9005",
         0
@@ -420,14 +414,22 @@
         "5004:5601",
         0
       ],
+      "latent": [
+        "9002:3159",
+        0
+      ],
       "image": [
         "5548:5026",
         0
+      ],
+      "iclora_parameters": [
+        "5004:5607",
+        0
       ]
     },
-    "class_type": "LTXAddVideoICLoRAGuide",
+    "class_type": "LTXVAddGuide",
     "_meta": {
-      "title": "LTXAddVideoICLoRAGuide"
+      "title": "LTXVAddGuide"
     }
   },
   "9002:3159": {
@@ -488,26 +490,6 @@
     "class_type": "VAEEncodeAudio",
     "_meta": {
       "title": "VAEEncodeAudio"
-    }
-  },
-  "9002:9008": {
-    "inputs": {
-      "audio_latent": [
-        "9002:9007",
-        0
-      ],
-      "positive": [
-        "9002:9005",
-        0
-      ],
-      "negative": [
-        "9002:9005",
-        1
-      ]
-    },
-    "class_type": "LTXVSetAudioRefTokens",
-    "_meta": {
-      "title": "freeze the source audio"
     }
   },
   "5548:5029": {
@@ -657,9 +639,21 @@
         0
       ]
     },
-    "class_type": "LTXICLoRALoaderModelOnly",
+    "class_type": "LoraLoaderModelOnly",
     "_meta": {
-      "title": "LTXICLoRALoaderModelOnly"
+      "title": "Load LoRA"
+    }
+  },
+  "5004:5607": {
+    "inputs": {
+      "iclora_model": [
+        "5004:5606",
+        0
+      ]
+    },
+    "class_type": "GetICLoRAParameters",
+    "_meta": {
+      "title": "Get IC-LoRA Parameters"
     }
   }
 }
