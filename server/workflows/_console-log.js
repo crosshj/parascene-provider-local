@@ -87,6 +87,7 @@ function composeRunConsoleLog(input = {}) {
   );
   const prompt = truncate(firstDefined(input.prompt));
   const lyrics = truncate(firstDefined(input.lyrics), 120);
+  const abc = truncate(firstDefined(input.abc), 120);
   const negative = truncate(firstDefined(input.negativePrompt), 80);
   const media = collectMediaHints(input);
   const family = firstDefined(input.family);
@@ -104,6 +105,7 @@ function composeRunConsoleLog(input = {}) {
   if (media) lines.push(`media: ${media}`);
   if (prompt) lines.push(`prompt: ${prompt}`);
   if (lyrics) lines.push(`lyrics: ${lyrics}`);
+  if (abc) lines.push(`abc: ${abc}`);
   if (negative) lines.push(`negative: ${negative}`);
 
   if (!lines.length) {

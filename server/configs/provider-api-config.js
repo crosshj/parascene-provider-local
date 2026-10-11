@@ -802,7 +802,7 @@ const BASE_PROVIDER_CAPABILITIES = {
             {
               label: "YuE2 — text-to-music",
               value: "yue2",
-              hint: "YuE2 style prompt; optional lyrics. Length is model-capped (300s).",
+              hint: "YuE2 style prompt; optional lyrics and ABC. Length is model-capped (300s).",
             },
             {
               label: "MiniMax Music 3",
@@ -827,6 +827,13 @@ const BASE_PROVIDER_CAPABILITIES = {
           required: false,
           description:
             "Optional lyrics for YuE2 / MiniMax Music 3. Ignored by LTX T2A.",
+        },
+        abc: {
+          label: "ABC",
+          type: "text",
+          required: false,
+          description:
+            "Optional ABC notation for YuE2. When set, skips ABC planning and uses this score. Ignored by MiniMax Music 3 and LTX T2A.",
         },
         prompt_magic: {
           label: "Prompt Magic",

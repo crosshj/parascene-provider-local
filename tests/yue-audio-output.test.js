@@ -57,9 +57,15 @@ describe("YuE graphs", () => {
   it("text2music does not feed GenerateMusic from PreviewAny and saves mp3 with quality", () => {
     const yue = Yue2({ prompt: "lofi rain" });
     expect(yue["33:25"].inputs.abc).toEqual(["33:30", 0]);
+    expect(yue["33:31"].inputs.value).toBe(true);
     expect(yue["33:14"].class_type).toBe("PreviewAny");
     expect(yue["10"].inputs.format).toBe("mp3");
     expect(yue["10"].inputs["format.quality"]).toBe("V0");
+
+    const scored = Yue2({ prompt: "lofi rain", abc: "X:1\nT:User\nK:G\nGABc|" });
+    expect(scored["33:31"].inputs.value).toBe(false);
+    expect(scored["33:32"].inputs.value).toBe("X:1\nT:User\nK:G\nGABc|");
+    expect(scored["33:25"].inputs.abc).toEqual(["33:30", 0]);
 
     const submitted = buildWorkflowByFamily({
       managedWorkflowId: "text2audio-yue2",

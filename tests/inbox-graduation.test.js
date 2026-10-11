@@ -259,6 +259,19 @@ describe("inbox graduation builders", () => {
     expect(yue["10"].inputs.format).toBe("mp3");
     expect(yue["10"].inputs["format.quality"]).toBe("V0");
     expect(yue["33:25"].inputs.abc).toEqual(["33:30", 0]);
+    expect(yue["33:31"].inputs.value).toBe(true);
+    expect(yue["33:32"].inputs.value).toBe("");
+
+    const scored = Yue2({
+      prompt: "lofi rain",
+      abc: "X:1\nK:C\nCDEF|",
+    });
+    expect(scored["33:31"].inputs.value).toBe(false);
+    expect(scored["33:32"].inputs.value).toBe("X:1\nK:C\nCDEF|");
+    expect(scored["33:25"].inputs.abc).toEqual(["33:30", 0]);
+    expect(Yue2({ prompt: "lofi rain", abc: "   " })["33:31"].inputs.value).toBe(
+      true,
+    );
 
     const music = Music3({
       prompt: "city pop",
@@ -606,12 +619,14 @@ describe("inbox graduation comfy-args", () => {
         model: "yue2",
         method: "text2audio",
         lyrics: "la la",
+        abc: "  X:1\nK:C  ",
         duration_seconds: 90,
       },
       OUTPUT_DIR,
     );
     expect(yue.payload.managedWorkflowId).toBe("text2audio-yue2");
     expect(yue.payload.lyrics).toBe("la la");
+    expect(yue.payload.abc).toBe("X:1\nK:C");
     expect(yue.payload.durationSeconds).toBeUndefined();
     expect(yue.payload.expectAudio).toBe(true);
 
@@ -620,11 +635,13 @@ describe("inbox graduation comfy-args", () => {
         prompt: "city pop",
         model: "minimax_music3",
         method: "text2audio",
+        abc: "X:1\nK:C",
         duration_seconds: 90,
       },
       OUTPUT_DIR,
     );
     expect(music.payload.durationSeconds).toBeUndefined();
+    expect(music.payload.abc).toBeUndefined();
 
     await expect(
       buildComfyArgs(
@@ -653,6 +670,7 @@ describe("inbox graduation comfy-args", () => {
         method: "audio2audio",
         input_audio_urls: [AUDIO_URL],
         lyrics: "bridge",
+        abc: "X:1\nK:C",
         duration_seconds: 180,
       },
       OUTPUT_DIR,
@@ -660,6 +678,7 @@ describe("inbox graduation comfy-args", () => {
     expect(payload.managedWorkflowId).toBe("audio2audio-yue2_cover");
     expect(payload.inputAudioFilename).toBe("audio_1_abc.mp3");
     expect(payload.lyrics).toBe("bridge");
+    expect(payload.abc).toBeUndefined();
     expect(payload.durationSeconds).toBeUndefined();
     expect(downloadAudioToComfyInput).toHaveBeenCalledWith([AUDIO_URL]);
   });

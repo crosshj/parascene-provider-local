@@ -160,6 +160,8 @@ function initApp() {
   const durationInput = document.getElementById("duration_seconds");
   const lyricsField = document.getElementById("lyrics-field");
   const lyricsInput = document.getElementById("lyrics");
+  const abcField = document.getElementById("abc-field");
+  const abcInput = document.getElementById("abc");
   const startOffsetField = document.getElementById("start-offset-field");
   const startOffsetInput = document.getElementById("start_offset_seconds");
   const seedField = document.getElementById("seed-field");
@@ -1394,6 +1396,7 @@ function initApp() {
       aspect_ratio: aspectRatioSel ? aspectRatioSel.value : undefined,
       duration_seconds: durationInput ? durationInput.value : undefined,
       lyrics: lyricsInput ? lyricsInput.value : undefined,
+      abc: abcInput ? abcInput.value : undefined,
       start_offset_seconds: startOffsetInput
         ? startOffsetInput.value
         : undefined,
@@ -1662,6 +1665,26 @@ function initApp() {
         }
       }
 
+      function rebuildAbcForMethod(methodId, preferredAbc) {
+        if (!abcInput || !abcField) return;
+        const field = methods[methodId]?.fields?.abc;
+        const modelId = modelSel ? modelSel.value : "";
+        if (!isApiFieldShown(field) || modelId !== "yue2") {
+          abcField.style.display = "none";
+          if (!field) abcInput.value = "";
+          return;
+        }
+        abcField.style.display = "";
+        if (field.hidden) {
+          abcField.dataset.apiHidden = "1";
+        } else {
+          delete abcField.dataset.apiHidden;
+        }
+        if (preferredAbc != null) {
+          abcInput.value = String(preferredAbc);
+        }
+      }
+
       function rebuildStartOffsetForMethod(methodId, preferredOffset) {
         if (!startOffsetInput || !startOffsetField) return;
         const field = methods[methodId]?.fields?.start_offset_seconds;
@@ -1765,6 +1788,10 @@ function initApp() {
         initialMethod,
         savedValues && savedValues.lyrics != null ? savedValues.lyrics : null,
       );
+      rebuildAbcForMethod(
+        initialMethod,
+        savedValues && savedValues.abc != null ? savedValues.abc : null,
+      );
       rebuildStartOffsetForMethod(
         initialMethod,
         savedValues && savedValues.start_offset_seconds != null
@@ -1786,6 +1813,10 @@ function initApp() {
         rebuildLyricsForMethod(
           methodId,
           lyricsInput?.value !== "" ? lyricsInput.value : null,
+        );
+        rebuildAbcForMethod(
+          methodId,
+          abcInput?.value !== "" ? abcInput.value : null,
         );
         rebuildSeedForMethod(methodId);
       }
@@ -1851,6 +1882,7 @@ function initApp() {
         rebuildAspectRatioForMethod(methodId, null);
         rebuildDurationForMethod(methodId, null);
         rebuildLyricsForMethod(methodId, null);
+        rebuildAbcForMethod(methodId, null);
         rebuildStartOffsetForMethod(methodId, null);
         rebuildSeedForMethod(methodId);
         saveFormValues();
@@ -1863,6 +1895,10 @@ function initApp() {
         if (methodId) {
           perMethodModel[methodId] = modelSel.value;
         }
+        rebuildAbcForMethod(
+          methodId,
+          abcInput?.value !== "" ? abcInput.value : null,
+        );
         saveFormValues();
         updateFamilyBadge();
         updateFieldVisibility();
@@ -1992,6 +2028,11 @@ function initApp() {
     if (lyricsInput && lyricsField && lyricsField.style.display !== "none") {
       const lyricsVal = lyricsInput.value.trim();
       if (lyricsVal) body.lyrics = lyricsVal;
+    }
+
+    if (abcInput && abcField && abcField.style.display !== "none") {
+      const abcVal = abcInput.value.trim();
+      if (abcVal) body.abc = abcVal;
     }
 
     if (durationInput && durationField && durationField.style.display !== "none") {

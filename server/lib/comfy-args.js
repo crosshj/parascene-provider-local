@@ -193,6 +193,10 @@ async function buildComfyArgs(body, outputDir) {
       promptMagic: body.prompt_magic ?? body.promptMagic,
       expectAudio: true,
     };
+    if (presetKey === "yue2" && body.abc != null) {
+      const abc = String(body.abc).trim();
+      if (abc) payload.abc = abc;
+    }
     return { payload, entry, method };
   }
 

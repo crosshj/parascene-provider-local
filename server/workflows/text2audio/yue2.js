@@ -23,8 +23,10 @@ const MAX_DURATION_SECONDS = DEFAULT_MUSIC_MAX_DURATION_SECONDS;
 /**
  * YuE2 text-to-music.
  *
- * Overrides: prompt (style), lyrics, seed.
+ * Overrides: prompt (style), lyrics, seed, abc.
  * Duration is not user-settable; max_duration stays at the graph cap.
+ * A non-empty abc selects the switch's false branch (user score) and skips
+ * YuE2GenerateABC. Blank or omitted abc leaves planning on.
  */
 function Yue2Text2AudioWorkflow(overrides = {}) {
   const workflow = cloneBaseWorkflow();
@@ -35,6 +37,11 @@ function Yue2Text2AudioWorkflow(overrides = {}) {
   if (workflow["33:37"]?.inputs) {
     workflow["33:37"].inputs.value =
       overrides.lyrics !== undefined ? String(overrides.lyrics ?? "") : "";
+  }
+  const abc = String(overrides.abc ?? "").trim();
+  if (abc && workflow["33:32"]?.inputs && workflow["33:31"]?.inputs) {
+    workflow["33:32"].inputs.value = abc;
+    workflow["33:31"].inputs.value = false;
   }
   if (overrides.seed !== undefined && workflow["33:34"]?.inputs) {
     workflow["33:34"].inputs.seed = toPositiveInt(
