@@ -38,6 +38,7 @@ function createStatusHandler(getState) {
       worker: state.worker != null ? state.worker : {},
       gpu: state.gpu != null ? state.gpu : {},
       updater: state.updater != null ? state.updater : {},
+      nodeRollout: state.nodeRollout != null ? state.nodeRollout : null,
     };
     res.setHeader("Content-Type", "application/json");
     res.statusCode = 200;

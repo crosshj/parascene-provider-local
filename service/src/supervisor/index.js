@@ -25,6 +25,10 @@ const {
   waitForComfyIdle,
 } = require("./nodeAppManager");
 const { readDeployState, writeDeployState } = require("./deployState");
+const {
+  readNodeRollout,
+  writeNodeRollout,
+} = require("./nodeRolloutState");
 
 const serviceRoot = getServiceRoot(__dirname);
 const config = loadConfig(serviceRoot);
@@ -40,6 +44,24 @@ let restartRequested = false;
 let activeNodeTarget = null;
 let nodeAppProcess = null;
 let gpuPollTimer = null;
+let lastNodeRollout = readNodeRollout(config.dataRoot || serviceRoot);
+
+function noteNodeRollout(record) {
+  const dataRoot = config.dataRoot || serviceRoot;
+  try {
+    lastNodeRollout = writeNodeRollout(dataRoot, record);
+  } catch (err) {
+    log.warn("orchestrator.rollout.state_write_failed", { error: err.message });
+    lastNodeRollout = {
+      ok: Boolean(record.ok),
+      at: record.at || new Date().toISOString(),
+      source: record.source || "rollout",
+      releaseDir: record.releaseDir || null,
+      port: record.port ?? null,
+      error: record.ok ? null : String(record.error || "cutover failed"),
+    };
+  }
+}
 
 // Shared shutdown function accessible to requestServiceRestart
 let shutdownFn;
@@ -75,6 +97,7 @@ function getStatusState() {
     uptimeMs: Date.now() - startTime,
     gpu,
     updater: updateQueue ? updateQueue.getStatus() : {},
+    nodeRollout: lastNodeRollout,
   };
 }
 
@@ -297,6 +320,21 @@ function main() {
         releaseDir: releaseRoot,
         previousWorkerPid: previousWorkerPid ?? undefined,
       });
+      noteNodeRollout({
+        ok: true,
+        source: "rollout",
+        releaseDir: releaseRoot,
+        port: stagingPort,
+      });
+    } catch (err) {
+      noteNodeRollout({
+        ok: false,
+        source: "rollout",
+        releaseDir: releaseRoot,
+        port: stagingPort,
+        error: err.message,
+      });
+      throw err;
     } finally {
       // New Node waits on this file. Drop it after cutover (or on failure so
       // the live scheduler is not left paused).
@@ -390,11 +428,24 @@ function main() {
           port: nodeAppActivePort,
           releaseRoot,
         });
+        noteNodeRollout({
+          ok: true,
+          source: "start",
+          releaseDir: releaseRoot,
+          port: nodeAppActivePort,
+        });
         writeDeployState(config.dataRoot, {
           currentReleaseDir: releaseRoot,
           activeNodePort: nodeAppActivePort,
         });
       } catch (err) {
+        noteNodeRollout({
+          ok: false,
+          source: "start",
+          releaseDir: releaseRoot,
+          port: nodeAppActivePort,
+          error: err.message,
+        });
         log.error("orchestrator.nodeapp.start_failed", {
           error: err.message,
           port: nodeAppActivePort,

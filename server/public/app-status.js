@@ -59,6 +59,19 @@ const set = (id, v) => {
   el.textContent = v == null || v === "" ? "—" : String(v);
 };
 
+function setTone(id, text, tone) {
+  const el = $(id);
+  if (!el) return;
+  el.textContent = text == null || text === "" ? "—" : String(text);
+  el.classList.remove("ok", "warn", "bad");
+  if (tone) el.classList.add(tone);
+}
+
+function apiPublicDirMatchesRelease(publicDir, releaseId) {
+  if (!publicDir || !releaseId) return null;
+  return String(publicDir).replace(/\\/g, "/").includes(String(releaseId));
+}
+
 function fmtTime(iso) {
   if (!iso) return "—";
   const d = new Date(iso);
@@ -321,6 +334,33 @@ async function refresh() {
     set("upLastEvent", fmtLastEvent(up.lastEvent));
     set("upCompleted", fmtJob(up.lastCompletedJob));
     set("upFailed", fmtJob(up.lastFailedJob));
+    const rollout = st.nodeRollout;
+    if (!rollout) {
+      setTone("upCutover", "none");
+    } else if (rollout.ok) {
+      const via = rollout.source || "rollout";
+      setTone("upCutover", `ok (${via}) @ ${fmtTime(rollout.at)}`, "ok");
+    } else {
+      setTone(
+        "upCutover",
+        `failed @ ${fmtTime(rollout.at)} — ${rollout.error || "cutover failed"}`,
+        "bad",
+      );
+    }
+    const releaseId = up.currentRelease?.releaseId || "";
+    const publicDir = apiHealth.public_dir || apiHealth.public_dir_abs || "";
+    const releaseMatch = apiPublicDirMatchesRelease(publicDir, releaseId);
+    if (releaseMatch === true) {
+      setTone("apiReleaseMatch", "matches current release", "ok");
+    } else if (releaseMatch === false) {
+      setTone(
+        "apiReleaseMatch",
+        `stale — API is still serving a different release than ${releaseId}`,
+        "bad",
+      );
+    } else {
+      setTone("apiReleaseMatch", "—");
+    }
     set(
       "upMode",
       up.lastCompletedJob?.result?.mode || up.currentRelease?.mode || "n/a",
@@ -417,12 +457,14 @@ async function refresh() {
     const gpuGood = classifyState(gpu.status) === "ok";
     const apiGood = ah.ok && ah.data?.ok !== false;
     const updaterBad = classifyState(up.state) === "bad" || !!up.lastFailedJob;
+    const cutoverBad = Boolean(rollout && rollout.ok === false);
+    const releaseStale = releaseMatch === false;
     const jobsBad =
       typeof jobs.queueLength === "number" &&
       jobs.queueLength > 0 &&
       classifyState(comfy.running === true ? "running" : "stopped") === "bad";
 
-    if (!coreGood || updaterBad || !apiGood || jobsBad)
+    if (!coreGood || updaterBad || !apiGood || jobsBad || cutoverBad || releaseStale)
       setPill("NOT HEALTHY", "bad");
     else if (!workerGood || !gpuGood) setPill("DEGRADED", "warn");
     else setPill("HEALTHY", "ok");

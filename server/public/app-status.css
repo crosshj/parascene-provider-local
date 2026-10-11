@@ -109,6 +109,18 @@
   word-break: break-word;
 }
 
+.status-v.ok {
+  color: #0b8f3a;
+}
+
+.status-v.warn {
+  color: #b37400;
+}
+
+.status-v.bad {
+  color: #b00020;
+}
+
 .sha {
   font-family: ui-monospace, Consolas, monospace;
   letter-spacing: 0.01em;
