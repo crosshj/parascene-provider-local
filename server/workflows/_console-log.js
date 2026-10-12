@@ -1,5 +1,10 @@
 "use strict";
 
+const {
+  useInstrumentalLora,
+  INSTRUMENTAL_LORA,
+} = require("./text2audio/yue2.js");
+
 const CONSOLE_LOG_NODE_ID = "0";
 const BORDER = "=========";
 const PROMPT_MAX = 160;
@@ -106,6 +111,12 @@ function composeRunConsoleLog(input = {}) {
   if (prompt) lines.push(`prompt: ${prompt}`);
   if (lyrics) lines.push(`lyrics: ${lyrics}`);
   if (abc) lines.push(`abc: ${abc}`);
+  if (
+    input.managedWorkflowId === "text2audio-yue2" &&
+    useInstrumentalLora(input.lyrics)
+  ) {
+    lines.push(`lyrics_only: ${INSTRUMENTAL_LORA}`);
+  }
   if (negative) lines.push(`negative: ${negative}`);
 
   if (!lines.length) {

@@ -58,6 +58,35 @@ describe("workflow ConsoleLog banner", () => {
     ]);
   });
 
+  it("notes lyrics_only on YuE2 when lyrics are blank or tag-only", () => {
+    const blank = buildWorkflowByFamily({
+      managedWorkflowId: "text2audio-yue2",
+      prompt: "dark ambient piano",
+      lyrics: "",
+    });
+    expect(blank[CONSOLE_LOG_NODE_ID].inputs.text).toContain(
+      "lyrics_only: ar_lora_inst_v3abc_comfyui.safetensors",
+    );
+
+    const plan = "[intro]\n[verse]\n[chorus]";
+    const tags = buildWorkflowByFamily({
+      managedWorkflowId: "text2audio-yue2",
+      prompt: "slow piano",
+      lyrics: plan,
+    });
+    expect(tags[CONSOLE_LOG_NODE_ID].inputs.text).toContain(
+      "lyrics_only: ar_lora_inst_v3abc_comfyui.safetensors",
+    );
+    expect(tags[CONSOLE_LOG_NODE_ID].inputs.text).toContain("lyrics:");
+
+    const sung = buildWorkflowByFamily({
+      managedWorkflowId: "text2audio-yue2",
+      prompt: "indie pop",
+      lyrics: "[Verse]\nMorning light across the window",
+    });
+    expect(sung[CONSOLE_LOG_NODE_ID].inputs.text).not.toContain("lyrics_only");
+  });
+
   it("buildWorkflowByFamily always injects a top ConsoleLog", () => {
     const wf = buildWorkflowByFamily({
       managedWorkflowId: "text2image-krea2_turbo",

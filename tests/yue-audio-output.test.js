@@ -75,6 +75,46 @@ describe("YuE graphs", () => {
     expect(submitted["10"].inputs["format.quality"]).toBe("V0");
   });
 
+  it("blank lyrics run the instrumental AR LoRA and write a bare plan", () => {
+    const yue = Yue2({ prompt: "dark ambient piano" });
+    expect(yue["33:37"].inputs.value).toBe("[instrumental]");
+    expect(yue["33:40"].class_type).toBe("LoraLoader");
+    expect(yue["33:40"].inputs.lora_name).toBe(
+      "ar_lora_inst_v3abc_comfyui.safetensors",
+    );
+    expect(yue["33:40"].inputs.strength_model).toBe(0);
+    expect(yue["33:40"].inputs.strength_clip).toBe(1);
+    expect(yue["33:40"].inputs.clip).toEqual(["33:15", 1]);
+    expect(yue["33:24"].inputs.clip).toEqual(["33:40", 1]);
+    expect(yue["33:25"].inputs.clip).toEqual(["33:40", 1]);
+    expect(yue["33:8"].inputs.model).toEqual(["33:15", 0]);
+    expect(yue["33:24"].inputs.mode).toBe("full");
+    expect(yue["33:25"].inputs.mode).toBe("full");
+  });
+
+  it("tag-only lyrics keep the plan and enable the instrumental LoRA", () => {
+    const plan = "[intro]\n[verse]\n[chorus 0:45-1:10]\n[outro]";
+    const yue = Yue2({ prompt: "slow piano", lyrics: plan });
+    expect(yue["33:37"].inputs.value).toBe(plan);
+    expect(yue["33:40"].inputs.lora_name).toBe(
+      "ar_lora_inst_v3abc_comfyui.safetensors",
+    );
+    expect(yue["33:25"].inputs.clip).toEqual(["33:40", 1]);
+  });
+
+  it("sung lyrics stay on the checkpoint CLIP path", () => {
+    const yue = Yue2({
+      prompt: "indie pop",
+      lyrics: "[Verse]\nMorning light across the window",
+    });
+    expect(yue["33:37"].inputs.value).toBe(
+      "[Verse]\nMorning light across the window",
+    );
+    expect(yue["33:40"]).toBeUndefined();
+    expect(yue["33:24"].inputs.clip).toEqual(["33:15", 1]);
+    expect(yue["33:25"].inputs.clip).toEqual(["33:15", 1]);
+  });
+
   it("cover does not feed GenerateMusic from PreviewAny", () => {
     const wf = Yue2Cover({
       prompt: "jazz",
