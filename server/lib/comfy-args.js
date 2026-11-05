@@ -465,17 +465,15 @@ async function buildComfyArgs(body, outputDir) {
     const defaults = { width: 768, height: 768 };
     let width;
     let height;
-    if (inputImageFilenames[0]) {
-      const resolved = await prepareInputImageAspectRatio(
-        body,
-        inputImageFilenames[0],
-        preset.managedWorkflowId,
-      );
-      width = resolved.width;
-      height = resolved.height;
-    } else {
-      ({ width, height } = resolveGenerationDimensions(body, defaults));
-    }
+    // Ref images describe subjects, style, or the world; they are not frames.
+    // Keep their native aspect ratios and derive the output canvas only from
+    // the requested generation aspect ratio.
+    const requestedAspectRatio =
+      String(body.aspect_ratio ?? body.aspectRatio ?? "").trim() || "1:1";
+    ({ width, height } = resolveGenerationDimensions(
+      { ...body, aspect_ratio: requestedAspectRatio },
+      defaults,
+    ));
 
     const payload = {
       family: preset.family,
