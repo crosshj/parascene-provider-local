@@ -37,6 +37,27 @@ const MODEL_DIRS = [
     comfyCheckpointGroup: null,
   },
   {
+    rel: "diffusion_models\\flux3",
+    family: "flux3",
+    loadKind: "diffusion_model",
+    managedWorkflowId: "text2image-flux3-klein",
+    comfyCheckpointGroup: null,
+  },
+  {
+    rel: "diffusion_models\\qwen-image",
+    family: "qwen-image",
+    loadKind: "diffusion_model",
+    managedWorkflowId: "text2image-qwen-image-2_1",
+    comfyCheckpointGroup: null,
+  },
+  {
+    rel: "diffusion_models\\moss",
+    family: "moss",
+    loadKind: "diffusion_model",
+    managedWorkflowId: "text2image-moss-image",
+    comfyCheckpointGroup: null,
+  },
+  {
     rel: "checkpoints\\FLUX1",
     family: "flux",
     loadKind: "checkpoint",

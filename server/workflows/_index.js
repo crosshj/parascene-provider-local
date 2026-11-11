@@ -15,6 +15,9 @@ const WORKFLOWS = {
   "text2image-sdxl-checkpoint": require("./text2image/sdxl-checkpoint.js"),
   "text2image-zimage-diffusion": require("./text2image/zimage-diffusion.js"),
   "text2image-krea2_turbo": require("./text2image/krea2_turbo.js"),
+  "text2image-flux3-klein": require("./text2image/flux3-klein.js"),
+  "text2image-qwen-image-2_1": require("./text2image/qwen-image-2_1.js"),
+  "text2image-moss-image": require("./text2image/moss-image.js"),
 
   // Text-to-video workflows
   "text2video-wan2_2_t2v": require("./text2video/wan2_2_t2v.js"),
@@ -34,9 +37,13 @@ const WORKFLOWS = {
   // Image-to-image workflows (fixed-model presets; weights baked into JSON)
   "image2image-sdxl-checkpoint": require("./image2image/sdxl-checkpoint.js"),
   "image2image-flux-kontext": require("./image2image/flux-kontext.js"),
+  "image2image-flux3-klein": require("./image2image/flux3-klein.js"),
   "image2image-qwen-edit-4step": require("./image2image/qwen-edit-4step.js"),
+  "image2image-qwen-image-2_1": require("./image2image/qwen-image-2_1.js"),
+  "image2image-qwen-image-2_1_turbo": require("./image2image/qwen-image-2_1_turbo.js"),
   "image2image-qwen-rapid-aio": require("./image2image/qwen-rapid-aio.js"),
   "image2image-omnigen2-edit": require("./image2image/omnigen2-edit.js"),
+  "image2image-moss-image": require("./image2image/moss-image.js"),
   "image2image-bernini_r": require("./image2image/bernini_r.js"),
   "image2image-krea2_style_ref": require("./image2image/krea2_style_ref.js"),
 

@@ -40,6 +40,13 @@ describe("managed workflows", () => {
     "reference2video-minimax_h3_r2v_pdd",
     "text2image-krea2_turbo",
     "image2image-krea2_style_ref",
+    "text2image-flux3-klein",
+    "text2image-qwen-image-2_1",
+    "text2image-moss-image",
+    "image2image-flux3-klein",
+    "image2image-qwen-image-2_1",
+    "image2image-qwen-image-2_1_turbo",
+    "image2image-moss-image",
   ])("has no ResolutionSelector for %s", (id) => {
     const wf = buildWorkflowByFamily({
       managedWorkflowId: id,
@@ -55,9 +62,30 @@ describe("managed workflows", () => {
     if (id === "text2image-krea2_turbo") {
       expect(wf["30:5"].inputs.width).toBe(896);
       expect(wf["30:5"].inputs.height).toBe(1120);
+    } else if (id === "text2image-flux3-klein") {
+      expect(wf["18:6"].inputs.width).toBe(896);
+      expect(wf["18:6"].inputs.height).toBe(1120);
+    } else if (id === "text2image-qwen-image-2_1") {
+      expect(wf["459:456"].inputs.width).toBe(896);
+      expect(wf["459:456"].inputs.height).toBe(1120);
+    } else if (id === "text2image-moss-image") {
+      expect(wf["18:6"].inputs.width).toBe(896);
+      expect(wf["18:6"].inputs.height).toBe(1120);
     } else if (id === "image2image-krea2_style_ref") {
       expect(wf["30:5"].inputs.width).toBe(896);
       expect(wf["30:61"].inputs.height).toBe(1120);
+    } else if (id === "image2image-flux3-klein") {
+      expect(wf["44"].inputs.width).toBe(896);
+      expect(wf["44"].inputs.height).toBe(1120);
+    } else if (id === "image2image-qwen-image-2_1") {
+      expect(wf["459:456"].inputs.width).toBe(896);
+      expect(wf["459:456"].inputs.height).toBe(1120);
+    } else if (id === "image2image-qwen-image-2_1_turbo") {
+      expect(wf["459:456"].inputs.width).toBe(896);
+      expect(wf["459:456"].inputs.height).toBe(1120);
+    } else if (id === "image2image-moss-image") {
+      expect(wf["28"].inputs.width).toBe(896);
+      expect(wf["28"].inputs.height).toBe(1120);
     } else if (id.startsWith("text2video") || id.startsWith("image2video")) {
       expect(wf["105:104"].inputs.width).toBe(896);
       expect(wf["105:104"].inputs.height).toBe(1120);
