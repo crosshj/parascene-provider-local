@@ -72,7 +72,7 @@ const BASE_PROVIDER_CAPABILITIES = {
             {
               label: "flux3: flux3-image-klein-base-int8-convrot",
               value:
-                "diffusion_models/flux3/flux3-image-klein-base-int8-convrot.safetensors",
+                "diffusion_models/flux3-image-klein-base-int8-convrot.safetensors",
             },
             {
               label: "pony: cyberrealisticPony_v130",
@@ -90,12 +90,12 @@ const BASE_PROVIDER_CAPABILITIES = {
             {
               label: "qwen-image: qwen_image_2.1_int8_convrot",
               value:
-                "diffusion_models/qwen-image/qwen_image_2.1_int8_convrot.safetensors",
+                "diffusion_models/qwen_image_2.1_int8_convrot.safetensors",
             },
             {
               label: "moss: moss_image_sft_int8_convrot",
               value:
-                "diffusion_models/moss/moss_image_sft_int8_convrot.safetensors",
+                "diffusion_models/moss_image_sft_int8_convrot.safetensors",
             },
             {
               label: "sd15: cyberrealistic_v20",

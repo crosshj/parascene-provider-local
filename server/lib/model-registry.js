@@ -100,7 +100,11 @@ function scanModels() {
       );
       continue;
     }
-    const files = collectSafetensorsRecursively(dir);
+    const files = spec.file
+      ? [path.join(dir, spec.file)].filter((filePath) =>
+          fs.existsSync(filePath),
+        )
+      : collectSafetensorsRecursively(dir);
     for (const fullPath of files) {
       if (seen.has(fullPath)) continue;
       seen.add(fullPath);

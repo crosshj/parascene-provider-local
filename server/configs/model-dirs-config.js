@@ -44,6 +44,14 @@ const MODEL_DIRS = [
     comfyCheckpointGroup: null,
   },
   {
+    rel: "diffusion_models",
+    file: "flux3-image-klein-base-int8-convrot.safetensors",
+    family: "flux3",
+    loadKind: "diffusion_model",
+    managedWorkflowId: "text2image-flux3-klein",
+    comfyCheckpointGroup: null,
+  },
+  {
     rel: "diffusion_models\\qwen-image",
     family: "qwen-image",
     loadKind: "diffusion_model",
@@ -51,7 +59,23 @@ const MODEL_DIRS = [
     comfyCheckpointGroup: null,
   },
   {
+    rel: "diffusion_models",
+    file: "qwen_image_2.1_int8_convrot.safetensors",
+    family: "qwen-image",
+    loadKind: "diffusion_model",
+    managedWorkflowId: "text2image-qwen-image-2_1",
+    comfyCheckpointGroup: null,
+  },
+  {
     rel: "diffusion_models\\moss",
+    family: "moss",
+    loadKind: "diffusion_model",
+    managedWorkflowId: "text2image-moss-image",
+    comfyCheckpointGroup: null,
+  },
+  {
+    rel: "diffusion_models",
+    file: "moss_image_sft_int8_convrot.safetensors",
     family: "moss",
     loadKind: "diffusion_model",
     managedWorkflowId: "text2image-moss-image",
