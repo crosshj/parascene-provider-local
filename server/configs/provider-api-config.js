@@ -70,6 +70,11 @@ const BASE_PROVIDER_CAPABILITIES = {
                 "diffusion_models/flux/STOIQONewrealityFLUXSD35_f1DAlphaTwo.safetensors",
             },
             {
+              label: "flux3: flux3-image-klein-base-int8-convrot",
+              value:
+                "diffusion_models/flux3/flux3-image-klein-base-int8-convrot.safetensors",
+            },
+            {
               label: "pony: cyberrealisticPony_v130",
               value: "checkpoints/pony/cyberrealisticPony_v130.safetensors",
             },
@@ -81,6 +86,16 @@ const BASE_PROVIDER_CAPABILITIES = {
             {
               label: "qwen: Qwen-Rapid-AIO-NSFW-v9",
               value: "checkpoints/qwen/Qwen-Rapid-AIO-NSFW-v9.safetensors",
+            },
+            {
+              label: "qwen-image: qwen_image_2.1_int8_convrot",
+              value:
+                "diffusion_models/qwen-image/qwen_image_2.1_int8_convrot.safetensors",
+            },
+            {
+              label: "moss: moss_image_sft_int8_convrot",
+              value:
+                "diffusion_models/moss/moss_image_sft_int8_convrot.safetensors",
             },
             {
               label: "sd15: cyberrealistic_v20",
@@ -242,6 +257,26 @@ const BASE_PROVIDER_CAPABILITIES = {
               label: "Krea2 — style reference",
               value: "krea2_style_ref",
               hint: "Krea2 turbo style-reference image-to-image.",
+            },
+            {
+              label: "Flux3 Klein - image edit",
+              value: "flux3_klein_i2i",
+              hint: "Flux3 Klein image editing (fixed workflow weights).",
+            },
+            {
+              label: "Qwen Image 2.1 - image edit",
+              value: "qwen_image_2_1_i2i",
+              hint: "Qwen Image 2.1 image editing (fixed workflow weights).",
+            },
+            {
+              label: "Qwen Image 2.1 Turbo - image edit",
+              value: "qwen_image_2_1_turbo_i2i",
+              hint: "Qwen Image 2.1 Turbo image editing (fixed workflow weights).",
+            },
+            {
+              label: "MOSS Image - image edit",
+              value: "moss_image_i2i",
+              hint: "MOSS Image editing (fixed workflow weights).",
             },
             {
               label: "sdxl: dreamshaperXL_turboDpmppSDE",
