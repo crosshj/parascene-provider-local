@@ -34,8 +34,19 @@ function QwenImage21Image2ImageWorkflow(overrides = {}) {
   if (overrides.inputImageFilename && workflow["470"]?.inputs) {
     workflow["470"].inputs.image = String(overrides.inputImageFilename);
   }
-  if (overrides.secondaryImageFilename && workflow["475"]?.inputs) {
-    workflow["475"].inputs.image = String(overrides.secondaryImageFilename);
+  if (workflow["475"]?.inputs) {
+    workflow["475"].inputs.image = String(
+      overrides.secondaryImageFilename ||
+        overrides.inputImageFilename ||
+        workflow["475"].inputs.image,
+    );
+  }
+  if (workflow["459:474"]?.inputs) {
+    if (overrides.secondaryImageFilename) {
+      workflow["459:474"].inputs["images.image_2"] = ["475", 0];
+    } else {
+      delete workflow["459:474"].inputs["images.image_2"];
+    }
   }
 
   if (overrides.seed !== undefined && workflow["459:458"]?.inputs) {

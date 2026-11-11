@@ -26,14 +26,20 @@ describe("static provider image capabilities", () => {
       "text2image-qwen-image-2_1",
     ],
     [
+      "diffusion_models/qwen_image_2.1_turbo_int8_convrot.safetensors",
+      "qwen_image_2.1_turbo_int8_convrot.safetensors",
+      "text2image-qwen-image-2_1_turbo",
+    ],
+    [
       "diffusion_models/moss_image_sft_int8_convrot.safetensors",
       "moss_image_sft_int8_convrot.safetensors",
       "text2image-moss-image",
     ],
-  ])("advertises text-to-image model %s", (modelValue) => {
+  ])("advertises text-to-image model %s", (modelValue, _fileName, workflowId) => {
     const options =
       BASE_PROVIDER_CAPABILITIES.methods.text2image.fields.model.options;
     expect(options.some((option) => option.value === modelValue)).toBe(true);
+    expect(WORKFLOWS[workflowId]).toEqual(expect.any(Function));
   });
 
   it("resolves root-level diffusion models to their managed workflows", () => {
@@ -46,6 +52,10 @@ describe("static provider image capabilities", () => {
         "text2image-flux3-klein",
       ],
       ["qwen_image_2.1_int8_convrot.safetensors", "text2image-qwen-image-2_1"],
+      [
+        "qwen_image_2.1_turbo_int8_convrot.safetensors",
+        "text2image-qwen-image-2_1_turbo",
+      ],
       ["moss_image_sft_int8_convrot.safetensors", "text2image-moss-image"],
     ];
     const previousModelsBase = process.env.MODELS_BASE;
@@ -65,6 +75,14 @@ describe("static provider image capabilities", () => {
           );
           expect(entry).toBeDefined();
           expect(entry.managedWorkflowId).toBe(workflowId);
+          if (workflowId === "text2image-qwen-image-2_1_turbo") {
+            expect(entry.defaults).toEqual({
+              steps: 8,
+              cfg: 1,
+              width: 1024,
+              height: 1024,
+            });
+          }
         }
       });
     } finally {

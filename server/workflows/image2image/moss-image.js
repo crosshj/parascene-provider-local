@@ -25,32 +25,29 @@ function cloneBaseWorkflow() {
 function MossImageImage2ImageWorkflow(overrides = {}) {
   const workflow = cloneBaseWorkflow();
 
-  if (overrides.prompt != null && workflow["18:17"]?.inputs) {
-    workflow["18:17"].inputs.value = String(overrides.prompt);
-  }
-  if (workflow["18:16"]?.inputs) {
-    workflow["18:16"].inputs.switch = false;
+  if (overrides.prompt != null && workflow["39"]?.inputs) {
+    workflow["39"].inputs.prompt = String(overrides.prompt);
   }
   if (overrides.inputImageFilename && workflow["8"]?.inputs) {
     workflow["8"].inputs.image = String(overrides.inputImageFilename);
   }
 
-  if (overrides.seed !== undefined && workflow["18:7"]?.inputs) {
-    workflow["18:7"].inputs.seed = toPositiveInt(
+  if (overrides.seed !== undefined && workflow["37"]?.inputs) {
+    workflow["37"].inputs.seed = toPositiveInt(
       overrides.seed,
-      workflow["18:7"].inputs.seed,
+      workflow["37"].inputs.seed,
     );
   }
-  if (overrides.steps !== undefined && workflow["18:7"]?.inputs) {
-    workflow["18:7"].inputs.steps = toPositiveInt(
+  if (overrides.steps !== undefined && workflow["37"]?.inputs) {
+    workflow["37"].inputs.steps = toPositiveInt(
       overrides.steps,
-      workflow["18:7"].inputs.steps,
+      workflow["37"].inputs.steps,
     );
   }
-  if (overrides.cfg !== undefined && workflow["18:7"]?.inputs) {
-    workflow["18:7"].inputs.cfg = toNumber(
+  if (overrides.cfg !== undefined && workflow["37"]?.inputs) {
+    workflow["37"].inputs.cfg = toNumber(
       overrides.cfg,
-      workflow["18:7"].inputs.cfg,
+      workflow["37"].inputs.cfg,
     );
   }
   if (overrides.width !== undefined && workflow["28"]?.inputs) {

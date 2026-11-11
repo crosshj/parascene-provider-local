@@ -612,6 +612,7 @@ async function buildComfyArgs(body, outputDir) {
     }
     const files = await downloadImagesToComfyInput(inputImages);
     const [filename] = files;
+    const secondaryImageFilename = files[1];
     if (!filename)
       throw new Error("Failed to prepare input image for image2image.");
 
@@ -644,6 +645,7 @@ async function buildComfyArgs(body, outputDir) {
           cfg: body.cfg,
           denoise: body.denoise,
           inputImageFilename: inputFilename,
+          secondaryImageFilename,
         },
         entry,
         method,

@@ -17,6 +17,7 @@ const WORKFLOWS = {
   "text2image-krea2_turbo": require("./text2image/krea2_turbo.js"),
   "text2image-flux3-klein": require("./text2image/flux3-klein.js"),
   "text2image-qwen-image-2_1": require("./text2image/qwen-image-2_1.js"),
+  "text2image-qwen-image-2_1_turbo": require("./text2image/qwen-image-2_1_turbo.js"),
   "text2image-moss-image": require("./text2image/moss-image.js"),
 
   // Text-to-video workflows

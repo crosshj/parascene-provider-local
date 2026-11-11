@@ -253,6 +253,30 @@ describe("generation flow — correct args reach runComfyGeneration", () => {
       expect(payload.managedWorkflowId).toBe("image2image-flux-kontext");
     });
 
+    it("image2image: Qwen Image 2.1 forwards up to two uploaded images", async () => {
+      const secondImageUrl = "http://example.com/second.png";
+      downloadImagesToComfyInput.mockResolvedValue([
+        FAKE_FILENAME,
+        "input_456_second.png",
+      ]);
+      const { payload } = await buildComfyArgs(
+        {
+          prompt: "edit using both references",
+          model: "qwen_image_2_1_i2i",
+          method: "image2image",
+          input_images: [IMAGE_URL, secondImageUrl],
+        },
+        OUTPUT_DIR,
+      );
+      expect(payload.managedWorkflowId).toBe("image2image-qwen-image-2_1");
+      expect(payload.inputImageFilename).toBe(FAKE_FILENAME);
+      expect(payload.secondaryImageFilename).toBe("input_456_second.png");
+      expect(downloadImagesToComfyInput).toHaveBeenCalledWith([
+        IMAGE_URL,
+        secondImageUrl,
+      ]);
+    });
+
     it("image2image: throws if input_images is missing", async () => {
       await expect(
         buildComfyArgs(

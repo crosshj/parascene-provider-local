@@ -67,6 +67,14 @@ const MODEL_DIRS = [
     comfyCheckpointGroup: null,
   },
   {
+    rel: "diffusion_models",
+    file: "qwen_image_2.1_turbo_int8_convrot.safetensors",
+    family: "qwen-image-turbo",
+    loadKind: "diffusion_model",
+    managedWorkflowId: "text2image-qwen-image-2_1_turbo",
+    comfyCheckpointGroup: null,
+  },
+  {
     rel: "diffusion_models\\moss",
     family: "moss",
     loadKind: "diffusion_model",

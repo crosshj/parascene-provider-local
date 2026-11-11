@@ -134,6 +134,10 @@ function _loadTemplateDefaults(managedWorkflowId) {
  * with optional flux filename tweaks (schnell) that the old UI also applied.
  */
 function getModelDefaults(family, fileName, managedWorkflowId) {
+  if (managedWorkflowId === "text2image-qwen-image-2_1_turbo") {
+    return { steps: 8, cfg: 1, width: 1024, height: 1024 };
+  }
+
   const base = _loadTemplateDefaults(managedWorkflowId);
   const fallback = { steps: 20, cfg: 7.0, width: 512, height: 512 };
   if (!base || !Number.isFinite(base.steps)) {

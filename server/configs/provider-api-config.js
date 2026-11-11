@@ -93,6 +93,11 @@ const BASE_PROVIDER_CAPABILITIES = {
                 "diffusion_models/qwen_image_2.1_int8_convrot.safetensors",
             },
             {
+              label: "qwen-image: qwen_image_2.1_turbo_int8_convrot",
+              value:
+                "diffusion_models/qwen_image_2.1_turbo_int8_convrot.safetensors",
+            },
+            {
               label: "moss: moss_image_sft_int8_convrot",
               value:
                 "diffusion_models/moss_image_sft_int8_convrot.safetensors",
