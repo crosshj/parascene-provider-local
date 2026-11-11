@@ -73,6 +73,9 @@ describe("YuE graphs", () => {
     });
     expect(submitted["33:25"].inputs.abc[0]).not.toBe("33:14");
     expect(submitted["10"].inputs["format.quality"]).toBe("V0");
+    expect(yue["33:42"].class_type).toBe("SaveText");
+    expect(yue["33:42"].inputs.text).toEqual(["33:30", 0]);
+    expect(yue["33:42"].inputs.format).toBe("txt");
   });
 
   it("blank lyrics run the instrumental AR LoRA and write a bare plan", () => {
@@ -122,6 +125,8 @@ describe("YuE graphs", () => {
     });
     expect(wf["33:25"].inputs.abc).toEqual(["33:41", 0]);
     expect(wf["33:44"].class_type).toBe("PreviewAny");
+    expect(wf["33:45"].class_type).toBe("SaveText");
+    expect(wf["33:45"].inputs.text).toEqual(["33:41", 0]);
     expect(wf["10"].inputs["format.quality"]).toBe("V0");
   });
 });

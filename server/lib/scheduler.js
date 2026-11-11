@@ -352,6 +352,9 @@ async function _processLoop() {
             elapsed_ms: result.elapsed_ms,
             backend: "comfy",
             media_kind: result.media_kind,
+            ...(result.abc
+              ? { abc: result.abc, abc_file_name: result.abc_file_name }
+              : {}),
           };
           current.data_removed = false;
         } else {

@@ -202,5 +202,19 @@
     "_meta": {
       "title": "Preview as Text"
     }
+  },
+  "33:45": {
+    "inputs": {
+      "text": [
+        "33:41",
+        0
+      ],
+      "filename_prefix": "audio/YuE2",
+      "format": "txt"
+    },
+    "class_type": "SaveText",
+    "_meta": {
+      "title": "Save ABC"
+    }
   }
 }

@@ -1,0 +1,1211 @@
+{
+  "id": "e2931798-b794-4272-bf2d-bd53e960dd0d",
+  "revision": 0,
+  "last_node_id": 16,
+  "last_link_id": 23,
+  "nodes": [
+    {
+      "id": 15,
+      "type": "MarkdownNote",
+      "pos": [
+        40,
+        40
+      ],
+      "size": [
+        560,
+        360
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "Node name for S&R": "MarkdownNote"
+      },
+      "widgets_values": [
+        "Two-voice rewrite of the same 160-bar score, in the layout YuE2 writes itself.\n\n- V: Vocal is a rest for the entire piece (\"Fm\"Z4| is four bars of rest).\n- V: Ins carries the original bass line. Durations are converted from L:1/8 to L:1/32.\n- User ABC is wired straight into YuE2 Generate Music.\n- Save Text writes that same ABC beside the mp3 as audio/YuE2-abc-test_#####.txt.\n- Lyrics are section tags only, so the instrumental AR LoRA is on the CLIP path.\n- max_duration is 300 seconds. Seed is fixed at 655906343.\n- After YuE2 Generate Music finishes, the Seconds preview is the length it chose. 160 bars at 140 BPM is about 274 seconds.\n"
+      ],
+      "title": "How to read this test",
+      "widgets_values_named": {
+        "text": "Two-voice rewrite of the same 160-bar score, in the layout YuE2 writes itself.\n\n- V: Vocal is a rest for the entire piece (\"Fm\"Z4| is four bars of rest).\n- V: Ins carries the original bass line. Durations are converted from L:1/8 to L:1/32.\n- User ABC is wired straight into YuE2 Generate Music.\n- Save Text writes that same ABC beside the mp3 as audio/YuE2-abc-test_#####.txt.\n- Lyrics are section tags only, so the instrumental AR LoRA is on the CLIP path.\n- max_duration is 300 seconds. Seed is fixed at 655906343.\n- After YuE2 Generate Music finishes, the Seconds preview is the length it chose. 160 bars at 140 BPM is about 274 seconds.\n"
+      }
+    },
+    {
+      "id": 4,
+      "type": "PrimitiveStringMultiline",
+      "pos": [
+        40,
+        430
+      ],
+      "size": [
+        560,
+        140
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "value",
+          "name": "value",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "value"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            4
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "Node name for S&R": "PrimitiveStringMultiline"
+      },
+      "widgets_values": [
+        "instrumental, halftime drum and bass, grime, minimal dubstep, 140 BPM, deep distorted sub bass, gritty resampled percussion, metallic textures, sparse eerie sound design, dark mechanical groove"
+      ],
+      "title": "Style",
+      "widgets_values_named": {
+        "value": "instrumental, halftime drum and bass, grime, minimal dubstep, 140 BPM, deep distorted sub bass, gritty resampled percussion, metallic textures, sparse eerie sound design, dark mechanical groove"
+      }
+    },
+    {
+      "id": 5,
+      "type": "PrimitiveStringMultiline",
+      "pos": [
+        40,
+        600
+      ],
+      "size": [
+        560,
+        280
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "value",
+          "name": "value",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "value"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            5
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "Node name for S&R": "PrimitiveStringMultiline"
+      },
+      "widgets_values": [
+        "[Intro]\n\n[Verse]\n\n[Verse]\n\n[Chorus]\n\n[Verse]\n\n[Bridge]\n\n[Chorus]\n\n[Bridge]\n\n[Outro]\n\n[Silent Pause]\n"
+      ],
+      "title": "Lyrics",
+      "widgets_values_named": {
+        "value": "[Intro]\n\n[Verse]\n\n[Verse]\n\n[Chorus]\n\n[Verse]\n\n[Bridge]\n\n[Chorus]\n\n[Bridge]\n\n[Outro]\n\n[Silent Pause]\n"
+      }
+    },
+    {
+      "id": 6,
+      "type": "PrimitiveStringMultiline",
+      "pos": [
+        40,
+        910
+      ],
+      "size": [
+        560,
+        720
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "value",
+          "name": "value",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "value"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            6,
+            23
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "Node name for S&R": "PrimitiveStringMultiline"
+      },
+      "widgets_values": [
+        "X:1\nT:Two Fingers Muadeep Matrix\nM:4/4\nL:1/32\nQ:1/4=140\nV: Vocal clef=treble name=\"Vocal Melody\" snm=\"Vocal\"\nV: Ins clef=treble name=\"Ins Melody\" snm=\"Inst.\"\nK:Fm\n% Intro: 16 bars\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,12z4|F,,,12z4_A,,,8z8|G,,,8z8F,,,12z4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,12z4|F,,,12z4_A,,,8z8|G,,,8z8F,,,12z4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,12z4|F,,,12z4_A,,,8z8|G,,,8z8F,,,12z4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,12z4|F,,,12z4_A,,,8z8|G,,,8z8F,,,12z4|\n% Verse 1: 16 bars\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|\n% Verse 2: 16 bars\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,16z16|z16F,,,16|F,,,16z16|z16F,,,16|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,16z16|z16F,,,16|F,,,16z16|z16F,,,16|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,16z16|z16F,,,16|F,,,16z16|z16F,,,16|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,16z16|z16F,,,16|F,,,16z16|z16F,,,16|\n% Chorus 1: 24 bars\nV: Vocal\n\"Fm\"Z4|\nV: Ins\n[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\n[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\n[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\n[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\n[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\n[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|\n% Verse 3: 16 bars\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z24|F,,,12z4_A,,,8z8|G,,,8z24|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z24|F,,,12z4_A,,,8z8|G,,,8z24|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z24|F,,,12z4_A,,,8z8|G,,,8z24|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z24|F,,,12z4_A,,,8z8|G,,,8z24|\n% Bridge 1: 8 bars\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,32|z32|F,,,32|z32|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,32|z32|F,,,32|z32|\n% Chorus 2: 24 bars\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|F,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|F,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|F,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|F,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|F,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|F,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|\n% Bridge 2: 16 bars\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nz4F,,,12z4_A,,,8z4|z4G,,,8z8F,,,12|z4F,,,12z4_A,,,8z4|z4G,,,8z8F,,,12|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nz4F,,,12z4_A,,,8z4|z4G,,,8z8F,,,12|z4F,,,12z4_A,,,8z4|z4G,,,8z8F,,,12|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nz4F,,,12z4_A,,,8z4|z4G,,,8z8F,,,12|z4F,,,12z4_A,,,8z4|z4G,,,8z8F,,,12|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nz4F,,,12z4_A,,,8z4|z4G,,,8z8F,,,12|z4F,,,12z4_A,,,8z4|z4G,,,8z8F,,,12|\n% Outro: 24 bars\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,16|F,,,12z4_A,,,8z8|G,,,8z8F,,,16|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,16|F,,,12z4_A,,,8z8|G,,,8z8F,,,16|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,16|F,,,12z4_A,,,8z8|G,,,8z8F,,,16|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,16|F,,,12z4_A,,,8z8|G,,,8z8F,,,16|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,16|F,,,12z4_A,,,8z8|G,,,8z8F,,,16|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,16|F,,,12z4_A,,,8z8|G,,,8z8F,,,16|]\n"
+      ],
+      "title": "ABC",
+      "widgets_values_named": {
+        "value": "X:1\nT:Two Fingers Muadeep Matrix\nM:4/4\nL:1/32\nQ:1/4=140\nV: Vocal clef=treble name=\"Vocal Melody\" snm=\"Vocal\"\nV: Ins clef=treble name=\"Ins Melody\" snm=\"Inst.\"\nK:Fm\n% Intro: 16 bars\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,12z4|F,,,12z4_A,,,8z8|G,,,8z8F,,,12z4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,12z4|F,,,12z4_A,,,8z8|G,,,8z8F,,,12z4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,12z4|F,,,12z4_A,,,8z8|G,,,8z8F,,,12z4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,12z4|F,,,12z4_A,,,8z8|G,,,8z8F,,,12z4|\n% Verse 1: 16 bars\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|\n% Verse 2: 16 bars\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,16z16|z16F,,,16|F,,,16z16|z16F,,,16|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,16z16|z16F,,,16|F,,,16z16|z16F,,,16|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,16z16|z16F,,,16|F,,,16z16|z16F,,,16|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,16z16|z16F,,,16|F,,,16z16|z16F,,,16|\n% Chorus 1: 24 bars\nV: Vocal\n\"Fm\"Z4|\nV: Ins\n[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\n[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\n[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\n[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\n[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\n[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|\n% Verse 3: 16 bars\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z24|F,,,12z4_A,,,8z8|G,,,8z24|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z24|F,,,12z4_A,,,8z8|G,,,8z24|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z24|F,,,12z4_A,,,8z8|G,,,8z24|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z24|F,,,12z4_A,,,8z8|G,,,8z24|\n% Bridge 1: 8 bars\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,32|z32|F,,,32|z32|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,32|z32|F,,,32|z32|\n% Chorus 2: 24 bars\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|F,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|F,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|F,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|F,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|F,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|F,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|\n% Bridge 2: 16 bars\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nz4F,,,12z4_A,,,8z4|z4G,,,8z8F,,,12|z4F,,,12z4_A,,,8z4|z4G,,,8z8F,,,12|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nz4F,,,12z4_A,,,8z4|z4G,,,8z8F,,,12|z4F,,,12z4_A,,,8z4|z4G,,,8z8F,,,12|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nz4F,,,12z4_A,,,8z4|z4G,,,8z8F,,,12|z4F,,,12z4_A,,,8z4|z4G,,,8z8F,,,12|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nz4F,,,12z4_A,,,8z4|z4G,,,8z8F,,,12|z4F,,,12z4_A,,,8z4|z4G,,,8z8F,,,12|\n% Outro: 24 bars\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,16|F,,,12z4_A,,,8z8|G,,,8z8F,,,16|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,16|F,,,12z4_A,,,8z8|G,,,8z8F,,,16|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,16|F,,,12z4_A,,,8z8|G,,,8z8F,,,16|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,16|F,,,12z4_A,,,8z8|G,,,8z8F,,,16|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,16|F,,,12z4_A,,,8z8|G,,,8z8F,,,16|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,16|F,,,12z4_A,,,8z8|G,,,8z8F,,,16|]\n"
+      }
+    },
+    {
+      "id": 3,
+      "type": "SeedNode",
+      "pos": [
+        640,
+        430
+      ],
+      "size": [
+        320,
+        110
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "seed",
+          "name": "seed",
+          "type": "INT",
+          "link": null,
+          "widget": {
+            "name": "seed"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "seed",
+          "name": "seed",
+          "type": "INT",
+          "links": [
+            7,
+            20
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "Node name for S&R": "SeedNode"
+      },
+      "widgets_values": [
+        655906343,
+        "fixed"
+      ],
+      "title": "Seed",
+      "widgets_values_named": {
+        "seed": 655906343,
+        "control_after_generate": "fixed"
+      }
+    },
+    {
+      "id": 1,
+      "type": "CheckpointLoaderSimple",
+      "pos": [
+        640,
+        580
+      ],
+      "size": [
+        420,
+        100
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "ckpt_name",
+          "name": "ckpt_name",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "ckpt_name"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "MODEL",
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            1,
+            15
+          ]
+        },
+        {
+          "localized_name": "CLIP",
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            2
+          ]
+        },
+        {
+          "localized_name": "VAE",
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            18
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "Node name for S&R": "CheckpointLoaderSimple"
+      },
+      "widgets_values": [
+        "yue2_3b_int8_convrot.safetensors"
+      ],
+      "title": "Load Checkpoint",
+      "widgets_values_named": {
+        "ckpt_name": "yue2_3b_int8_convrot.safetensors"
+      }
+    },
+    {
+      "id": 2,
+      "type": "LoraLoader",
+      "pos": [
+        640,
+        720
+      ],
+      "size": [
+        420,
+        150
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "model",
+          "name": "model",
+          "type": "MODEL",
+          "link": 1
+        },
+        {
+          "localized_name": "clip",
+          "name": "clip",
+          "type": "CLIP",
+          "link": 2
+        },
+        {
+          "localized_name": "lora_name",
+          "name": "lora_name",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "lora_name"
+          }
+        },
+        {
+          "localized_name": "strength_model",
+          "name": "strength_model",
+          "type": "FLOAT",
+          "link": null,
+          "widget": {
+            "name": "strength_model"
+          }
+        },
+        {
+          "localized_name": "strength_clip",
+          "name": "strength_clip",
+          "type": "FLOAT",
+          "link": null,
+          "widget": {
+            "name": "strength_clip"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "MODEL",
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": []
+        },
+        {
+          "localized_name": "CLIP",
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            3
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "Node name for S&R": "LoraLoader"
+      },
+      "widgets_values": [
+        "ar_lora_inst_v3abc_comfyui.safetensors",
+        0,
+        1
+      ],
+      "title": "Load LoRA (Instrumental AR)",
+      "widgets_values_named": {
+        "lora_name": "ar_lora_inst_v3abc_comfyui.safetensors",
+        "strength_model": 0,
+        "strength_clip": 1
+      }
+    },
+    {
+      "id": 7,
+      "type": "YuE2GenerateMusic",
+      "pos": [
+        1120,
+        430
+      ],
+      "size": [
+        460,
+        420
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "clip",
+          "name": "clip",
+          "type": "CLIP",
+          "link": 3
+        },
+        {
+          "localized_name": "style",
+          "name": "style",
+          "type": "STRING",
+          "link": 4,
+          "widget": {
+            "name": "style"
+          }
+        },
+        {
+          "localized_name": "lyrics",
+          "name": "lyrics",
+          "type": "STRING",
+          "link": 5,
+          "widget": {
+            "name": "lyrics"
+          }
+        },
+        {
+          "localized_name": "abc",
+          "name": "abc",
+          "type": "STRING",
+          "link": 6,
+          "widget": {
+            "name": "abc"
+          }
+        },
+        {
+          "localized_name": "seed",
+          "name": "seed",
+          "type": "INT",
+          "link": 7,
+          "widget": {
+            "name": "seed"
+          }
+        },
+        {
+          "localized_name": "mode",
+          "name": "mode",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "mode"
+          }
+        },
+        {
+          "localized_name": "max_duration",
+          "name": "max_duration",
+          "type": "FLOAT",
+          "link": null,
+          "widget": {
+            "name": "max_duration"
+          }
+        },
+        {
+          "localized_name": "temperature",
+          "name": "temperature",
+          "type": "FLOAT",
+          "link": null,
+          "widget": {
+            "name": "temperature"
+          }
+        },
+        {
+          "localized_name": "top_p",
+          "name": "top_p",
+          "type": "FLOAT",
+          "link": null,
+          "widget": {
+            "name": "top_p"
+          }
+        },
+        {
+          "localized_name": "top_k",
+          "name": "top_k",
+          "type": "INT",
+          "link": null,
+          "widget": {
+            "name": "top_k"
+          }
+        },
+        {
+          "localized_name": "repetition_penalty",
+          "name": "repetition_penalty",
+          "type": "FLOAT",
+          "link": null,
+          "widget": {
+            "name": "repetition_penalty"
+          }
+        },
+        {
+          "localized_name": "cfg_scale",
+          "name": "cfg_scale",
+          "type": "FLOAT",
+          "link": null,
+          "widget": {
+            "name": "cfg_scale"
+          },
+          "shape": 7
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "CONDITIONING",
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            11,
+            12
+          ]
+        },
+        {
+          "localized_name": "seconds",
+          "name": "seconds",
+          "type": "FLOAT",
+          "links": [
+            13,
+            14
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "Node name for S&R": "YuE2GenerateMusic"
+      },
+      "widgets_values": [
+        "instrumental, halftime drum and bass, grime, minimal dubstep, 140 BPM, deep distorted sub bass, gritty resampled percussion, metallic textures, sparse eerie sound design, dark mechanical groove",
+        "[Intro]\n\n[Verse]\n\n[Verse]\n\n[Chorus]\n\n[Verse]\n\n[Bridge]\n\n[Chorus]\n\n[Bridge]\n\n[Outro]\n\n[Silent Pause]\n",
+        "X:1\nT:Two Fingers Muadeep Matrix\nM:4/4\nL:1/32\nQ:1/4=140\nV: Vocal clef=treble name=\"Vocal Melody\" snm=\"Vocal\"\nV: Ins clef=treble name=\"Ins Melody\" snm=\"Inst.\"\nK:Fm\n% Intro: 16 bars\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,12z4|F,,,12z4_A,,,8z8|G,,,8z8F,,,12z4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,12z4|F,,,12z4_A,,,8z8|G,,,8z8F,,,12z4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,12z4|F,,,12z4_A,,,8z8|G,,,8z8F,,,12z4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,12z4|F,,,12z4_A,,,8z8|G,,,8z8F,,,12z4|\n% Verse 1: 16 bars\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|\n% Verse 2: 16 bars\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,16z16|z16F,,,16|F,,,16z16|z16F,,,16|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,16z16|z16F,,,16|F,,,16z16|z16F,,,16|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,16z16|z16F,,,16|F,,,16z16|z16F,,,16|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,16z16|z16F,,,16|F,,,16z16|z16F,,,16|\n% Chorus 1: 24 bars\nV: Vocal\n\"Fm\"Z4|\nV: Ins\n[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\n[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\n[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\n[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\n[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\n[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|\n% Verse 3: 16 bars\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z24|F,,,12z4_A,,,8z8|G,,,8z24|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z24|F,,,12z4_A,,,8z8|G,,,8z24|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z24|F,,,12z4_A,,,8z8|G,,,8z24|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z24|F,,,12z4_A,,,8z8|G,,,8z24|\n% Bridge 1: 8 bars\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,32|z32|F,,,32|z32|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,32|z32|F,,,32|z32|\n% Chorus 2: 24 bars\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|F,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|F,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|F,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|F,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|F,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|F,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|\n% Bridge 2: 16 bars\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nz4F,,,12z4_A,,,8z4|z4G,,,8z8F,,,12|z4F,,,12z4_A,,,8z4|z4G,,,8z8F,,,12|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nz4F,,,12z4_A,,,8z4|z4G,,,8z8F,,,12|z4F,,,12z4_A,,,8z4|z4G,,,8z8F,,,12|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nz4F,,,12z4_A,,,8z4|z4G,,,8z8F,,,12|z4F,,,12z4_A,,,8z4|z4G,,,8z8F,,,12|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nz4F,,,12z4_A,,,8z4|z4G,,,8z8F,,,12|z4F,,,12z4_A,,,8z4|z4G,,,8z8F,,,12|\n% Outro: 24 bars\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,16|F,,,12z4_A,,,8z8|G,,,8z8F,,,16|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,16|F,,,12z4_A,,,8z8|G,,,8z8F,,,16|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,16|F,,,12z4_A,,,8z8|G,,,8z8F,,,16|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,16|F,,,12z4_A,,,8z8|G,,,8z8F,,,16|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,16|F,,,12z4_A,,,8z8|G,,,8z8F,,,16|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,16|F,,,12z4_A,,,8z8|G,,,8z8F,,,16|]\n",
+        655906343,
+        "fixed",
+        "full",
+        300,
+        1,
+        0.95,
+        100,
+        1.2,
+        1
+      ],
+      "title": "YuE2 Generate Music",
+      "widgets_values_named": {
+        "style": "instrumental, halftime drum and bass, grime, minimal dubstep, 140 BPM, deep distorted sub bass, gritty resampled percussion, metallic textures, sparse eerie sound design, dark mechanical groove",
+        "lyrics": "[Intro]\n\n[Verse]\n\n[Verse]\n\n[Chorus]\n\n[Verse]\n\n[Bridge]\n\n[Chorus]\n\n[Bridge]\n\n[Outro]\n\n[Silent Pause]\n",
+        "abc": "X:1\nT:Two Fingers Muadeep Matrix\nM:4/4\nL:1/32\nQ:1/4=140\nV: Vocal clef=treble name=\"Vocal Melody\" snm=\"Vocal\"\nV: Ins clef=treble name=\"Ins Melody\" snm=\"Inst.\"\nK:Fm\n% Intro: 16 bars\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,12z4|F,,,12z4_A,,,8z8|G,,,8z8F,,,12z4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,12z4|F,,,12z4_A,,,8z8|G,,,8z8F,,,12z4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,12z4|F,,,12z4_A,,,8z8|G,,,8z8F,,,12z4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,12z4|F,,,12z4_A,,,8z8|G,,,8z8F,,,12z4|\n% Verse 1: 16 bars\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|F,,,8_A,,,8G,,,8F,,,8|\n% Verse 2: 16 bars\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,16z16|z16F,,,16|F,,,16z16|z16F,,,16|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,16z16|z16F,,,16|F,,,16z16|z16F,,,16|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,16z16|z16F,,,16|F,,,16z16|z16F,,,16|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,16z16|z16F,,,16|F,,,16z16|z16F,,,16|\n% Chorus 1: 24 bars\nV: Vocal\n\"Fm\"Z4|\nV: Ins\n[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\n[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\n[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\n[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\n[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\n[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|[F,,,F,,]12z4[_A,,,_A,,]8z8|[G,,,G,,]8z8[F,,,F,,]12z4|\n% Verse 3: 16 bars\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z24|F,,,12z4_A,,,8z8|G,,,8z24|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z24|F,,,12z4_A,,,8z8|G,,,8z24|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z24|F,,,12z4_A,,,8z8|G,,,8z24|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z24|F,,,12z4_A,,,8z8|G,,,8z24|\n% Bridge 1: 8 bars\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,32|z32|F,,,32|z32|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,32|z32|F,,,32|z32|\n% Chorus 2: 24 bars\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|F,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|F,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|F,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|F,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|F,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|F,,,4F,,,4F,,,4F,,,4_A,,,4_A,,,4_A,,,4_A,,,4|G,,,4G,,,4G,,,4G,,,4F,,,4F,,,4F,,,4F,,,4|\n% Bridge 2: 16 bars\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nz4F,,,12z4_A,,,8z4|z4G,,,8z8F,,,12|z4F,,,12z4_A,,,8z4|z4G,,,8z8F,,,12|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nz4F,,,12z4_A,,,8z4|z4G,,,8z8F,,,12|z4F,,,12z4_A,,,8z4|z4G,,,8z8F,,,12|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nz4F,,,12z4_A,,,8z4|z4G,,,8z8F,,,12|z4F,,,12z4_A,,,8z4|z4G,,,8z8F,,,12|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nz4F,,,12z4_A,,,8z4|z4G,,,8z8F,,,12|z4F,,,12z4_A,,,8z4|z4G,,,8z8F,,,12|\n% Outro: 24 bars\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,16|F,,,12z4_A,,,8z8|G,,,8z8F,,,16|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,16|F,,,12z4_A,,,8z8|G,,,8z8F,,,16|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,16|F,,,12z4_A,,,8z8|G,,,8z8F,,,16|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,16|F,,,12z4_A,,,8z8|G,,,8z8F,,,16|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,16|F,,,12z4_A,,,8z8|G,,,8z8F,,,16|\nV: Vocal\n\"Fm\"Z4|\nV: Ins\nF,,,12z4_A,,,8z8|G,,,8z8F,,,16|F,,,12z4_A,,,8z8|G,,,8z8F,,,16|]\n",
+        "seed": 655906343,
+        "control_after_generate": "fixed",
+        "mode": "full",
+        "max_duration": 300,
+        "temperature": 1,
+        "top_p": 0.95,
+        "top_k": 100,
+        "repetition_penalty": 1.2,
+        "cfg_scale": 1
+      }
+    },
+    {
+      "id": 8,
+      "type": "PreviewAny",
+      "pos": [
+        1120,
+        890
+      ],
+      "size": [
+        460,
+        180
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "source",
+          "name": "source",
+          "type": "*",
+          "link": 14
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [],
+      "title": "Seconds (semantic length)",
+      "widgets_values_named": {}
+    },
+    {
+      "id": 9,
+      "type": "ConditioningZeroOut",
+      "pos": [
+        1640,
+        430
+      ],
+      "size": [
+        280,
+        60
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "conditioning",
+          "name": "conditioning",
+          "type": "CONDITIONING",
+          "link": 12
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "CONDITIONING",
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            16
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "Node name for S&R": "ConditioningZeroOut"
+      },
+      "widgets_values": [],
+      "title": "Conditioning Zero Out"
+    },
+    {
+      "id": 10,
+      "type": "EmptyYuE2LatentAudio",
+      "pos": [
+        1640,
+        530
+      ],
+      "size": [
+        300,
+        110
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "seconds",
+          "name": "seconds",
+          "type": "FLOAT",
+          "link": 13,
+          "widget": {
+            "name": "seconds"
+          }
+        },
+        {
+          "localized_name": "batch_size",
+          "name": "batch_size",
+          "type": "INT",
+          "link": null,
+          "widget": {
+            "name": "batch_size"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "LATENT",
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            17
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "Node name for S&R": "EmptyYuE2LatentAudio"
+      },
+      "widgets_values": [
+        300,
+        1
+      ],
+      "title": "Empty YuE2 Latent Audio",
+      "widgets_values_named": {
+        "seconds": 300,
+        "batch_size": 1
+      }
+    },
+    {
+      "id": 11,
+      "type": "KSampler",
+      "pos": [
+        1640,
+        680
+      ],
+      "size": [
+        320,
+        262
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "model",
+          "name": "model",
+          "type": "MODEL",
+          "link": 15
+        },
+        {
+          "localized_name": "positive",
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 11
+        },
+        {
+          "localized_name": "negative",
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 16
+        },
+        {
+          "localized_name": "latent_image",
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 17
+        },
+        {
+          "localized_name": "seed",
+          "name": "seed",
+          "type": "INT",
+          "link": 20,
+          "widget": {
+            "name": "seed"
+          }
+        },
+        {
+          "localized_name": "steps",
+          "name": "steps",
+          "type": "INT",
+          "link": null,
+          "widget": {
+            "name": "steps"
+          }
+        },
+        {
+          "localized_name": "cfg",
+          "name": "cfg",
+          "type": "FLOAT",
+          "link": null,
+          "widget": {
+            "name": "cfg"
+          }
+        },
+        {
+          "localized_name": "sampler_name",
+          "name": "sampler_name",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "sampler_name"
+          }
+        },
+        {
+          "localized_name": "scheduler",
+          "name": "scheduler",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "scheduler"
+          }
+        },
+        {
+          "localized_name": "denoise",
+          "name": "denoise",
+          "type": "FLOAT",
+          "link": null,
+          "widget": {
+            "name": "denoise"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "LATENT",
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            19
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "Node name for S&R": "KSampler"
+      },
+      "widgets_values": [
+        655906343,
+        "fixed",
+        32,
+        1,
+        "dpm_2",
+        "sgm_uniform",
+        1
+      ],
+      "title": "KSampler",
+      "widgets_values_named": {
+        "seed": 655906343,
+        "control_after_generate": "fixed",
+        "steps": 32,
+        "cfg": 1,
+        "sampler_name": "dpm_2",
+        "scheduler": "sgm_uniform",
+        "denoise": 1
+      }
+    },
+    {
+      "id": 12,
+      "type": "VAEDecodeAudio",
+      "pos": [
+        2020,
+        680
+      ],
+      "size": [
+        240,
+        70
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "samples",
+          "name": "samples",
+          "type": "LATENT",
+          "link": 19
+        },
+        {
+          "localized_name": "vae",
+          "name": "vae",
+          "type": "VAE",
+          "link": 18
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "AUDIO",
+          "name": "AUDIO",
+          "type": "AUDIO",
+          "links": [
+            21,
+            22
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "Node name for S&R": "VAEDecodeAudio"
+      },
+      "widgets_values": [],
+      "title": "VAE Decode Audio"
+    },
+    {
+      "id": 13,
+      "type": "SaveAudioAdvanced",
+      "pos": [
+        2320,
+        620
+      ],
+      "size": [
+        420,
+        150
+      ],
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "audio",
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 21
+        },
+        {
+          "localized_name": "filename_prefix",
+          "name": "filename_prefix",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "filename_prefix"
+          }
+        },
+        {
+          "localized_name": "format",
+          "name": "format",
+          "type": "COMFY_DYNAMICCOMBO_V3",
+          "link": null,
+          "widget": {
+            "name": "format"
+          }
+        },
+        {
+          "localized_name": "format.quality",
+          "name": "format.quality",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "format.quality"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "audio",
+          "name": "audio",
+          "type": "AUDIO",
+          "links": []
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "Node name for S&R": "SaveAudioAdvanced"
+      },
+      "widgets_values": [
+        "audio/YuE2-abc-test",
+        "mp3",
+        "V0"
+      ],
+      "title": "Save Audio (Advanced)",
+      "widgets_values_named": {
+        "filename_prefix": "audio/YuE2-abc-test",
+        "format": "mp3",
+        "format.quality": "V0"
+      }
+    },
+    {
+      "id": 14,
+      "type": "PreviewAudio",
+      "pos": [
+        2320,
+        810
+      ],
+      "size": [
+        420,
+        120
+      ],
+      "flags": {},
+      "order": 14,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "audio",
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 22
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "audio",
+          "name": "audio",
+          "type": "AUDIO",
+          "links": []
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "Node name for S&R": "PreviewAudio"
+      },
+      "widgets_values": [],
+      "title": "Preview Audio"
+    },
+    {
+      "id": 16,
+      "type": "SaveText",
+      "pos": [
+        2320,
+        980
+      ],
+      "size": [
+        420,
+        130
+      ],
+      "flags": {},
+      "order": 15,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "text",
+          "name": "text",
+          "type": "STRING",
+          "link": 23
+        },
+        {
+          "localized_name": "filename_prefix",
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "format",
+          "name": "format",
+          "type": "COMBO",
+          "widget": {
+            "name": "format"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "text",
+          "name": "text",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "title": "Save ABC",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "Node name for S&R": "SaveText"
+      },
+      "widgets_values": [
+        "audio/YuE2-abc-test",
+        "txt"
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "audio/YuE2-abc-test",
+        "format": "txt"
+      }
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      2,
+      0,
+      "MODEL"
+    ],
+    [
+      2,
+      1,
+      1,
+      2,
+      1,
+      "CLIP"
+    ],
+    [
+      3,
+      2,
+      1,
+      7,
+      0,
+      "CLIP"
+    ],
+    [
+      4,
+      4,
+      0,
+      7,
+      1,
+      "STRING"
+    ],
+    [
+      5,
+      5,
+      0,
+      7,
+      2,
+      "STRING"
+    ],
+    [
+      6,
+      6,
+      0,
+      7,
+      3,
+      "STRING"
+    ],
+    [
+      7,
+      3,
+      0,
+      7,
+      4,
+      "INT"
+    ],
+    [
+      11,
+      7,
+      0,
+      11,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      12,
+      7,
+      0,
+      9,
+      0,
+      "CONDITIONING"
+    ],
+    [
+      13,
+      7,
+      1,
+      10,
+      0,
+      "FLOAT"
+    ],
+    [
+      14,
+      7,
+      1,
+      8,
+      0,
+      "*"
+    ],
+    [
+      15,
+      1,
+      0,
+      11,
+      0,
+      "MODEL"
+    ],
+    [
+      16,
+      9,
+      0,
+      11,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      17,
+      10,
+      0,
+      11,
+      3,
+      "LATENT"
+    ],
+    [
+      18,
+      1,
+      2,
+      12,
+      1,
+      "VAE"
+    ],
+    [
+      19,
+      11,
+      0,
+      12,
+      0,
+      "LATENT"
+    ],
+    [
+      20,
+      3,
+      0,
+      11,
+      4,
+      "INT"
+    ],
+    [
+      21,
+      12,
+      0,
+      13,
+      0,
+      "AUDIO"
+    ],
+    [
+      22,
+      12,
+      0,
+      14,
+      0,
+      "AUDIO"
+    ],
+    [
+      23,
+      6,
+      0,
+      16,
+      0,
+      "STRING"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.8,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    "frontendVersion": "1.48.7"
+  },
+  "version": 0.4
+}

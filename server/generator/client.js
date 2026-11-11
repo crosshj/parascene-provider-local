@@ -296,6 +296,44 @@ function tryParseAudioRef(outSlot) {
   return null;
 }
 
+function collectOutputText(value, found) {
+  if (!value || typeof value !== "object") return;
+  const chunks = value.text;
+  if (Array.isArray(chunks)) {
+    for (const item of chunks) {
+      if (typeof item === "string") found.push(item);
+      else if (Array.isArray(item)) {
+        for (const part of item) {
+          if (typeof part === "string") found.push(part);
+        }
+      }
+    }
+  }
+  if (value.ui && typeof value.ui === "object") collectOutputText(value.ui, found);
+}
+
+function looksLikeAbc(text) {
+  const trimmed = String(text || "").replace(/^\uFEFF/, "").trim();
+  return trimmed.startsWith("X:") && /\nK:/.test(trimmed);
+}
+
+/** Full ABC score shown by PreviewAny / SaveText, when the graph emitted one. */
+function parseOutputAbc(historyData, promptId) {
+  const root = historyData && historyData[promptId];
+  if (!root || !root.outputs || typeof root.outputs !== "object") return null;
+  let best = null;
+  for (const value of Object.values(root.outputs)) {
+    const found = [];
+    collectOutputText(value, found);
+    for (const text of found) {
+      if (!looksLikeAbc(text)) continue;
+      const trimmed = text.replace(/^\uFEFF/, "").trim();
+      if (!best || trimmed.length > best.length) best = trimmed;
+    }
+  }
+  return best;
+}
+
 function parseOutputAudio(historyData, promptId) {
   const root = historyData && historyData[promptId];
   if (!root || !root.outputs || typeof root.outputs !== "object") {
@@ -400,7 +438,10 @@ async function pollHistoryForOutput(
     }
     try {
       if (wantsAudio) {
-        return parseOutputAudio(data, promptId);
+        const ref = parseOutputAudio(data, promptId);
+        const abc = parseOutputAbc(data, promptId);
+        if (abc) ref.abc = abc;
+        return ref;
       }
       if (wantsVideo) {
         return parseOutputVideo(data, promptId);
@@ -576,7 +617,7 @@ async function _runComfyGenerationOnce(input, outDir, started, opts = {}) {
 
   fs.writeFileSync(outPath, fileBuffer);
 
-  return {
+  const result = {
     ok: true,
     file_name: fileName,
     file_path: outPath,
@@ -586,6 +627,17 @@ async function _runComfyGenerationOnce(input, outDir, started, opts = {}) {
     elapsed_ms: Date.now() - started,
     media_kind: kind,
   };
+  if (kind === "audio" && mediaRef.abc) {
+    const abcName = fileName.replace(/\.[^.]+$/, ".abc");
+    fs.writeFileSync(
+      path.join(outDir, abcName),
+      `${mediaRef.abc}\n`,
+      "utf8",
+    );
+    result.abc = mediaRef.abc;
+    result.abc_file_name = abcName;
+  }
+  return result;
 }
 
 function isComfyGoneError(err) {
@@ -660,5 +712,6 @@ module.exports = {
   interruptComfy,
   isComfyGoneError,
   parseOutputAudio,
+  parseOutputAbc,
   tryParseAudioRef,
 };

@@ -1,6 +1,7 @@
 "use strict";
 
 const {
+  parseOutputAbc,
   parseOutputAudio,
   tryParseAudioRef,
 } = require("../server/generator/client.js");
@@ -66,5 +67,20 @@ describe("Comfy audio output parsing", () => {
       subfolder: "audio/custom",
       type: "output",
     });
+  });
+
+  it("reads the ABC score that was saved with the song", () => {
+    const history = {
+      pid_3: {
+        outputs: {
+          "33:23": { text: ["29.96"] },
+          "0": { text: ["=========\nabc: X:1\nK:C\nCDEF|"] },
+          "33:42": { text: ["X:1\nT:Used\nK:Fm\nV: Vocal\nZ4|\n"] },
+        },
+      },
+    };
+    expect(parseOutputAbc(history, "pid_3")).toBe(
+      "X:1\nT:Used\nK:Fm\nV: Vocal\nZ4|",
+    );
   });
 });
